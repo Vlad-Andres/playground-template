@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Check, Clock, Play, RotateCcw, Send, X } from "lucide-react";
 import type { QuizQuestion } from "@/content/types";
 import { lectureIndex } from "@/content/registry";
-import { examQuiz } from "@/content/exam/quiz";
+import { examTraining } from "@/content/exam";
 import { Markdown } from "@/components/content/Markdown";
 import { DataTable } from "@/components/content/DataTable";
 import { Badge } from "@/components/ui/Badge";
@@ -34,7 +34,7 @@ const POOL: PoolQuestion[] = [
       question,
     })),
   ),
-  ...examQuiz.map((question) => ({
+  ...examTraining.quiz.map((question) => ({
     key: `exam:${question.id}`,
     source: MIXED_SOURCE,
     sourceLabel: "Cross-lecture",

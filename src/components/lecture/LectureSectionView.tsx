@@ -20,7 +20,7 @@ const KIND_LABEL: Record<SectionKind, string> = {
 
 /** Block kinds that can be flagged one by one; lists of objectives and exercise sheets cannot. */
 const FLAGGABLE = new Set<Block["kind"]>([
-  "prose", "info", "concepts", "formula", "code", "table", "figure", "steps", "timeline", "recall", "practice", "interactive",
+  "prose", "info", "concepts", "formula", "code", "table", "figure", "steps", "timeline", "recall", "practice", "widget",
 ]);
 
 interface LectureSectionViewProps {

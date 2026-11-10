@@ -78,15 +78,6 @@ export function BlockRenderer({ block, concepts }: BlockRendererProps) {
     case "practice":
       return <PracticeSet id={block.id} tasks={block.tasks} />;
 
-    case "interactive": {
-      const Interactive = block.component;
-      return (
-        <InteractivePanel title={block.title} description={block.description}>
-          <Interactive />
-        </InteractivePanel>
-      );
-    }
-
     case "widget":
       return <WidgetHost type={block.type} title={block.title} description={block.description} props={block.props} />;
   }
