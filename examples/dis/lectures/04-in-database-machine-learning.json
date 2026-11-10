@@ -1,0 +1,1114 @@
+{
+  "meta": {
+    "slug": "in-database-machine-learning",
+    "number": 4,
+    "title": "In-Database Machine Learning",
+    "subtitle": "Running machine learning where the data is stored",
+    "summary": "Instead of exporting data into a separate machine-learning platform, run the learning inside the database. This guest lecture shows how far plain SQL gets you: k-means and DBSCAN clustering, gradient descent written as a recursive query, automatic differentiation, matrices stored as relations, and a neural network trained entirely in SQL. What you are expected to know is the idea and its benefits; the SQL shows that it really works.",
+    "topics": [
+      "In-database ML benefits",
+      "k-means",
+      "DBSCAN",
+      "Recursive SQL",
+      "Gradient descent",
+      "Automatic differentiation",
+      "Matrices in SQL",
+      "One-hot encoding",
+      "Neural networks in SQL"
+    ],
+    "difficulty": "core",
+    "estimatedMinutes": 60,
+    "sources": [
+      {
+        "label": "In-Database Machine Learning",
+        "kind": "slides",
+        "detail": "Prof. Dr. Maximilian E. Schüle, Universität Bamberg"
+      },
+      {
+        "label": "Course description",
+        "kind": "notes",
+        "detail": "Expected knowledge: the idea of in-database ML and its benefits"
+      }
+    ],
+    "objectives": [
+      "Explain what in-database machine learning is and list its benefits over exporting data.",
+      "Run k-means by hand on a small example and state what it minimises, its strengths and weaknesses.",
+      "Read the recursive SQL query that implements k-means.",
+      "Describe DBSCAN's parameters ε and minPts and how it differs from k-means.",
+      "Derive the gradient of a squared loss and express gradient descent as a recursive SQL query.",
+      "Compare forward-mode and reverse-mode automatic differentiation on (x + y) · z.",
+      "Represent matrices relationally, one-hot encode a category, and write matrix multiplication in SQL.",
+      "Outline how a neural network is trained in SQL with forward and backward passes."
+    ],
+    "takeaways": [
+      "In-database ML runs learning where the data lives: less data movement, fresher predictions, simpler workflows, access for SQL analysts, centralised security, and the database's parallel processing.",
+      "k-means: pick k centres, assign each point to the nearest centre, move each centre to the mean of its points, repeat until nothing changes; it minimises Σ‖p − c‖² but is sensitive to outliers and needs k up front.",
+      "A recursive CTE iterates: the base case holds the initial centres or weights, the recursive step computes the next iteration from the previous one.",
+      "DBSCAN merges points closer than ε into clusters and marks clusters smaller than minPts as noise — no k needed.",
+      "Gradient descent: w ← w − γ ∇l(w); for l = (ax + b − y)², ∂l/∂a = 2(ax + b − y)x and ∂l/∂b = 2(ax + b − y).",
+      "Forward-mode autodiff needs one pass per input variable; reverse mode gets all partial derivatives in one backward pass — what backpropagation uses.",
+      "Matrices are stored as (i, j, v) relations; multiplication is a join on m.j = n.i with SUM(m.v · n.v) grouped by (m.i, n.j).",
+      "A neural network in SQL is a recursive query whose step runs the forward pass, backpropagates the error and updates both weight matrices."
+    ]
+  },
+  "concepts": [
+    {
+      "id": "in-database-ml",
+      "term": "In-database machine learning",
+      "short": "Training models and making predictions inside the database, instead of exporting the data into a separate system.",
+      "detail": "Depending on the database, it may support training, prediction, or both. The data never leaves the system that already stores, secures and parallelises it.",
+      "tags": [
+        "idea"
+      ]
+    },
+    {
+      "id": "k-means",
+      "term": "k-means",
+      "short": "Choose k centres, assign each point to the nearest one, move each centre to the mean of its cluster, repeat.",
+      "detail": "It minimises $\\sum_{c \\in C} \\sum_{p \\in cluster(c)} \\|p - c\\|^2$. Easy to implement, but sensitive to outliers, and the number of centres must be fixed in advance.",
+      "tags": [
+        "clustering"
+      ]
+    },
+    {
+      "id": "recursive-cte",
+      "term": "Recursive SQL (WITH RECURSIVE)",
+      "short": "A common table expression that refers to itself: a base case UNION ALL a step computed from the previous rows.",
+      "detail": "Iterative algorithms map onto it naturally: the base case holds the initial centres or weights, each recursive step produces iteration $i + 1$ from iteration $i$, and a condition such as `iter < 100` stops it.",
+      "tags": [
+        "SQL"
+      ]
+    },
+    {
+      "id": "dbscan",
+      "term": "DBSCAN",
+      "short": "Density-Based Spatial Clustering of Applications with Noise: clusters are dense regions, sparse points are noise.",
+      "detail": "Two parameters: the distance $\\varepsilon$ and $minPts$, the minimal number of points to form a cluster. In a simplified version every point starts as its own cluster, clusters less than $\\varepsilon$ apart are merged until nothing changes, and clusters with fewer than $minPts$ points are marked as noise.",
+      "tags": [
+        "clustering"
+      ]
+    },
+    {
+      "id": "gradient-descent",
+      "term": "Gradient descent",
+      "short": "Repeatedly step the weights against the gradient of the loss: w ← w − γ ∇l(w).",
+      "detail": "With learning rate $\\gamma$, the sequence $\\vec w_{t+1} = \\vec w_t - \\gamma \\nabla l_{X,\\vec y}(\\vec w_t)$ approaches a minimum of the loss. Computing the gradient on a random sample instead of all data is mini-batch gradient descent.",
+      "tags": [
+        "training"
+      ]
+    },
+    {
+      "id": "autodiff",
+      "term": "Automatic differentiation",
+      "short": "Compute exact derivatives of an expression by applying the chain rule to its expression tree.",
+      "detail": "**Forward mode** carries (value, derivative) pairs up the tree in one pass, but needs a separate pass per input variable. **Reverse mode** evaluates first, then propagates derivatives down from the output in one extra pass and obtains the derivative for every input at once — backpropagation.",
+      "tags": [
+        "training"
+      ]
+    },
+    {
+      "id": "relational-matrix",
+      "term": "Relational matrix representation",
+      "short": "Store a matrix as a coordinate list of (i, j, v) tuples rather than as a table with one column per matrix column.",
+      "detail": "The tabular representation (row number plus columns col₁ … colₙ) mirrors the data; the relational one has a fixed schema whatever the dimensions, so matrix algebra becomes joins and aggregates. Sparse matrices only store non-zero entries.",
+      "tags": [
+        "SQL",
+        "matrices"
+      ]
+    },
+    {
+      "id": "one-hot",
+      "term": "One-hot encoding",
+      "short": "Turn a category with n values into n columns, exactly one of which is 1.",
+      "detail": "For the Iris species, setosa becomes {1, 0, 0}, versicolor {0, 1, 0} and virginica {0, 0, 1}. In SQL a dictionary numbers the distinct species with ROW_NUMBER(), and the sparse matrix (i, rank, 1) holds the ones.",
+      "tags": [
+        "matrices"
+      ]
+    },
+    {
+      "id": "matrix-sql",
+      "term": "Matrix algebra in SQL",
+      "short": "Multiplication is a join on m.j = n.i with SUM(m.v * n.v) grouped by m.i, n.j.",
+      "detail": "Hadamard (element-wise) product joins on both indices and multiplies; transpose swaps i and j; an element-wise function such as the sigmoid $1/(1 + e^{-v})$ is a simple projection.",
+      "tags": [
+        "matrices",
+        "SQL"
+      ]
+    },
+    {
+      "id": "nn-sql",
+      "term": "Neural network in SQL",
+      "short": "A recursive query whose step does the forward pass, backpropagates the loss and updates the weight matrices.",
+      "detail": "With one hidden layer, $m(\\vec x) = sig(sig(\\vec x^T w_{xh}) w_{ho})$ and loss $(m(\\vec x) - \\vec y)^2$. The step computes activations, the deltas $\\delta_{ho}$ and $\\delta_{xh}$ via the sigmoid derivative $a(1-a)$, and updates $w_{ho}$ and $w_{xh}$ with learning rate $\\gamma$.",
+      "tags": [
+        "training"
+      ]
+    }
+  ],
+  "quiz": [
+    {
+      "id": "q-idea",
+      "prompt": "What does in-database machine learning mean?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Using machine learning to tune the database's query optimizer."
+        },
+        {
+          "id": "b",
+          "text": "Running training and/or prediction directly where the data is stored, instead of extracting it into a separate ML system."
+        },
+        {
+          "id": "c",
+          "text": "Storing trained models as BLOBs in a table."
+        },
+        {
+          "id": "d",
+          "text": "Copying the database into the memory of a Python process."
+        }
+      ],
+      "answerId": "b",
+      "explanation": "The learning moves to the data rather than the data to the learning. Depending on the database, it may support training models, making predictions, or both."
+    },
+    {
+      "id": "q-benefits",
+      "prompt": "Which of these is NOT one of the benefits of in-database ML?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Less data movement and duplicated storage."
+        },
+        {
+          "id": "b",
+          "text": "Predictions on current records instead of periodic exports."
+        },
+        {
+          "id": "c",
+          "text": "Models that are always more accurate than those trained in Python."
+        },
+        {
+          "id": "d",
+          "text": "Reuse of the database's access controls, auditing and parallel processing."
+        }
+      ],
+      "answerId": "c",
+      "explanation": "The benefits are about the workflow: less data movement, fresher predictions, simpler pipelines, access for SQL users, centralised security and efficient processing at scale. Accuracy depends on the model, not on where it runs."
+    },
+    {
+      "id": "q-kmeans-step",
+      "prompt": "With initial centres A(1,5), B(3,5) and H(12,10), cluster C₂ gets B(3,5), C(6,1), D(7,2) and E(8,1). Where does C₂ move?",
+      "options": [
+        {
+          "id": "a",
+          "text": "(6, 2.25)"
+        },
+        {
+          "id": "b",
+          "text": "(6, 2.75)"
+        },
+        {
+          "id": "c",
+          "text": "(3, 5)"
+        },
+        {
+          "id": "d",
+          "text": "(6, 1)"
+        }
+      ],
+      "answerId": "a",
+      "explanation": "The new centre is the mean of its points: $x = (3+6+7+8)/4 = 6$, $y = (5+1+2+1)/4 = 2.25$. (2.75 comes from adding the wrong y-values.)"
+    },
+    {
+      "id": "q-kmeans-cons",
+      "prompt": "Which pair are drawbacks of k-means?",
+      "options": [
+        {
+          "id": "a",
+          "text": "It is hard to implement and very slow."
+        },
+        {
+          "id": "b",
+          "text": "It ignores (is sensitive to) outliers, and the number of centres must be fixed in advance."
+        },
+        {
+          "id": "c",
+          "text": "It only works in SQL and needs labelled data."
+        },
+        {
+          "id": "d",
+          "text": "It cannot use Euclidean distance."
+        }
+      ],
+      "answerId": "b",
+      "explanation": "k-means is easy to implement and minimises the squared distance to the centres, but every point — outliers included — is forced into a cluster, and $k$ is predetermined. DBSCAN addresses both."
+    },
+    {
+      "id": "q-dbscan",
+      "prompt": "What do DBSCAN's two parameters mean?",
+      "options": [
+        {
+          "id": "a",
+          "text": "k, the number of clusters, and the number of iterations."
+        },
+        {
+          "id": "b",
+          "text": "ε, the distance under which clusters merge, and minPts, the minimal number of points to form a cluster; smaller groups are noise."
+        },
+        {
+          "id": "c",
+          "text": "The learning rate and the batch size."
+        },
+        {
+          "id": "d",
+          "text": "The number of bands and rows."
+        }
+      ],
+      "answerId": "b",
+      "explanation": "Density-based clustering finds as many clusters as the data contains: points within $\\varepsilon$ end up together, and clusters with fewer than $minPts$ points are marked as noise."
+    },
+    {
+      "id": "q-recursive",
+      "prompt": "How does a recursive SQL query express an iterative algorithm such as k-means or gradient descent?",
+      "options": [
+        {
+          "id": "a",
+          "text": "With a stored procedure that loops."
+        },
+        {
+          "id": "b",
+          "text": "The base case selects the initial state; the recursive part, joined via UNION ALL, computes iteration i + 1 from iteration i until a stop condition such as iter < 100."
+        },
+        {
+          "id": "c",
+          "text": "By running the same query 100 times from an application."
+        },
+        {
+          "id": "d",
+          "text": "It cannot — SQL has no iteration."
+        }
+      ],
+      "answerId": "b",
+      "explanation": "`WITH RECURSIVE` keeps appending the rows the recursive step produces from the previous iteration. The WHERE condition on the iteration counter makes it terminate."
+    },
+    {
+      "id": "q-gradient",
+      "prompt": "For the loss l(a, b) = (ax + b − y)², what is ∂l/∂a?",
+      "options": [
+        {
+          "id": "a",
+          "text": "2(ax + b − y)"
+        },
+        {
+          "id": "b",
+          "text": "2(ax + b − y) · x"
+        },
+        {
+          "id": "c",
+          "text": "(ax + b − y) · x"
+        },
+        {
+          "id": "d",
+          "text": "2x"
+        }
+      ],
+      "answerId": "b",
+      "explanation": "By the chain rule the outer square gives $2(ax + b - y)$ and the inner derivative with respect to $a$ is $x$. With respect to $b$ the inner derivative is 1, giving $2(ax + b - y)$."
+    },
+    {
+      "id": "q-autodiff",
+      "prompt": "Why does training neural networks use reverse-mode rather than forward-mode automatic differentiation?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Reverse mode needs no evaluation of the function."
+        },
+        {
+          "id": "b",
+          "text": "Reverse mode obtains the derivatives for every input variable in one backward pass; forward mode needs one pass per input."
+        },
+        {
+          "id": "c",
+          "text": "Forward mode gives only approximate derivatives."
+        },
+        {
+          "id": "d",
+          "text": "Reverse mode avoids the chain rule."
+        }
+      ],
+      "answerId": "b",
+      "explanation": "A network has many weights (inputs to the loss) and one output. Forward mode would repeat the pass for each weight; reverse mode evaluates once and then propagates $\\partial f / \\partial \\cdot$ down the expression tree once — backpropagation."
+    },
+    {
+      "id": "q-reverse-example",
+      "prompt": "For f(x, y, z) = (x + y) · z at x = 2, y = 3, z = 6, what are ∂f/∂x and ∂f/∂z?",
+      "options": [
+        {
+          "id": "a",
+          "text": "6 and 5"
+        },
+        {
+          "id": "b",
+          "text": "5 and 6"
+        },
+        {
+          "id": "c",
+          "text": "1 and 1"
+        },
+        {
+          "id": "d",
+          "text": "30 and 30"
+        }
+      ],
+      "answerId": "a",
+      "explanation": "Seed 1 at the root. The product sends $1 \\cdot z = 6$ to $(x + y)$ and $1 \\cdot (x + y) = 5$ to $z$. The sum passes 6 unchanged to $x$ and $y$. So $\\partial f/\\partial x = \\partial f/\\partial y = 6$ and $\\partial f/\\partial z = 5$."
+    },
+    {
+      "id": "q-matmul",
+      "prompt": "Matrices m and n are stored as (i, j, v). Which query computes their product?",
+      "options": [
+        {
+          "id": "a",
+          "text": "select m.i, m.j, m.v * n.v from m join n on m.i = n.i and m.j = n.j"
+        },
+        {
+          "id": "b",
+          "text": "select m.i, n.j, sum(m.v * n.v) from m join n on m.j = n.i group by m.i, n.j"
+        },
+        {
+          "id": "c",
+          "text": "select i as j, j as i, v from m"
+        },
+        {
+          "id": "d",
+          "text": "select m.i, n.j, max(m.v * n.v) from m, n group by m.i, n.j"
+        }
+      ],
+      "answerId": "b",
+      "explanation": "$l_{ij} = \\sum_k m_{ik} n_{kj}$: join where the column index of m meets the row index of n, multiply, and sum per result cell. Option (a) is the Hadamard product, (c) the transpose."
+    }
+  ],
+  "sections": [
+    {
+      "id": "objectives",
+      "title": "Learning objectives",
+      "kind": "objectives",
+      "blocks": [
+        {
+          "kind": "prose",
+          "md": "A second guest lecture by Prof. Dr. Maximilian E. Schüle (Universität Bamberg). What the course expects you to know is **the idea of in-database machine learning and its benefits**. The rest of the lecture shows, step by step, that SQL is enough to express real learning algorithms — read those parts for understanding, not to memorise the queries."
+        },
+        {
+          "kind": "list",
+          "variant": "objectives",
+          "items": [
+            "Explain what in-database machine learning is and list its benefits over exporting data.",
+            "Run k-means by hand on a small example and state what it minimises, its strengths and weaknesses.",
+            "Read the recursive SQL query that implements k-means.",
+            "Describe DBSCAN's parameters ε and minPts and how it differs from k-means.",
+            "Derive the gradient of a squared loss and express gradient descent as a recursive SQL query.",
+            "Compare forward-mode and reverse-mode automatic differentiation on (x + y) · z.",
+            "Represent matrices relationally, one-hot encode a category, and write matrix multiplication in SQL.",
+            "Outline how a neural network is trained in SQL with forward and backward passes."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "why",
+      "title": "Why machine learning in the database",
+      "kind": "intuition",
+      "blocks": [
+        {
+          "kind": "prose",
+          "md": "**In-database machine learning** means running machine learning directly where your data is stored, rather than extracting it into the memory of your system to run the algorithm there. Depending on the database, it may support training models, making predictions, or both."
+        },
+        {
+          "kind": "table",
+          "headers": [
+            "Benefit",
+            "Why"
+          ],
+          "rows": [
+            [
+              "Less data movement",
+              "No copying of large datasets between the database and a separate ML platform — saving transfer time and duplicated storage."
+            ],
+            [
+              "Fresher predictions",
+              "Models work with current database records, without the delay of periodic exports."
+            ],
+            [
+              "Simpler workflows",
+              "Data preparation and predictions fit into existing SQL queries, reports and applications, with fewer separate pipelines to maintain."
+            ],
+            [
+              "Easier access for analysts",
+              "People who know SQL can use machine learning without building a full Python application."
+            ],
+            [
+              "More centralised security",
+              "Keeping data in the database avoids exported copies and reuses existing access controls and auditing."
+            ],
+            [
+              "Efficient processing at scale",
+              "Supported operations use the database's parallel processing instead of pulling large amounts of data onto a single machine."
+            ]
+          ],
+          "caption": "The benefits the course expects you to know."
+        },
+        {
+          "kind": "info",
+          "variant": "insight",
+          "title": "Example",
+          "md": "An online store scores each customer's likelihood of leaving and joins those predictions directly with the customer records to produce a retention report — all inside the database, with no export, no separate pipeline and no copy of the customer data elsewhere."
+        },
+        {
+          "kind": "concepts",
+          "ids": [
+            "in-database-ml"
+          ]
+        },
+        {
+          "kind": "recall",
+          "cards": [
+            {
+              "prompt": "Define in-database machine learning.",
+              "answer": "Running machine learning (training, prediction or both) directly where the data is stored, instead of extracting it into a separate system."
+            },
+            {
+              "prompt": "List the six benefits.",
+              "answer": "Less data movement, fresher predictions, simpler workflows, easier access for SQL analysts, more centralised security, efficient processing at scale."
+            },
+            {
+              "prompt": "Give an example of in-database ML.",
+              "answer": "Scoring customers' churn likelihood and joining the predictions with customer records into a retention report, all in the database."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "k-means",
+      "title": "Clustering with k-means",
+      "kind": "playground",
+      "blocks": [
+        {
+          "kind": "prose",
+          "md": "We start with data mining. **k-means** (MacQueen 1967, Steinhaus 1957) groups points into $k$ clusters:\n\n1. select $k$ points as initial centres;\n2. assign each point to the nearest centre;\n3. compute each new centre as the middle (mean) of its cluster;\n4. repeat from step 2 until the clusters converge.\n\nThe running example has eight points: A(1, 5), B(3, 5), C(6, 1), D(7, 2), E(8, 1), F(8, 9), G(10, 8), H(12, 10), with $k = 3$ and initial centres A, B and H."
+        },
+        {
+          "kind": "widget",
+          "type": "clustering-lab",
+          "title": "k-means and DBSCAN on eight points",
+          "description": "Step through k-means from the initial centres A, B and H, or switch to DBSCAN and move ε and minPts."
+        },
+        {
+          "kind": "steps",
+          "title": "The first iteration, by hand",
+          "steps": [
+            {
+              "title": "Assign",
+              "md": "A is a centre itself → $C_1$. B, C, D and E are nearest to B → $C_2$ (e.g. C(6,1): squared distance 25 to B, 117 to H). F, G and H are nearest to H → $C_3$."
+            },
+            {
+              "title": "Recompute the centres",
+              "md": "$C_1 = (1, 5)$. $C_2 = \\left(\\frac{3+6+7+8}{4}, \\frac{5+1+2+1}{4}\\right) = (6, 2.25)$. $C_3 = \\left(\\frac{8+10+12}{3}, \\frac{9+8+10}{3}\\right) = (10, 9)$."
+            },
+            {
+              "title": "Iterate",
+              "md": "Now B is closer to $C_1$ (squared distance 4) than to $C_2$ (16.6), so it switches: $C_1 = (2, 5)$, $C_2 = (7, 1.33)$, $C_3$ stays. The next assignment changes nothing — converged."
+            }
+          ]
+        },
+        {
+          "kind": "info",
+          "variant": "note",
+          "title": "Check the arithmetic",
+          "md": "The $y$-values of B, C, D and E are 5, 1, 2 and 1, so $C_2$'s $y$ is $9/4 = 2.25$. Adding the wrong values — $(5 + 2 + 3 + 1)/4 = 2.75$ — is an easy slip."
+        },
+        {
+          "kind": "formula",
+          "tex": "cluster(c) = \\{p \\in P : \\nexists d \\in C : d \\ne c \\wedge \\|d - p\\|_2 < \\|c - p\\|_2\\} \\qquad c_{i+1} = \\frac{\\sum_{x \\in cluster(c_i)} x}{|cluster(c_i)|}",
+          "caption": "Formally: points x ∈ P ⊂ ℝⁿ, initial centres C₀ ⊂ P with |C₀| = k, Euclidean distance. A point belongs to the centre no other centre beats; each centre moves to its cluster's mean."
+        },
+        {
+          "kind": "table",
+          "headers": [
+            "k-means",
+            ""
+          ],
+          "rows": [
+            [
+              "Minimises",
+              "Σ over centres c Σ over p in cluster(c) of ‖p − c‖²"
+            ],
+            [
+              "+",
+              "Easy to implement"
+            ],
+            [
+              "−",
+              "Ignores outliers — every point is forced into some cluster"
+            ],
+            [
+              "−",
+              "The number of centres is predetermined"
+            ]
+          ],
+          "caption": "k-means: conclusion."
+        },
+        {
+          "kind": "concepts",
+          "ids": [
+            "k-means"
+          ]
+        },
+        {
+          "kind": "practice",
+          "id": "l4-kmeans",
+          "tasks": [
+            {
+              "id": "centre",
+              "prompt": "Cluster C₃ contains F(8, 9), G(10, 8) and H(12, 10). Give its new centre as (x, y).",
+              "check": {
+                "mode": "text",
+                "accept": [
+                  "(10,9)",
+                  "10,9",
+                  "(10, 9)"
+                ],
+                "placeholder": "(x, y)"
+              },
+              "solution": "$x = 30/3 = 10$, $y = 27/3 = 9$: **(10, 9)**."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "k-means-sql",
+      "title": "k-means in SQL",
+      "kind": "examples",
+      "blocks": [
+        {
+          "kind": "prose",
+          "md": "k-means is iterative, and SQL can iterate with a **recursive common table expression**. The points and the initial centres are inline tables; the recursive table `clusters(iter, cid, x, y)` starts with the initial centres (iteration 0) and adds the centres of iteration $i + 1$ computed from those of iteration $i$."
+        },
+        {
+          "kind": "code",
+          "lang": "sql",
+          "code": "with recursive points (pid, x, y) as (\n    values ('A', 1, 5), ('B', 3, 5), ('C', 6, 1), ('D', 7, 2),\n           ('E', 8, 1), ('F', 8, 9), ('G', 10, 8), ('H', 12, 10)),\n  clusters0 (cid, x, y) as (\n    values ('1', 1e0, 5e0), ('2', 3e0, 5e0), ('3', 12e0, 10e0)),\n  clusters (iter, cid, x, y) as (\n    (select 0, * from clusters0)\n    union all\n    select iter + 1, cid, avg(px), avg(py) from (\n      -- assign every point to the centre no other centre beats\n      select iter, pid, p.x as px, p.y as py, min(cid) as cid\n      from points p, clusters c\n      where not exists (\n        select * from clusters d\n        where c.iter = d.iter\n          and (d.x - p.x)^2 + (d.y - p.y)^2 < (c.x - p.x)^2 + (c.y - p.y)^2)\n      group by iter, pid, p.x, p.y)   -- never assign a point to two clusters\n    where iter < 100\n    group by cid, iter)              -- new centre = mean of the cluster\nselect * from clusters;",
+          "caption": "k-means in SQL. The NOT EXISTS subquery is the formal definition of cluster(c); min(cid) breaks ties.",
+          "run": {
+            "note": "PostgreSQL does not allow aggregates inside the recursive part of WITH RECURSIVE (Umbra, used in the lecture, does), so this version keeps the k centres of an iteration in two arrays and recomputes them in a LATERAL subquery. Same algorithm, same points.",
+            "hint": "move a starting centre (e.g. 12 → 5) or add a point to the VALUES list and rerun",
+            "code": "-- k-means, PostgreSQL version: the centres of one iteration live in arrays cx, cy\nwith recursive points (pid, x, y) as (\n    values ('A', 1, 5), ('B', 3, 5), ('C', 6, 1), ('D', 7, 2),\n           ('E', 8, 1), ('F', 8, 9), ('G', 10, 8), ('H', 12, 10)),\n  km (iter, cx, cy) as (\n    select 0, array[1, 3, 12]::float[], array[5, 5, 10]::float[]  -- initial centres\n  union all\n    select iter + 1, step.cx, step.cy\n    from km, lateral (\n      select array_agg(ax order by k) as cx, array_agg(ay order by k) as cy\n      from (\n        -- assign every point to its nearest centre k, then average per centre\n        select nearest.k, avg(p.x)::float as ax, avg(p.y)::float as ay\n        from points p,\n             lateral (select k from generate_subscripts(km.cx, 1) k\n                      order by (km.cx[k] - p.x)^2 + (km.cy[k] - p.y)^2, k\n                      limit 1) nearest\n        group by nearest.k) moved) step\n    where iter < 10)\nselect iter, cx as centre_x, cy as centre_y from km order by iter;"
+          }
+        },
+        {
+          "kind": "info",
+          "variant": "insight",
+          "title": "Where the iteration lives",
+          "md": "There is no loop: each recursive step reads only the rows of the previous iteration and appends the next ones. The `iter < 100` condition bounds the recursion, and the final `select` returns the centres of every iteration."
+        },
+        {
+          "kind": "concepts",
+          "ids": [
+            "recursive-cte"
+          ]
+        },
+        {
+          "kind": "recall",
+          "cards": [
+            {
+              "prompt": "What are the base case and the recursive step of the k-means query?",
+              "answer": "Base case: the initial centres at iteration 0. Step: assign points to the nearest centre of iteration i, then average each cluster to get the centres of iteration i + 1."
+            },
+            {
+              "prompt": "Which part of the query encodes “nearest centre”?",
+              "answer": "The NOT EXISTS subquery: no other centre d of the same iteration is closer to p than c."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "dbscan",
+      "title": "Density-based clustering: DBSCAN",
+      "kind": "concepts",
+      "blocks": [
+        {
+          "kind": "prose",
+          "md": "**DBSCAN** — Density-Based Spatial Clustering of Applications with Noise (Ester, Kriegel, Sander, Xu, KDD 1996) — has two parameters: $\\varepsilon$, a distance, and $minPts$, the minimal number of points to form a cluster. In this simplified formulation:\n\n1. every point forms a single cluster;\n2. merge clusters that are less than $\\varepsilon$ away;\n3. repeat until the clusters converge;\n4. mark every point in a cluster with fewer than $minPts$ points as **noise**.\n\nTry it on the eight points: with $\\varepsilon = 2.5$ and $minPts = 2$, the points give {A, B}, {C, D, E} and {F, G}, while H — 2.83 from G — is noise. Try it in the playground above."
+        },
+        {
+          "kind": "table",
+          "headers": [
+            "",
+            "k-means",
+            "DBSCAN"
+          ],
+          "rows": [
+            [
+              "Number of clusters",
+              "Fixed in advance (k)",
+              "Follows from the data"
+            ],
+            [
+              "Outliers",
+              "Forced into some cluster",
+              "Marked as noise"
+            ],
+            [
+              "Cluster shape",
+              "Around a centre (mean)",
+              "Any shape that is densely connected"
+            ],
+            [
+              "Parameters",
+              "k, initial centres",
+              "ε, minPts"
+            ]
+          ]
+        },
+        {
+          "kind": "concepts",
+          "ids": [
+            "dbscan"
+          ]
+        },
+        {
+          "kind": "recall",
+          "cards": [
+            {
+              "prompt": "What do ε and minPts mean in DBSCAN?",
+              "answer": "ε: the distance under which clusters merge. minPts: the minimal number of points for a cluster — smaller groups are noise."
+            },
+            {
+              "prompt": "Which two weaknesses of k-means does DBSCAN avoid?",
+              "answer": "It needs no predetermined number of clusters, and outliers become noise instead of distorting a cluster."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "gradient-descent",
+      "title": "Gradient descent with recursive SQL",
+      "kind": "examples",
+      "blocks": [
+        {
+          "kind": "prose",
+          "md": "Machine learning proper — already in SQL-92 terms — fits a **model** $m_{\\vec w}(X)$ with weights $\\vec w$ to given labels $\\vec y$ by minimising a **loss function** $l_{X,\\vec y}(\\vec w)$. Take a line and the mean squared error:"
+        },
+        {
+          "kind": "formula",
+          "tex": "m_{a,b}(x) = a \\cdot x + b \\approx y \\qquad l_{x,y}(a,b) = (a x + b - y)^2 \\qquad \\nabla l_{x,y}(a,b) = \\begin{pmatrix} 2(ax + b - y) \\cdot x \\\\ 2(ax + b - y) \\end{pmatrix}",
+          "caption": "The model, its loss, and the manually derived gradient."
+        },
+        {
+          "kind": "formula",
+          "tex": "\\vec w_{t+1} = \\vec w_t - \\gamma \\, \\nabla l_{X,\\vec y}(\\vec w_t) \\qquad \\vec w_\\infty \\approx \\lim_{t \\to \\infty} \\vec w_t",
+          "caption": "Gradient descent with learning rate γ."
+        },
+        {
+          "kind": "code",
+          "lang": "sql",
+          "code": "create table data (x float, y float);\ninsert into data ...;\n\nwith recursive gd (id, a, b) as (\n    select 0, 1::float, 1::float                      -- initial weights\n  union all\n    select id + 1,\n           a - 0.05 * avg(2 * x * (a * x + b - y)),   -- a - γ ∂l/∂a\n           b - 0.05 * avg(2 * (a * x + b - y))        -- b - γ ∂l/∂b\n    from gd, (select * from data tablesample reservoir(8)) as batch\n    where id < 5\n    group by id, a, b)\nselect * from gd order by id;",
+          "caption": "Gradient descent (mini-batch) as a recursive query: five iterations, two weights, γ = 0.05.",
+          "run": {
+            "note": "The data table is already filled (10 points near y = 2x + 1). PostgreSQL forbids aggregates in the recursive part and has no tablesample reservoir, so the gradient is averaged in a LATERAL subquery over a random BERNOULLI(80) mini-batch.",
+            "hint": "raise the iterations (id < 50) or the learning rate 0.05 and watch a and b approach 2 and 1",
+            "code": "with recursive gd (id, a, b) as (\n    select 0, 1::float, 1::float                       -- initial weights\n  union all\n    select id + 1,\n           a - 0.05 * g.da,                            -- a - γ ∂l/∂a\n           b - 0.05 * g.db                             -- b - γ ∂l/∂b\n    from gd, lateral (\n      select avg(2 * x * (a * x + b - y)) as da,\n             avg(2 * (a * x + b - y))     as db\n      from data tablesample bernoulli(80)) as g        -- random mini-batch\n    where id < 5)\nselect * from gd order by id;"
+          }
+        },
+        {
+          "kind": "info",
+          "variant": "note",
+          "title": "Mini-batch",
+          "md": "`tablesample reservoir(8)` draws a random sample of 8 rows in every iteration, so each step averages the gradient over a small batch instead of all data — cheaper steps, noisier direction. `avg` turns the per-row gradients into the batch gradient."
+        },
+        {
+          "kind": "concepts",
+          "ids": [
+            "gradient-descent"
+          ]
+        },
+        {
+          "kind": "practice",
+          "id": "l4-gradient",
+          "tasks": [
+            {
+              "id": "step",
+              "prompt": "One data point x = 1, y = 3; current weights a = 1, b = 1; γ = 0.05. What is the new value of b after one step?",
+              "check": {
+                "mode": "text",
+                "accept": [
+                  "1.1"
+                ],
+                "placeholder": "b"
+              },
+              "hint": "∂l/∂b = 2(ax + b − y).",
+              "solution": "$ax + b - y = 1 + 1 - 3 = -1$, so $\\partial l/\\partial b = -2$ and $b \\leftarrow 1 - 0.05 \\cdot (-2) = $ **1.1**. (Likewise $a \\leftarrow 1 - 0.05 \\cdot (-2) \\cdot 1 = 1.1$.)"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "autodiff",
+      "title": "Automatic differentiation",
+      "kind": "concepts",
+      "blocks": [
+        {
+          "kind": "prose",
+          "md": "Deriving gradients by hand does not scale to real models. **Automatic differentiation** applies the chain rule $\\frac{\\partial f(g(x))}{\\partial x} = \\frac{\\partial f}{\\partial g} \\cdot \\frac{\\partial g}{\\partial x}$ mechanically to the expression tree of the loss. It comes in two modes."
+        },
+        {
+          "kind": "table",
+          "headers": [
+            "Forward mode",
+            "Reverse mode"
+          ],
+          "rows": [
+            [
+              "Applies the chain rule during the forward pass: every node returns {value, derivative}",
+              "Evaluates first, then back-propagates the derivatives from the output to the inputs"
+            ],
+            [
+              "One pass only (operator overloading)",
+              "A separate, reverse pass is required"
+            ],
+            [
+              "A separate pass per independent input variable",
+              "The derivatives for all input variables in one pass"
+            ],
+            [
+              "Can lead to expression swell",
+              "What backpropagation in neural networks uses"
+            ]
+          ]
+        },
+        {
+          "kind": "steps",
+          "title": "Reverse mode on f(x, y, z) = (x + y) · z with x = 2, y = 3, z = 6",
+          "intro": "Evaluate bottom-up: $x + y = 5$, $f = 5 \\cdot 6 = 30$. Then call `derive` top-down with seed 1.",
+          "steps": [
+            {
+              "title": "Root (multiplication)",
+              "md": "`derive((x+y)·z, 1)`: a product passes seed × the *other* factor to each side — $1 \\cdot z = 6$ to $x + y$, and $1 \\cdot (x + y) = 5$ to $z$. So $\\partial f/\\partial z = 5$."
+            },
+            {
+              "title": "Sum node",
+              "md": "`derive(x+y, 6)`: a sum passes its seed unchanged to both operands."
+            },
+            {
+              "title": "Leaves",
+              "md": "`derive(x, 6)` and `derive(y, 6)`: $\\partial f/\\partial x = \\partial f/\\partial y = 6$. One backward pass produced every partial derivative."
+            }
+          ]
+        },
+        {
+          "kind": "steps",
+          "title": "Forward mode on the same expression, with respect to x",
+          "intro": "Each call `eval(expr, x)` returns the pair {value, ∂value/∂x}.",
+          "steps": [
+            {
+              "title": "Leaves",
+              "md": "`eval(x, x)` = {2, 1}; `eval(y, x)` = {3, 0}; `eval(z, x)` = {6, 0}."
+            },
+            {
+              "title": "Sum",
+              "md": "`eval(x+y, x)` = {5, 1 + 0 = 1}."
+            },
+            {
+              "title": "Product",
+              "md": "`eval((x+y)·z, x)` = {30, 1 · 6 + 5 · 0 = 6}. The result is $\\partial f/\\partial x = 6$ — but $\\partial f/\\partial y$ and $\\partial f/\\partial z$ need two more passes."
+            }
+          ]
+        },
+        {
+          "kind": "info",
+          "variant": "note",
+          "title": "Inside the database",
+          "md": "A research database system, Umbra, implements both modes in C++ on its expression trees, which is what lets a query take a lambda expression for the loss and derive its gradient automatically."
+        },
+        {
+          "kind": "concepts",
+          "ids": [
+            "autodiff"
+          ]
+        },
+        {
+          "kind": "recall",
+          "cards": [
+            {
+              "prompt": "How many passes does forward mode need for n input variables? Reverse mode?",
+              "answer": "Forward: one pass per input variable (n). Reverse: one forward evaluation plus one backward pass for all of them."
+            },
+            {
+              "prompt": "In reverse mode, what does a product node pass to each child? A sum node?",
+              "answer": "Product: the seed times the other factor. Sum: the seed unchanged."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "matrices",
+      "title": "Matrices and matrix algebra in SQL",
+      "kind": "examples",
+      "blocks": [
+        {
+          "kind": "prose",
+          "md": "Neural networks are matrix algebra, so first: **how to represent matrices in SQL?** Two options — a **tabular representation** (a row number plus one column per matrix column, as data usually arrives) or a **relational representation**, a coordinate list of $(i, j, v)$ tuples. The relational one has a fixed schema whatever the dimensions, so the tabular representation is transformed into it."
+        },
+        {
+          "kind": "code",
+          "lang": "sql",
+          "code": "-- feature matrix of the Iris data: one (i, j, v) row per measurement\ncreate table if not exists img (i int, j int, v float);\ninsert into img (select id, 1, sepal_length from iris);\ninsert into img (select id, 2, sepal_width  from iris);\ninsert into img (select id, 3, petal_length from iris);\ninsert into img (select id, 4, petal_width  from iris);",
+          "caption": "The Iris data — sepal and petal length and width of 150 flowers of three species — as a relational feature matrix.",
+          "run": {
+            "note": "The sample database has 12 Iris rows; a SELECT is added at the end so you can see the matrix.",
+            "code": "-- feature matrix of the Iris data: one (i, j, v) row per measurement\ncreate table if not exists img (i int, j int, v float);\ninsert into img (select id, 1, sepal_length from iris);\ninsert into img (select id, 2, sepal_width  from iris);\ninsert into img (select id, 3, petal_length from iris);\ninsert into img (select id, 4, petal_width  from iris);\n\nselect * from img order by i, j;"
+          }
+        },
+        {
+          "kind": "code",
+          "lang": "sql",
+          "code": "with dict as (               -- dictionary: treat species as an enumeration\n  select species, cast(row_number() over () as int) as rank\n  from (select distinct(species) from iris) oh\n)\nselect iris.row as i, dict.rank as j, 1 as v   -- sparse matrix: the 1s only\nfrom iris, dict\nwhere iris.species = dict.species;",
+          "caption": "One-hot encoding the label: setosa → {1,0,0}, versicolor → {0,1,0}, virginica → {0,0,1}. An outer join with all (i, j) pairs adds the zeros if a dense matrix is needed.",
+          "run": {
+            "hint": "drop the WHERE clause to see every (row, class) pair — the dense matrix needs a 0 for those"
+          }
+        },
+        {
+          "kind": "table",
+          "headers": [
+            "Operation",
+            "Definition",
+            "SQL on m(i, j, v) and n(i, j, v)"
+          ],
+          "rows": [
+            [
+              "Matrix multiplication",
+              "L = M · N, lᵢⱼ = Σₖ mᵢₖ · nₖⱼ",
+              "select m.i, n.j, sum(m.v * n.v) from m inner join n on m.j = n.i group by m.i, n.j"
+            ],
+            [
+              "Hadamard product",
+              "L = M ∘ N, lᵢⱼ = mᵢⱼ · nᵢⱼ",
+              "select m.i, m.j, m.v * n.v from m inner join n on m.i = n.i and m.j = n.j"
+            ],
+            [
+              "Sigmoid (element-wise)",
+              "1 / (1 + e^(−v))",
+              "select i, j, 1 / (1 + exp(-v)) from m"
+            ],
+            [
+              "Transpose",
+              "L = Mᵀ, lⱼᵢ = mᵢⱼ",
+              "select i as j, j as i, v from m"
+            ]
+          ],
+          "caption": "Matrix algebra in SQL."
+        },
+        {
+          "kind": "concepts",
+          "ids": [
+            "relational-matrix",
+            "one-hot",
+            "matrix-sql"
+          ]
+        },
+        {
+          "kind": "practice",
+          "id": "l4-matrices",
+          "tasks": [
+            {
+              "id": "hadamard",
+              "prompt": "Which join condition does the Hadamard product need, compared with matrix multiplication?",
+              "check": {
+                "mode": "open"
+              },
+              "solution": "Hadamard multiplies cells at the same position, so it joins on **both** indices, `m.i = n.i and m.j = n.j`, with no aggregation. Multiplication joins the column index of m with the row index of n, `m.j = n.i`, and sums per `(m.i, n.j)`."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "neural-network",
+      "title": "Training a neural network in SQL",
+      "kind": "examples",
+      "blocks": [
+        {
+          "kind": "prose",
+          "md": "A fully connected neural network with one hidden layer of size $h$, an output vector of probabilities $L$, and two weight matrices $w_{xh} \\in \\mathbb{R}^{|\\vec x| \\times h}$ and $w_{ho} \\in \\mathbb{R}^{h \\times |L|}$, with the sigmoid as activation:"
+        },
+        {
+          "kind": "formula",
+          "tex": "m_{w_{xh},w_{ho}}(\\vec x) = sig\\big(sig(\\vec x^T \\cdot w_{xh}) \\cdot w_{ho}\\big) \\qquad l_{w_{xh},w_{ho}}(\\vec x, \\vec y) = \\big(m_{w_{xh},w_{ho}}(\\vec x) - \\vec y\\big)^2",
+          "caption": "Forward pass and loss (Eq. 9–10). For Iris: 4 inputs, a hidden layer of 10, and 3 outputs compared with the one-hot species."
+        },
+        {
+          "kind": "steps",
+          "title": "One training step: backpropagation (Eq. 11–16)",
+          "steps": [
+            {
+              "title": "Forward pass",
+              "md": "$a_{xh} = sig(x \\cdot w_{xh})$ and $a_{ho} = sig(a_{xh} \\cdot w_{ho})$."
+            },
+            {
+              "title": "Output error",
+              "md": "$l_{ho} = 2 \\cdot (m(x) - y_{ones})$, then $\\delta_{ho} = l_{ho} \\circ sig'(a_{ho}) = l_{ho} \\circ a_{ho} \\circ (1 - a_{ho})$."
+            },
+            {
+              "title": "Update the output weights",
+              "md": "$w'_{ho} = w_{ho} - \\gamma \\cdot a_{xh}^T \\cdot \\delta_{ho}$."
+            },
+            {
+              "title": "Propagate back",
+              "md": "$l_{xh} = \\delta_{ho} \\cdot w_{ho}^T$, then $\\delta_{xh} = l_{xh} \\circ a_{xh} \\circ (1 - a_{xh})$."
+            },
+            {
+              "title": "Update the input weights",
+              "md": "$w'_{xh} = w_{xh} - \\gamma \\cdot x^T \\cdot \\delta_{xh}$."
+            }
+          ]
+        },
+        {
+          "kind": "prose",
+          "md": "In SQL the whole step is one recursive query over relational matrices: a recursive table `w(iter, id, i, j, v)` holds both weight matrices, and each step defines `a_xh`, `a_ho`, `l_ho`, `d_ho`, `l_xh`, … as CTEs built from the matrix operations above, then appends the updated weights. Alternatively, a database with array types and automatic differentiation lets the step be written as a lambda for the loss and derives the gradient itself:"
+        },
+        {
+          "kind": "code",
+          "lang": "sql",
+          "code": "with recursive gd (id, w_xh, w_ho) as (\n    select 0, array_fill(0.1::float, array[4, 10]), array_fill(0.1::float, array[10, 3])\n  union all\n    select id + 1, w_xh - 0.1 * avg(d_w_xh), w_ho - 0.1 * avg(d_w_ho)\n    from umbra.derivation(TABLE(select * from data, gd where id < 10),\n         lambda (x) ((sig(sig(x.img * x.w_xh) * x.w_ho) - one_hot)^2))\n    group by id, w_ho, w_xh)\nselect * from gd order by id;",
+          "caption": "Training a neural network when applying matrix algebra on arrays (Listing 4): the database derives d_w_xh and d_w_ho from the loss lambda.",
+          "run": false
+        },
+        {
+          "kind": "concepts",
+          "ids": [
+            "nn-sql"
+          ]
+        },
+        {
+          "kind": "recall",
+          "cards": [
+            {
+              "prompt": "What is the derivative of the sigmoid in terms of its output a?",
+              "answer": "sig′ = a · (1 − a)."
+            },
+            {
+              "prompt": "What does one recursive step of the SQL training query do?",
+              "answer": "Forward pass, compute the output and hidden deltas, and append updated weight matrices w_ho and w_xh for the next iteration."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "mistakes",
+      "title": "Common mistakes",
+      "kind": "mistakes",
+      "blocks": [
+        {
+          "kind": "info",
+          "variant": "pitfall",
+          "title": "Thinking in-database ML is about accuracy",
+          "md": "The benefits are about data movement, freshness, simpler workflows, access, security and parallel processing — not about better models."
+        },
+        {
+          "kind": "info",
+          "variant": "pitfall",
+          "title": "Averaging the wrong points in k-means",
+          "md": "A new centre is the mean of the points **currently assigned** to it — recompute the assignment first."
+        },
+        {
+          "kind": "info",
+          "variant": "pitfall",
+          "title": "Forgetting the inner derivative",
+          "md": "$\\partial (ax + b - y)^2 / \\partial a$ is $2(ax + b - y) \\cdot x$, not just $2(ax + b - y)$."
+        },
+        {
+          "kind": "info",
+          "variant": "pitfall",
+          "title": "Swapping the two autodiff modes",
+          "md": "Forward mode: derivatives travel with the values, one pass per input. Reverse mode: a backward pass from the output, all inputs at once."
+        }
+      ]
+    },
+    {
+      "id": "quiz",
+      "title": "Check your understanding",
+      "kind": "quiz",
+      "blocks": [
+        {
+          "kind": "prose",
+          "md": "Ten questions: the idea and its benefits first, then the algorithms behind them."
+        }
+      ]
+    },
+    {
+      "id": "summary",
+      "title": "Cheat sheet",
+      "kind": "summary",
+      "blocks": [
+        {
+          "kind": "list",
+          "variant": "takeaways",
+          "items": [
+            "In-database ML runs learning where the data lives: less data movement, fresher predictions, simpler workflows, access for SQL analysts, centralised security, and the database's parallel processing.",
+            "k-means: pick k centres, assign each point to the nearest centre, move each centre to the mean of its points, repeat until nothing changes; it minimises Σ‖p − c‖² but is sensitive to outliers and needs k up front.",
+            "A recursive CTE iterates: the base case holds the initial centres or weights, the recursive step computes the next iteration from the previous one.",
+            "DBSCAN merges points closer than ε into clusters and marks clusters smaller than minPts as noise — no k needed.",
+            "Gradient descent: w ← w − γ ∇l(w); for l = (ax + b − y)², ∂l/∂a = 2(ax + b − y)x and ∂l/∂b = 2(ax + b − y).",
+            "Forward-mode autodiff needs one pass per input variable; reverse mode gets all partial derivatives in one backward pass — what backpropagation uses.",
+            "Matrices are stored as (i, j, v) relations; multiplication is a join on m.j = n.i with SUM(m.v · n.v) grouped by (m.i, n.j).",
+            "A neural network in SQL is a recursive query whose step runs the forward pass, backpropagates the error and updates both weight matrices."
+          ]
+        },
+        {
+          "kind": "table",
+          "headers": [
+            "Quantity",
+            "Formula"
+          ],
+          "rows": [
+            [
+              "k-means objective",
+              "Σ_c Σ_{p ∈ cluster(c)} ‖p − c‖²"
+            ],
+            [
+              "New centre",
+              "c_{i+1} = mean of the points in cluster(c_i)"
+            ],
+            [
+              "Squared loss",
+              "l(a, b) = (ax + b − y)²"
+            ],
+            [
+              "Gradient",
+              "(2(ax + b − y)·x, 2(ax + b − y))"
+            ],
+            [
+              "Update",
+              "w ← w − γ ∇l(w)"
+            ],
+            [
+              "Sigmoid and derivative",
+              "sig(v) = 1/(1 + e^(−v)), sig′ = a(1 − a)"
+            ],
+            [
+              "Matrix product in SQL",
+              "join m.j = n.i, SUM(m.v · n.v), GROUP BY m.i, n.j"
+            ]
+          ],
+          "caption": "Everything worth memorising from this lecture."
+        }
+      ]
+    }
+  ]
+}

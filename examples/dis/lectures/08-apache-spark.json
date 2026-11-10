@@ -1,0 +1,1142 @@
+{
+  "meta": {
+    "slug": "apache-spark",
+    "number": 8,
+    "title": "Introduction to Apache Spark",
+    "subtitle": "From Hadoop to Spark: RDDs, lazy evaluation and DataFrames",
+    "summary": "Hadoop made MapReduce on commodity clusters practical, but writes every intermediate result to disk — slow for iterative and interactive work. Spark keeps data in memory, builds an execution graph and computes it lazily. This lecture covers the Hadoop ecosystem and its limits, how Spark is built and how it runs, RDDs with their transformations and actions, and the structured DataFrame and Dataset APIs with their optimized execution.",
+    "topics": [
+      "Hadoop ecosystem",
+      "Hadoop limitations",
+      "Spark architecture",
+      "RDDs",
+      "Transformations and actions",
+      "Lazy evaluation",
+      "Caching",
+      "Partitions",
+      "DataFrames",
+      "Catalyst"
+    ],
+    "difficulty": "core",
+    "estimatedMinutes": 70,
+    "sources": [
+      {
+        "label": "From Apache Hadoop to Apache Spark",
+        "kind": "slides",
+        "detail": "Yannis Velegrakis — slides 1–42"
+      },
+      {
+        "label": "Apache Spark tutorial",
+        "kind": "notes",
+        "detail": "Spark Core basics, with Learning Apache Spark with Python and Spark: The Definitive Guide as references"
+      }
+    ],
+    "objectives": [
+      "Describe Hadoop and its ecosystem, what it is not a good fit for, and its limitations.",
+      "Explain what Spark is, its components, and how a Spark application runs on a cluster.",
+      "Define an RDD and its properties, and tell transformations from actions.",
+      "Explain lazy evaluation, its drawback, and how persistence solves it.",
+      "Use common RDD transformations and actions and predict their results.",
+      "Explain what DataFrames and Datasets add over RDDs and how Spark executes structured queries.",
+      "Compare Spark with Hadoop MapReduce."
+    ],
+    "takeaways": [
+      "Hadoop = MapReduce + HDFS + an ecosystem (YARN, Hive, HBase, Pig, ZooKeeper…); it is not for low latency, many small files or arbitrary file modifications.",
+      "Hadoop is slow for iterative work: every MapReduce job reads from and writes to HDFS, with replication, serialisation and disk I/O.",
+      "Spark is a general-purpose cluster computing framework with in-memory computation, an execution graph, and APIs in Java, Scala, Python and R; it is a processing framework, not storage.",
+      "A driver program with a SparkContext talks to a cluster manager, which runs executors (with tasks and a cache) on worker nodes.",
+      "An RDD is an immutable, distributed, partitioned collection that is lazily evaluated, cacheable and fault-tolerant through its lineage.",
+      "Transformations (map, filter, flatMap, union…) return new RDDs lazily; actions (collect, count, reduce, take…) trigger the computation of the DAG.",
+      "Without persistence every action recomputes the chain; cache()/persist() keeps an RDD in memory or on disk (≥ 10× faster).",
+      "DataFrames and Datasets are distributed tables with schemas; their code goes through a logical plan, the Catalyst optimizer and a physical plan before running as RDD operations."
+    ]
+  },
+  "concepts": [
+    {
+      "id": "hadoop",
+      "term": "Apache Hadoop",
+      "short": "An open-source Java ecosystem for big data: MapReduce for computation, HDFS for storage.",
+      "detail": "HDFS is inspired by GFS, MapReduce by Google's computation model; around them sit YARN, Hive, HBase, Pig, ZooKeeper, Sqoop, Oozie, Flume and more. Supported by Yahoo!, Facebook, Twitter, IBM and Microsoft.",
+      "tags": [
+        "hadoop"
+      ]
+    },
+    {
+      "id": "hadoop-limits",
+      "term": "Hadoop limitations",
+      "short": "Small files, slow processing, latency, verbose code, no real-time and no efficient iterative processing.",
+      "detail": "Slowness comes from replication, I/O and serialisation: every iteration of an algorithm is a MapReduce job that reads from and writes to HDFS.",
+      "tags": [
+        "hadoop"
+      ]
+    },
+    {
+      "id": "spark",
+      "term": "Apache Spark",
+      "short": "An efficient, fast, general-purpose cluster computing framework with high-level APIs in Java, Scala, Python and R.",
+      "detail": "Developed from 2009 at UC Berkeley's AMPLab and open source since 2010. It builds an execution graph, computes in memory, and needs far less code than MapReduce. Spark is a processing framework, not a storage system.",
+      "tags": [
+        "spark"
+      ]
+    },
+    {
+      "id": "spark-runtime",
+      "term": "Driver, cluster manager, executors",
+      "short": "The driver program holds the SparkContext; a cluster manager assigns worker nodes; executors run tasks and cache data.",
+      "detail": "The cluster manager can be Spark's standalone scheduler, YARN or Mesos. An action makes the driver turn the DAG into stages, each executed as a series of tasks on the executors.",
+      "tags": [
+        "spark"
+      ]
+    },
+    {
+      "id": "rdd",
+      "term": "RDD",
+      "short": "Resilient Distributed Dataset: an immutable collection of records partitioned across the nodes of a cluster.",
+      "detail": "Immutable, resilient, distributed, lazily evaluated, cacheable/persistent and fault-tolerant. *Resilient* means missing or damaged partitions can be recomputed after a node failure from the chain of transformations that produced them.",
+      "tags": [
+        "rdd"
+      ]
+    },
+    {
+      "id": "transformation-action",
+      "term": "Transformations and actions",
+      "short": "Transformations return a new RDD and are lazy; actions return a value to the driver and trigger computation.",
+      "detail": "map, flatMap, filter, distinct, union, intersection, subtract and cartesian are transformations; collect, count, countByValue, take, top and reduce are actions.",
+      "tags": [
+        "rdd"
+      ]
+    },
+    {
+      "id": "lazy-evaluation",
+      "term": "Lazy evaluation and persistence",
+      "short": "Nothing is computed until an action needs a result; then the whole chain is computed from the source.",
+      "detail": "Laziness lets Spark see the whole DAG before running it, but partitions used by several actions are recomputed each time. cache()/persist() keeps an RDD in memory, on disk or both — a speed-up of at least 10×.",
+      "tags": [
+        "rdd"
+      ]
+    },
+    {
+      "id": "partitions",
+      "term": "Partitions",
+      "short": "The pieces of an RDD spread over the nodes; usually 2–4 per CPU, chosen automatically by default.",
+      "detail": "Transformations apply to every element by default; mapPartitions applies a function to a whole partition at once, and users can define their own partitioning functions.",
+      "tags": [
+        "rdd"
+      ]
+    },
+    {
+      "id": "dataframe",
+      "term": "DataFrame and Dataset",
+      "short": "Distributed, table-like, immutable collections with well-defined rows and columns and a schema.",
+      "detail": "DataFrames are ‘untyped’: types exist but are checked by Spark at runtime; a DataFrame is a Dataset of type Row. Datasets are typed at compile time and available in Scala and Java. Both are optimizable, unlike single RDD operations.",
+      "tags": [
+        "spark sql"
+      ]
+    },
+    {
+      "id": "catalyst",
+      "term": "Structured API execution",
+      "short": "Code → unresolved logical plan → optimized logical plan (Catalyst) → physical plans → best by cost model → RDD operations on the cluster.",
+      "detail": "The logical plan only represents abstract transformations; the catalog resolves tables and columns, Catalyst optimizes, a cost model picks the physical plan, and Spark generates bytecode at runtime.",
+      "tags": [
+        "spark sql"
+      ]
+    }
+  ],
+  "quiz": [
+    {
+      "id": "q-hadoop-fit",
+      "prompt": "Which workload is Hadoop NOT a good fit for?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Batch-processing a few terabyte-sized files."
+        },
+        {
+          "id": "b",
+          "text": "Low-latency access to lots of small files with multiple writers modifying them."
+        },
+        {
+          "id": "c",
+          "text": "A single-pass map-only job."
+        },
+        {
+          "id": "d",
+          "text": "Classic MapReduce aggregation."
+        }
+      ],
+      "answerId": "b",
+      "explanation": "Hadoop is built around large blocks and batch processing. Low-latency access, many small files, multiple writers and arbitrary file modifications are what it is not good at."
+    },
+    {
+      "id": "q-iterative",
+      "prompt": "Why is Hadoop MapReduce slow for iterative algorithms such as most machine learning?",
+      "options": [
+        {
+          "id": "a",
+          "text": "It cannot run more than one job."
+        },
+        {
+          "id": "b",
+          "text": "Each iteration is a separate job that reads its input from and writes its output to HDFS — replication, serialisation and disk I/O every time."
+        },
+        {
+          "id": "c",
+          "text": "Its map functions are interpreted."
+        },
+        {
+          "id": "d",
+          "text": "It does not support reduce."
+        }
+      ],
+      "answerId": "b",
+      "explanation": "Data sharing between iterations goes through HDFS. Spark keeps the intermediate data in memory between iterations instead."
+    },
+    {
+      "id": "q-benchmark",
+      "prompt": "In the Daytona GraySort benchmark (sort 100 TB), how did Spark's 2014 record compare to Hadoop's 2013 record?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Same time, same machines."
+        },
+        {
+          "id": "b",
+          "text": "23 minutes on 207 machines versus 72 minutes on 2100 machines."
+        },
+        {
+          "id": "c",
+          "text": "Hadoop was faster."
+        },
+        {
+          "id": "d",
+          "text": "Spark could not sort on disk."
+        }
+      ],
+      "answerId": "b",
+      "explanation": "Roughly 3× faster with a tenth of the machines — on disk. Spark also sorted 1 PB in 4 hours."
+    },
+    {
+      "id": "q-rdd",
+      "prompt": "Which property does NOT describe an RDD?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Immutable"
+        },
+        {
+          "id": "b",
+          "text": "Lazily evaluated"
+        },
+        {
+          "id": "c",
+          "text": "Updated in place by transformations"
+        },
+        {
+          "id": "d",
+          "text": "Fault-tolerant"
+        }
+      ],
+      "answerId": "c",
+      "explanation": "RDDs are immutable: a transformation returns a pointer to a new RDD and never changes the old one. That immutability is what makes recomputing lost partitions from the lineage safe."
+    },
+    {
+      "id": "q-lazy",
+      "prompt": "x = rdd.map(f).map(g) — what happens when this line runs?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Both maps run immediately on the cluster."
+        },
+        {
+          "id": "b",
+          "text": "Nothing is computed; x records the transformations. Computation starts from rdd when an action such as x.reduce(…) runs."
+        },
+        {
+          "id": "c",
+          "text": "Only the first map runs."
+        },
+        {
+          "id": "d",
+          "text": "The data is collected to the driver."
+        }
+      ],
+      "answerId": "b",
+      "explanation": "Transformations are lazy. print(x.reduce(…)) starts the computation from rdd; a later print(x.map(…).count()) starts it from rdd again."
+    },
+    {
+      "id": "q-persist",
+      "prompt": "Two actions use the same expensive RDD. What is the drawback of lazy evaluation here, and the fix?",
+      "options": [
+        {
+          "id": "a",
+          "text": "None — Spark remembers every result automatically."
+        },
+        {
+          "id": "b",
+          "text": "Its partitions are computed twice; persist (cache) the RDD in memory or on disk."
+        },
+        {
+          "id": "c",
+          "text": "The second action fails."
+        },
+        {
+          "id": "d",
+          "text": "Use a reduce instead of a map."
+        }
+      ],
+      "answerId": "b",
+      "explanation": "Many partitions get computed multiple times, lengthening execution. RDD persistence keeps them across operations, at different levels (memory, disk, mixed), for at least a 10× speed-up."
+    },
+    {
+      "id": "q-flatmap",
+      "prompt": "rdd1 = {\"coffee panda\", \"happy panda\", \"happiest panda party\"}. What does rdd1.flatMap(tokenize) return?",
+      "options": [
+        {
+          "id": "a",
+          "text": "[[\"coffee\",\"panda\"], [\"happy\",\"panda\"], [\"happiest\",\"panda\",\"party\"]]"
+        },
+        {
+          "id": "b",
+          "text": "{\"coffee\", \"panda\", \"happy\", \"panda\", \"happiest\", \"panda\", \"party\"}"
+        },
+        {
+          "id": "c",
+          "text": "{\"coffee\", \"panda\", \"happy\", \"happiest\", \"party\"}"
+        },
+        {
+          "id": "d",
+          "text": "3"
+        }
+      ],
+      "answerId": "b",
+      "explanation": "map(tokenize) gives one list per element (option a); flatMap flattens the lists into one RDD of words, duplicates included."
+    },
+    {
+      "id": "q-actions",
+      "prompt": "For an RDD containing {1, 2, 3, 3}, what do count() and reduce((x, y) => x + y) return?",
+      "options": [
+        {
+          "id": "a",
+          "text": "3 and 6"
+        },
+        {
+          "id": "b",
+          "text": "4 and 9"
+        },
+        {
+          "id": "c",
+          "text": "4 and 6"
+        },
+        {
+          "id": "d",
+          "text": "{1, 2, 3} and 9"
+        }
+      ],
+      "answerId": "b",
+      "explanation": "count() counts all four elements; reduce sums them to 9. countByValue() would give {(1, 1), (2, 1), (3, 2)}, take(2) {1, 2} and top(2) {3, 3}."
+    },
+    {
+      "id": "q-dataframe",
+      "prompt": "What does a DataFrame give you that an RDD does not?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Mutability."
+        },
+        {
+          "id": "b",
+          "text": "A schema of named, typed columns, so Spark knows what you want and can optimize the plan."
+        },
+        {
+          "id": "c",
+          "text": "Storage on disk."
+        },
+        {
+          "id": "d",
+          "text": "Execution without a cluster."
+        }
+      ],
+      "answerId": "b",
+      "explanation": "RDD operations are imperative — map and reduce specify *how*, not *what*, and a single RDD operation cannot be optimized. Structure limits what you can express but enables optimization."
+    },
+    {
+      "id": "q-execution",
+      "prompt": "In which order does Spark execute DataFrame, Dataset or SQL code?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Physical plan → logical plan → code."
+        },
+        {
+          "id": "b",
+          "text": "Code → logical plan (optimized by Catalyst) → physical plan chosen by a cost model → executed as RDD manipulations on the cluster."
+        },
+        {
+          "id": "c",
+          "text": "Code is compiled straight to MapReduce jobs."
+        },
+        {
+          "id": "d",
+          "text": "Code → RDD → SQL."
+        }
+      ],
+      "answerId": "b",
+      "explanation": "Valid code becomes an unresolved logical plan, which the catalog resolves and Catalyst optimizes; Spark generates candidate physical plans, picks one by cost, and runs it over RDDs."
+    }
+  ],
+  "sections": [
+    {
+      "id": "objectives",
+      "title": "Learning objectives",
+      "kind": "objectives",
+      "blocks": [
+        {
+          "kind": "prose",
+          "md": "This lecture is a first glimpse of Apache Spark — its basic principles, how it was created, how it differs from Hadoop MapReduce and what it offers. Expected knowledge: **Spark vs Hadoop** (the difference), **how Spark operates**, **what RDDs are**, **what DataFrames are**, and how they are used. The books (*Learning Apache Spark with Python*, *Spark: The Definitive Guide*, the Spark tutorial) are the main references for the labs and the project."
+        },
+        {
+          "kind": "list",
+          "variant": "objectives",
+          "items": [
+            "Describe Hadoop and its ecosystem, what it is not a good fit for, and its limitations.",
+            "Explain what Spark is, its components, and how a Spark application runs on a cluster.",
+            "Define an RDD and its properties, and tell transformations from actions.",
+            "Explain lazy evaluation, its drawback, and how persistence solves it.",
+            "Use common RDD transformations and actions and predict their results.",
+            "Explain what DataFrames and Datasets add over RDDs and how Spark executes structured queries.",
+            "Compare Spark with Hadoop MapReduce."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "hadoop",
+      "title": "Apache Hadoop and its limits",
+      "kind": "intuition",
+      "blocks": [
+        {
+          "kind": "timeline",
+          "items": [
+            {
+              "label": "1970",
+              "title": "SQL",
+              "md": "Relational databases."
+            },
+            {
+              "label": "~2000",
+              "title": "The big-data era (batch)",
+              "md": "MapReduce by Google, 2004."
+            },
+            {
+              "label": "~2010",
+              "title": "The fast-data era (streaming)",
+              "md": "Apache Kafka 2011, Apache Spark 2014, Apache Flink 2015."
+            }
+          ]
+        },
+        {
+          "kind": "prose",
+          "md": "**Apache Hadoop** is an ecosystem of tools for processing big data: an open-source project of the Apache group, a distributed framework written in Java. It has Google's MapReduce computation technology, **HDFS** (the Hadoop Distributed File System, inspired by GFS), and a framework for distributed computation in clusters — supported by Yahoo!, Facebook, Twitter, IBM and Microsoft."
+        },
+        {
+          "kind": "table",
+          "headers": [
+            "Technology",
+            "Description"
+          ],
+          "rows": [
+            [
+              "MapReduce",
+              "Distributed computation framework (data-processing model and execution environment)"
+            ],
+            [
+              "HDFS",
+              "Distributed file system"
+            ],
+            [
+              "HBase",
+              "Distributed, column-oriented database"
+            ],
+            [
+              "Hive",
+              "Distributed data warehouse (SQL queries)"
+            ],
+            [
+              "Pig",
+              "Higher-level data-flow language and parallel execution framework"
+            ],
+            [
+              "ZooKeeper",
+              "Distributed coordination service"
+            ],
+            [
+              "Avro",
+              "Data serialisation system (RPC and persistent data storage)"
+            ],
+            [
+              "Sqoop",
+              "Bulk data transfer between structured data stores (e.g. an RDBMS) and HDFS"
+            ],
+            [
+              "Oozie",
+              "Complex job workflow service"
+            ],
+            [
+              "YARN",
+              "Yet Another Resource Negotiator — resource management (MapReduce v2)"
+            ],
+            [
+              "Flume, Mahout, Ambari",
+              "Log collection, machine learning, cluster provisioning and monitoring"
+            ]
+          ],
+          "caption": "The Apache Hadoop ecosystem."
+        },
+        {
+          "kind": "prose",
+          "md": "Hadoop is **not a good fit** for low-latency data access, lots of small files, or multiple writers with arbitrary file modifications. Its large **block** abstraction is what it is good at: a file can be larger than any single disk in the network, the storage subsystem is simplified (metadata bookkeeping), and replication for fault tolerance and availability is easy (Lecture 9 covers HDFS blocks and replication in detail). A job goes **from HDFS to HDFS**: input splits are mapped, sorted, copied and merged to reducers, and each output part is written back to HDFS with replication.\n\nOf the use cases, Hadoop handles **map-only** and **classic MapReduce** jobs well, and does **not** handle **iterative** jobs, point-to-point graph computations, streaming, or maps that communicate through shared memory."
+        },
+        {
+          "kind": "table",
+          "headers": [
+            "Hadoop limitation"
+          ],
+          "rows": [
+            [
+              "Issue with small files"
+            ],
+            [
+              "Slow processing speed — due to replication, I/O operations and serialisation"
+            ],
+            [
+              "Latency"
+            ],
+            [
+              "Lengthy lines of code"
+            ],
+            [
+              "No real-time processing"
+            ],
+            [
+              "No iterative processing — data must be written to disk at each iteration"
+            ],
+            [
+              "Security"
+            ]
+          ]
+        },
+        {
+          "kind": "concepts",
+          "ids": [
+            "hadoop",
+            "hadoop-limits"
+          ]
+        },
+        {
+          "kind": "recall",
+          "cards": [
+            {
+              "prompt": "What are the two core parts of Hadoop?",
+              "answer": "MapReduce (distributed computation) and HDFS (distributed file system, inspired by GFS)."
+            },
+            {
+              "prompt": "Name three things Hadoop is not a good fit for.",
+              "answer": "Low-latency access, lots of small files, multiple writers / arbitrary file modifications (also real-time and iterative processing)."
+            },
+            {
+              "prompt": "Why is Hadoop slow?",
+              "answer": "Replication, I/O operations and serialisation — every job reads from and writes to HDFS."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "spark",
+      "title": "Apache Spark: what it is and how it runs",
+      "kind": "concepts",
+      "blocks": [
+        {
+          "kind": "info",
+          "variant": "insight",
+          "title": "“Efficient, fast, general-purpose cluster computing framework with high-level APIs in Java, Scala, Python, and R”",
+          "md": "Originally developed in 2009 at UC Berkeley's AMPLab and open source since 2010. Spark creates an **execution graph**, enables **in-memory computation**, and needs **way less code** to write."
+        },
+        {
+          "kind": "prose",
+          "md": "**How much faster?** The Daytona GraySort benchmark sorts 100 TB in a distributed, parallel way. Hadoop's 2013 record: **72 minutes on 2100 machines**. Spark's 2014 record: **23 minutes on 207 machines** — on disk — and Spark also sorted 1 PB in 4 hours."
+        },
+        {
+          "kind": "table",
+          "headers": [
+            "Layer",
+            "Components"
+          ],
+          "rows": [
+            [
+              "Libraries",
+              "Spark SQL (structured data), Spark Streaming (real time), MLlib (machine learning), GraphX (graph processing)"
+            ],
+            [
+              "Engine",
+              "Spark Core — the RDD API, with DataFrames / SQL / Datasets APIs on top"
+            ],
+            [
+              "Cluster managers",
+              "Standalone scheduler, YARN, Mesos (and Kubernetes / Docker deployments)"
+            ],
+            [
+              "Data sources",
+              "HDFS, HBase, Cassandra, MongoDB, MySQL, PostgreSQL, Elasticsearch, JSON, Parquet, Kafka, S3…"
+            ]
+          ],
+          "caption": "The Apache Spark stack and ecosystem."
+        },
+        {
+          "kind": "steps",
+          "title": "How a Spark application runs",
+          "steps": [
+            {
+              "title": "Driver program",
+              "md": "Your program runs in the driver, which holds the **SparkContext** — the entry point to the cluster."
+            },
+            {
+              "title": "Cluster manager",
+              "md": "The SparkContext asks the cluster manager (standalone, YARN or Mesos) for resources on worker nodes."
+            },
+            {
+              "title": "Executors",
+              "md": "Each worker node runs an **executor** that executes **tasks** and keeps a **cache** of data in memory."
+            },
+            {
+              "title": "Actions trigger jobs",
+              "md": "When an action runs, the driver turns the DAG of operations into **stages**, and each stage is executed as a series of **tasks** — the fundamental unit of work — on the executors."
+            }
+          ]
+        },
+        {
+          "kind": "info",
+          "variant": "note",
+          "title": "Installing Spark on a cluster",
+          "md": "Download and unpack a version from the Spark website, copy it to all nodes, list the worker IPs in `spark/conf/slaves`, put the master IP and other settings in `spark/conf/spark-defaults.conf`, and start everything with `spark/sbin/start-all.sh`. The folders: `bin` (shell scripts), `conf`, `data` and `examples`, `jars` (libraries), `kubernetes`, `python`, `R`, `sbin` (start/stop scripts), `yarn`."
+        },
+        {
+          "kind": "concepts",
+          "ids": [
+            "spark",
+            "spark-runtime"
+          ]
+        },
+        {
+          "kind": "recall",
+          "cards": [
+            {
+              "prompt": "Name the four libraries on top of Spark Core.",
+              "answer": "Spark SQL, Spark Streaming, MLlib, GraphX."
+            },
+            {
+              "prompt": "Which components run a Spark application?",
+              "answer": "A driver program with a SparkContext, a cluster manager (standalone, YARN, Mesos), and executors on worker nodes that run tasks and cache data."
+            },
+            {
+              "prompt": "Sort benchmark: Hadoop 2013 vs Spark 2014?",
+              "answer": "100 TB: Hadoop 72 min on 2100 machines; Spark 23 min on 207 machines."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rdds",
+      "title": "RDDs: transformations, actions, lazy evaluation",
+      "kind": "playground",
+      "blocks": [
+        {
+          "kind": "prose",
+          "md": "Spark Core's abstraction is the **RDD — Resilient Distributed Dataset**: a distributed collection of objects that can be cached in memory across cluster nodes. An RDD is:\n\n- **immutable** — operations create new RDDs, never change one;\n- **resilient** and **fault-tolerant** — missing or damaged partitions can be recomputed after node failures;\n- **distributed** — its data resides on multiple nodes;\n- **lazily evaluated** — nothing is computed until it is needed;\n- **cacheable / persistent** — it can be kept in memory or on disk."
+        },
+        {
+          "kind": "table",
+          "headers": [
+            "Transformations",
+            "Actions"
+          ],
+          "rows": [
+            [
+              "Create a new dataset from an existing one (map is a transformation)",
+              "Return a value to the driver program after running a computation (reduce is an action)"
+            ],
+            [
+              "Return pointers to a new RDD",
+              "Result in a DAG of operations, compiled into stages of tasks"
+            ],
+            [
+              "Lazy: not computed immediately",
+              "Trigger the computation"
+            ],
+            [
+              "Recomputed when actions run on them — unless persisted in memory or disk",
+              ""
+            ]
+          ],
+          "caption": "Lazy evaluation follows from the dependency chain of RDDs; the DAG lets Spark run complex operations consistently."
+        },
+        {
+          "kind": "code",
+          "lang": "python",
+          "code": "x = rdd.map(f).map(g)        # no computation\nprint(x.reduce(h))           # the computation starts from rdd\nprint(x.map(k).count())      # the computation starts from rdd — again",
+          "caption": "Lazy evaluation in action."
+        },
+        {
+          "kind": "info",
+          "variant": "warning",
+          "title": "The drawback of lazy evaluation — and the fix",
+          "md": "**Drawbacks:** many partitions are computed multiple times, so execution takes longer. **Solution:** RDD persistence — caching RDDs in memory across operations, with a significant speed-up (at least 10×) and different levels of persistence: main memory, local disk, or mixed (`rdd.cache()`, `rdd.persist(level)`)."
+        },
+        {
+          "kind": "widget",
+          "type": "lazy-evaluation-lab",
+          "title": "Lazy evaluation and caching",
+          "description": "Define three RDDs, then run actions and count how often each RDD is computed — with and without cache()."
+        },
+        {
+          "kind": "concepts",
+          "ids": [
+            "rdd",
+            "transformation-action",
+            "lazy-evaluation"
+          ]
+        },
+        {
+          "kind": "recall",
+          "cards": [
+            {
+              "prompt": "What does RDD stand for, and list its properties.",
+              "answer": "Resilient Distributed Dataset: immutable, resilient, distributed, lazily evaluated, cacheable/persistent, fault-tolerant."
+            },
+            {
+              "prompt": "Transformation or action: map, filter, count, collect, flatMap, reduce?",
+              "answer": "Transformations: map, filter, flatMap. Actions: count, collect, reduce."
+            },
+            {
+              "prompt": "How does Spark recover a lost partition?",
+              "answer": "It recomputes it from the chain of transformations (lineage) that produced it — RDDs are immutable, so this is safe."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rdd-operations",
+      "title": "Working with RDDs",
+      "kind": "examples",
+      "blocks": [
+        {
+          "kind": "table",
+          "headers": [
+            "Transformation",
+            "Input",
+            "Result"
+          ],
+          "rows": [
+            [
+              "map(x => x * x)",
+              "{1, 2, 3, 4}",
+              "{1, 4, 9, 16}"
+            ],
+            [
+              "filter(x => x != 1)",
+              "{1, 2, 3, 4}",
+              "{2, 3, 4}"
+            ],
+            [
+              "map(tokenize)",
+              "{“coffee panda”, “happy panda”, “happiest panda party”}",
+              "[[“coffee”, “panda”], [“happy”, “panda”], [“happiest”, “panda”, “party”]]"
+            ],
+            [
+              "flatMap(tokenize)",
+              "same",
+              "{“coffee”, “panda”, “happy”, “panda”, “happiest”, “panda”, “party”}"
+            ],
+            [
+              "RDD1.distinct()",
+              "RDD1 = {coffee, coffee, panda, monkey, tea}",
+              "{coffee, panda, monkey, tea}"
+            ],
+            [
+              "RDD1.union(RDD2)",
+              "RDD2 = {coffee, monkey, kitty}",
+              "{coffee, coffee, coffee, panda, monkey, monkey, tea, kitty}"
+            ],
+            [
+              "RDD1.intersection(RDD2)",
+              "",
+              "{coffee, monkey}"
+            ],
+            [
+              "RDD1.subtract(RDD2)",
+              "",
+              "{panda, tea}"
+            ],
+            [
+              "users.cartesian(venues)",
+              "{User(1), User(2), User(3)} × {Betabrand, Asha Tea House, Ritual}",
+              "all 9 (user, venue) pairs"
+            ]
+          ],
+          "caption": "Common transformations: map and filter, map vs flatMap, and “list-like” set operations."
+        },
+        {
+          "kind": "table",
+          "headers": [
+            "Action",
+            "Purpose",
+            "On {1, 2, 3, 3}"
+          ],
+          "rows": [
+            [
+              "collect()",
+              "Return all elements",
+              "{1, 2, 3, 3}"
+            ],
+            [
+              "count()",
+              "Count all elements",
+              "4"
+            ],
+            [
+              "countByValue()",
+              "Count elements by value",
+              "{(1, 1), (2, 1), (3, 2)}"
+            ],
+            [
+              "take(2)",
+              "Return num elements",
+              "{1, 2}"
+            ],
+            [
+              "top(2)",
+              "Return the top N values",
+              "{3, 3}"
+            ],
+            [
+              "reduce((x, y) => x + y)",
+              "Reduce",
+              "9"
+            ]
+          ],
+          "caption": "Actions."
+        },
+        {
+          "kind": "prose",
+          "md": "**Loading data into RDDs**: *parallelized collections* from existing collections in the driver program (variables, lists, sets), or *external datasets* — S3, HDFS, Cassandra, MongoDB, MySQL, PostgreSQL and others.\n\n**Partitions**: RDDs are partitioned across nodes; the number of partitions matters — usually **2–4 per CPU**, chosen automatically by default. Transformations apply to the elements of the RDD by default, but you can also apply them per partition (`map` vs `mapPartitions`) and define your own partitioning functions.\n\n**Why memory matters**: in Hadoop MapReduce, data sharing between iterations goes through HDFS — read, iterate, write, read again — which is slow due to replication, serialisation and disk I/O. Spark passes the data between iterations in memory."
+        },
+        {
+          "kind": "code",
+          "lang": "python",
+          "code": "# WordCount in 3 lines of Spark (vs 50+ lines of Java MapReduce)\nf = sc.textFile(input_path)\nw = f.flatMap(lambda line: line.split(\" \")).map(lambda word: (word, 1)).cache()\nw.reduceByKey(lambda a, b: a + b).saveAsTextFile(output_path)\n\n# Average per key — a long Hadoop program, a short Spark one\ndata.map(lambda x: (x[0], (x[1], 1))) \\\n    .reduceByKey(lambda a, b: (a[0] + b[0], a[1] + b[1])) \\\n    .map(lambda kv: (kv[0], kv[1][0] / kv[1][1])) \\\n    .collect()",
+          "caption": "Write less code: word count and a per-key average, each in a few lines of Python."
+        },
+        {
+          "kind": "practice",
+          "id": "l8-rdds",
+          "tasks": [
+            {
+              "id": "count-by-value",
+              "prompt": "What does countByValue() return for the RDD {a, b, a, c, a}? Write it as pairs.",
+              "check": {
+                "mode": "text",
+                "accept": [
+                  "(a,3),(b,1),(c,1)",
+                  "{(a,3),(b,1),(c,1)}",
+                  "{(a, 3), (b, 1), (c, 1)}"
+                ],
+                "placeholder": "(a, 3), …"
+              },
+              "solution": "**{(a, 3), (b, 1), (c, 1)}**."
+            },
+            {
+              "id": "filter-map",
+              "prompt": "rdd = {1, 2, 3, 4}. What does rdd.filter(lambda x: x % 2 == 0).map(lambda x: x * 10).collect() return?",
+              "check": {
+                "mode": "text",
+                "accept": [
+                  "[20,40]",
+                  "{20,40}",
+                  "20,40"
+                ],
+                "placeholder": "[…]"
+              },
+              "solution": "Keep 2 and 4, multiply by 10: **[20, 40]**. Only collect() triggered the computation."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "dataframes",
+      "title": "Spark SQL: DataFrames and Datasets",
+      "kind": "concepts",
+      "blocks": [
+        {
+          "kind": "prose",
+          "md": "**Why structured?** Many datasets have a fixed structure — JSON, CSV, databases. RDDs offer an *imperative* API: map and reduce specify **how**, but not **what**. A single RDD operation such as `exampleRDD.map(lambda x: x * x)` cannot be optimized, and the order of operations matters — `RDD1.join(RDD2).filter(…)` joins everything before filtering."
+        },
+        {
+          "kind": "prose",
+          "md": "Spark SQL offers two structured collections, **DataFrames** and **Datasets**: distributed, table-like collections with well-defined rows and columns, immutable, with lazily evaluated plans — conceptually like RDDs, but more complex by choice, and **optimizable**.\n\n- A **column** has a simple type (integer, string, custom) or a complex type (array, map); it can contain nulls and be transformed. Columns are just **expressions**: `expr(\"someCol - 5\")` is the same as `col(\"someCol\") - 5`, and both compile to the same logical plan.\n- A **row** is a record of data, of type `Row`, from SQL, RDDs, other sources, or created manually.\n- A **schema** names and types each column — a `StructType` of `StructField(name, dataType, nullable)` entries such as `ByteType`, `IntegerType`, `StringType`, `TimestampType`, `ArrayType`, `MapType`."
+        },
+        {
+          "kind": "table",
+          "headers": [
+            "DataFrame",
+            "Dataset"
+          ],
+          "rows": [
+            [
+              "“Untyped”: there is a type, maintained by Spark and checked at runtime",
+              "Typed: types must conform at compile time"
+            ],
+            [
+              "A DataFrame is simply a Dataset of type Row: records with columns, described by a schema",
+              "Available in JVM-based languages only: Scala and Java"
+            ],
+            [
+              "Partitioned across machines, like an RDD",
+              "Partitioned across machines, like an RDD"
+            ]
+          ]
+        },
+        {
+          "kind": "steps",
+          "title": "Structured API execution",
+          "steps": [
+            {
+              "title": "Write DataFrame / Dataset / SQL code",
+              "md": "All three APIs end up in the same pipeline."
+            },
+            {
+              "title": "Logical plan",
+              "md": "If the code is valid, Spark converts it to an **unresolved logical plan** — abstract transformations, without executors or drivers. The **catalog** resolves the tables and columns it refers to."
+            },
+            {
+              "title": "Optimize",
+              "md": "The **Catalyst optimizer** turns the resolved plan into an optimized logical plan."
+            },
+            {
+              "title": "Physical plan",
+              "md": "Spark generates several **physical plans** and picks the best through a **cost model**, checking for optimizations along the way."
+            },
+            {
+              "title": "Execute",
+              "md": "The physical plan runs as **RDD manipulations** on the cluster; Spark generates native Java bytecode at runtime that can remove whole tasks or stages, and returns the result."
+            }
+          ]
+        },
+        {
+          "kind": "code",
+          "lang": "python",
+          "code": "df = spark.read.format(\"json\").load(\"/mnt/defg/flight-data/json/2015-summary.json\")\ndf.printSchema()\ndf.createOrReplaceTempView(\"dfTable\")     # now also queryable with spark.sql(...)\ndf.select(\"DEST_COUNTRY_NAME\").where(df[\"count\"] > 10).show()",
+          "caption": "Creating and querying a DataFrame (the flight-data example from Spark: The Definitive Guide)."
+        },
+        {
+          "kind": "concepts",
+          "ids": [
+            "dataframe",
+            "catalyst",
+            "partitions"
+          ]
+        },
+        {
+          "kind": "recall",
+          "cards": [
+            {
+              "prompt": "Why can't Spark optimize a sequence of RDD operations well?",
+              "answer": "RDD operations are imperative (how, not what) and opaque functions; Spark cannot see inside them, so the given order is executed as is."
+            },
+            {
+              "prompt": "DataFrame vs Dataset?",
+              "answer": "DataFrame: untyped (types checked at runtime), a Dataset of Row. Dataset: typed at compile time, Scala and Java only."
+            },
+            {
+              "prompt": "List the stages of structured API execution.",
+              "answer": "Code → unresolved logical plan → (catalog) resolved → Catalyst-optimized logical plan → physical plans → best by cost model → executed as RDDs."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "spark-vs-hadoop",
+      "title": "Spark versus Hadoop MapReduce",
+      "kind": "concepts",
+      "blocks": [
+        {
+          "kind": "table",
+          "headers": [
+            "",
+            "Hadoop MapReduce",
+            "Spark"
+          ],
+          "rows": [
+            [
+              "What it is",
+              "Computation model + HDFS storage + ecosystem",
+              "A processing framework, not a storage system (uses HDFS, S3, Cassandra…)"
+            ],
+            [
+              "Intermediate data",
+              "Written to and read from HDFS between jobs",
+              "Kept in memory (cacheable), spilled to disk if needed"
+            ],
+            [
+              "Programming model",
+              "Map and reduce only; long Java programs",
+              "Many transformations and actions in Java, Scala, Python, R; a few lines"
+            ],
+            [
+              "Execution",
+              "One job at a time, eagerly",
+              "Lazy: a DAG of stages and tasks built when an action runs"
+            ],
+            [
+              "Iterative algorithms (ML)",
+              "One MapReduce job per iteration, through HDFS",
+              "Iterations share data in memory"
+            ],
+            [
+              "Interactive / streaming",
+              "No real-time processing",
+              "Spark Streaming, interactive shells"
+            ],
+            [
+              "Speed",
+              "100 TB sort: 72 min on 2100 machines",
+              "100 TB sort: 23 min on 207 machines"
+            ],
+            [
+              "Fault tolerance",
+              "Re-run failed tasks; data replicated in HDFS",
+              "Recompute lost RDD partitions from lineage"
+            ]
+          ]
+        },
+        {
+          "kind": "recall",
+          "cards": [
+            {
+              "prompt": "Give three differences between Spark and Hadoop MapReduce.",
+              "answer": "E.g. in-memory vs disk between steps; lazy DAG execution vs eager jobs; rich API in several languages vs map/reduce in Java; iterative/interactive support; much faster."
+            },
+            {
+              "prompt": "Does Spark replace HDFS?",
+              "answer": "No — Spark is a processing framework, not a storage system; it commonly reads from and writes to HDFS."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "mistakes",
+      "title": "Common mistakes",
+      "kind": "mistakes",
+      "blocks": [
+        {
+          "kind": "info",
+          "variant": "pitfall",
+          "title": "Thinking a transformation runs immediately",
+          "md": "`rdd.map(f)` computes nothing. Only an action — collect, count, reduce, take, save — triggers the job."
+        },
+        {
+          "kind": "info",
+          "variant": "pitfall",
+          "title": "Reusing an RDD without caching it",
+          "md": "Every action recomputes the chain from the source. Persist an RDD that several actions use."
+        },
+        {
+          "kind": "info",
+          "variant": "pitfall",
+          "title": "Confusing map with flatMap",
+          "md": "map produces exactly one output per input (a list stays a list); flatMap flattens the results into separate elements."
+        },
+        {
+          "kind": "info",
+          "variant": "pitfall",
+          "title": "Calling Spark a storage system",
+          "md": "Spark processes data; storage comes from HDFS, S3, databases and other sources."
+        }
+      ]
+    },
+    {
+      "id": "quiz",
+      "title": "Check your understanding",
+      "kind": "quiz",
+      "blocks": [
+        {
+          "kind": "prose",
+          "md": "Ten questions on Hadoop, Spark's architecture, RDDs and DataFrames."
+        }
+      ]
+    },
+    {
+      "id": "summary",
+      "title": "Cheat sheet",
+      "kind": "summary",
+      "blocks": [
+        {
+          "kind": "list",
+          "variant": "takeaways",
+          "items": [
+            "Hadoop = MapReduce + HDFS + an ecosystem (YARN, Hive, HBase, Pig, ZooKeeper…); it is not for low latency, many small files or arbitrary file modifications.",
+            "Hadoop is slow for iterative work: every MapReduce job reads from and writes to HDFS, with replication, serialisation and disk I/O.",
+            "Spark is a general-purpose cluster computing framework with in-memory computation, an execution graph, and APIs in Java, Scala, Python and R; it is a processing framework, not storage.",
+            "A driver program with a SparkContext talks to a cluster manager, which runs executors (with tasks and a cache) on worker nodes.",
+            "An RDD is an immutable, distributed, partitioned collection that is lazily evaluated, cacheable and fault-tolerant through its lineage.",
+            "Transformations (map, filter, flatMap, union…) return new RDDs lazily; actions (collect, count, reduce, take…) trigger the computation of the DAG.",
+            "Without persistence every action recomputes the chain; cache()/persist() keeps an RDD in memory or on disk (≥ 10× faster).",
+            "DataFrames and Datasets are distributed tables with schemas; their code goes through a logical plan, the Catalyst optimizer and a physical plan before running as RDD operations."
+          ]
+        },
+        {
+          "kind": "table",
+          "headers": [
+            "Concept",
+            "Remember"
+          ],
+          "rows": [
+            [
+              "RDD",
+              "Immutable, resilient, distributed, lazy, cacheable, fault-tolerant"
+            ],
+            [
+              "Transformation",
+              "map, filter, flatMap, distinct, union, intersection, subtract, cartesian — lazy, returns an RDD"
+            ],
+            [
+              "Action",
+              "collect, count, countByValue, take, top, reduce — returns a value, triggers the DAG"
+            ],
+            [
+              "Persistence",
+              "cache()/persist(): memory, disk or mixed; ≥ 10× speed-up"
+            ],
+            [
+              "Partitions",
+              "2–4 per CPU, automatic by default"
+            ],
+            [
+              "DataFrame",
+              "Dataset[Row], schema checked at runtime"
+            ],
+            [
+              "Execution",
+              "logical plan → Catalyst → physical plan (cost model) → RDDs"
+            ]
+          ]
+        }
+      ]
+    }
+  ]
+}

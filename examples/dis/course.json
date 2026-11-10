@@ -1,0 +1,8 @@
+{
+  "id": "dis",
+  "title": "DIS Study Playground",
+  "shortTitle": "DIS Study",
+  "description": "An interactive companion for the Data Intensive Systems course: visual explanations, playgrounds and quizzes, one lecture at a time.",
+  "language": "en",
+  "indexable": true
+}

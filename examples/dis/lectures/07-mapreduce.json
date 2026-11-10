@@ -1,0 +1,1007 @@
+{
+  "meta": {
+    "slug": "mapreduce",
+    "number": 7,
+    "title": "MapReduce",
+    "subtitle": "Map, shuffle, reduce — and the classic algorithms written in it",
+    "summary": "When data outgrows one machine, scalable means “can make use of thousands of cheap computers” and “one pass over the data”. MapReduce makes that programmable with two functions: map turns each input into key-value pairs, the system groups them by key, and reduce combines each group. This lecture builds the model from small examples, explains how Hadoop executes a job and survives failures, and works through the algorithms you must be able to write: word count, an inverted index, relational operators and joins, and matrix multiplication.",
+    "topics": [
+      "Scalability",
+      "Map",
+      "Shuffle",
+      "Reduce",
+      "Combiners",
+      "Hadoop execution",
+      "Inverted index",
+      "Joins",
+      "Matrix multiplication"
+    ],
+    "difficulty": "core",
+    "estimatedMinutes": 80,
+    "sources": [
+      {
+        "label": "Map-Reduce and Parallel Algorithms",
+        "kind": "slides",
+        "detail": "Lecture slides, based on Bill Howe (UW)"
+      },
+      {
+        "label": "Mining of Massive Datasets, Chapter 2",
+        "kind": "chapter",
+        "detail": "MapReduce and the new software stack, §2.1–§2.3"
+      },
+      {
+        "label": "MapReduce: Simplified Data Processing on Large Clusters",
+        "kind": "notes",
+        "detail": "Dean & Ghemawat (Google, 2004) — optional reading"
+      }
+    ],
+    "objectives": [
+      "Explain what scalable means today and why tasks that must touch every record need parallelism.",
+      "Describe the MapReduce programming model: map, grouping by key (shuffle), reduce, and their signatures.",
+      "Write map and reduce functions for word count and similar counting tasks, and say when a combiner is allowed.",
+      "Describe how a job executes on Hadoop — master, workers, splits, local intermediate files — and how node failures are handled.",
+      "Write a MapReduce program that builds an inverted index.",
+      "Implement selection, projection, union, intersection, difference, natural join and grouping with MapReduce.",
+      "Multiply a matrix by a vector, and two matrices in two steps or one, with MapReduce."
+    ],
+    "takeaways": [
+      "Scalable now means using thousands of cheap computers and getting one pass over the data; an O(N) task over N records on k workers takes O(N/k).",
+      "map(in_key, in_value) → list(out_key, intermediate_value); the system groups by key; reduce(out_key, list(intermediate_value)) → list(out_value).",
+      "Every key goes to exactly one reducer, so a reducer sees every occurrence of its key regardless of which input it came from.",
+      "A combiner runs the reduce function inside map tasks; it is valid when the reduce function is associative and commutative.",
+      "The master splits the input into M map tasks and R reduce tasks; map output stays on local disk, so a failed map worker's tasks are redone even if finished; only a master failure restarts the job.",
+      "Inverted index: map emits (word, document id), reduce collects the list of documents per word.",
+      "Natural join R(A,B) ⋈ S(B,C): map emits (b, (R, a)) and (b, (S, c)); reduce pairs every R value with every S value for that b.",
+      "Matrix multiplication: two jobs (join on j, then group by (i, k) and sum) or one job keyed by output cell (i, k) that matches values on j."
+    ]
+  },
+  "concepts": [
+    {
+      "id": "scalable",
+      "term": "Scalable",
+      "short": "Operationally: can make use of thousands of cheap computers. Formally: about N log N operations, and soon only one pass over the data.",
+      "detail": "In the past, scalable meant “works even if the data doesn't fit in main memory” and polynomial time. Indexes make needle-in-a-haystack queries O(log N), but tasks that must touch every record are fundamentally O(N); spreading them over k workers makes them O(N/k).",
+      "tags": [
+        "motivation"
+      ]
+    },
+    {
+      "id": "map",
+      "term": "Map function",
+      "short": "map(in_key, in_value) → list(out_key, intermediate_value): processes one input element into key-value pairs.",
+      "detail": "Applied independently to every input element, so map tasks run in parallel on chunks of the input. Keys need not be unique — the same key may be emitted many times.",
+      "tags": [
+        "model"
+      ]
+    },
+    {
+      "id": "shuffle",
+      "term": "Grouping by key (shuffle)",
+      "short": "The system collects all values with the same key and delivers them, as one list, to one reducer.",
+      "detail": "Keys are hashed into r buckets, one per reduce task; each map task writes one local file per reduce task. This is what lets a single reducer see every occurrence of a word, whatever document it came from.",
+      "tags": [
+        "model"
+      ]
+    },
+    {
+      "id": "reduce",
+      "term": "Reduce function",
+      "short": "reduce(out_key, list(intermediate_value)) → list(out_value): combines all values for one key.",
+      "detail": "A *reducer* is one application of the reduce function to one key and its value list; a *reduce task* executes many reducers. Using fewer reduce tasks than keys, and more tasks than nodes, averages out skew between long and short value lists.",
+      "tags": [
+        "model"
+      ]
+    },
+    {
+      "id": "combiner",
+      "term": "Combiner",
+      "short": "Applying the reduce function inside each map task before the shuffle.",
+      "detail": "Allowed when the reduce function is associative and commutative (e.g. a sum). Word count then sends (w, m) once per map task instead of m pairs (w, 1). The real reducers are still needed to combine the results of different map tasks.",
+      "tags": [
+        "optimisation"
+      ]
+    },
+    {
+      "id": "master-workers",
+      "term": "Master and workers",
+      "short": "The master creates M map and R reduce tasks, assigns them to workers, and tracks their status.",
+      "detail": "Usually one map task per input chunk (split). Map workers write their output to local disk, partitioned into R regions; the master tells reduce workers where to read them. Reduce output goes to the distributed file system.",
+      "tags": [
+        "execution"
+      ]
+    },
+    {
+      "id": "failures",
+      "term": "Coping with node failures",
+      "short": "Map worker fails: redo all its map tasks, even completed ones. Reduce worker fails: reschedule its running tasks. Master fails: restart the job.",
+      "detail": "Completed map tasks must be redone because their output lives on the failed node's local disk. The master detects failures by pinging workers periodically.",
+      "tags": [
+        "execution"
+      ]
+    },
+    {
+      "id": "inverted-index",
+      "term": "Inverted index",
+      "short": "For every word, the list of documents containing it.",
+      "detail": "Map: for each word w of document d emit (w, d). Reduce: for each w, output (w, list of distinct documents). It is the core data structure of search engines.",
+      "tags": [
+        "algorithms"
+      ]
+    },
+    {
+      "id": "mr-join",
+      "term": "Natural join in MapReduce",
+      "short": "Key every tuple by the join attribute, tag it with its relation, and pair R-values with S-values in the reducer.",
+      "detail": "For R(A, B) ⋈ S(B, C): map emits (b, (R, a)) and (b, (S, c)); the reducer for b outputs every (a, b, c). Lumping both relations into one dataset with relation tags is what lets one job see both. It is the classic parallel hash join.",
+      "tags": [
+        "algorithms"
+      ]
+    },
+    {
+      "id": "mr-matmul",
+      "term": "Matrix multiplication in MapReduce",
+      "short": "Two jobs (join on j, then sum per (i, k)) or one job keyed by the output cell (i, k).",
+      "detail": "In one step, each $m_{ij}$ is sent to all keys $(i, k)$ and each $n_{jk}$ to all keys $(i, k)$; the reducer matches values with the same $j$, multiplies and sums. Two passes usually have lower communication cost.",
+      "tags": [
+        "algorithms"
+      ]
+    }
+  ],
+  "quiz": [
+    {
+      "id": "q-trimming",
+      "prompt": "Trimming the last bases of every DNA read: can an index help, and what does parallelism buy?",
+      "options": [
+        {
+          "id": "a",
+          "text": "An index makes it O(log N)."
+        },
+        {
+          "id": "b",
+          "text": "No index helps — every record must be touched, so it is O(N); with k workers it takes O(N/k)."
+        },
+        {
+          "id": "c",
+          "text": "Sorting the reads first makes it O(1)."
+        },
+        {
+          "id": "d",
+          "text": "Parallelism cannot help with O(N) tasks."
+        }
+      ],
+      "answerId": "b",
+      "explanation": "Indexes help needle-in-a-haystack problems such as finding GATTACGATATTA. A task that transforms every record is fundamentally $O(N)$; distributing the records over $k$ computers that apply the same function makes it $O(N/k)$."
+    },
+    {
+      "id": "q-signature",
+      "prompt": "Which pair of signatures describes the MapReduce programming model?",
+      "options": [
+        {
+          "id": "a",
+          "text": "map(key, list(value)) → value and reduce(key, value) → list(key, value)"
+        },
+        {
+          "id": "b",
+          "text": "map(in_key, in_value) → list(out_key, intermediate_value) and reduce(out_key, list(intermediate_value)) → list(out_value)"
+        },
+        {
+          "id": "c",
+          "text": "map(table) → table and reduce(table, table) → table"
+        },
+        {
+          "id": "d",
+          "text": "map(value) → value and reduce(value, value) → value"
+        }
+      ],
+      "answerId": "b",
+      "explanation": "Map turns one input key-value pair into intermediate pairs; after grouping, reduce receives one key with the list of all its values. Both are inspired by functional programming (Lisp, Scheme, Haskell)."
+    },
+    {
+      "id": "q-shuffle",
+      "prompt": "Why does word count across 5M documents need a shuffle, not just more map tasks?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Map tasks cannot count."
+        },
+        {
+          "id": "b",
+          "text": "Map tasks produce many small per-document histograms; the shuffle guarantees that one reducer sees every occurrence of a given word, wherever it appeared."
+        },
+        {
+          "id": "c",
+          "text": "To sort the documents by length."
+        },
+        {
+          "id": "d",
+          "text": "To replicate the input for fault tolerance."
+        }
+      ],
+      "answerId": "b",
+      "explanation": "We want one big histogram, not a bunch of little ones. Grouping by key sends all (word, count) pairs for the same word to the same reducer, which adds them up."
+    },
+    {
+      "id": "q-combiner",
+      "prompt": "When may the reduce function also be used as a combiner inside the map tasks?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Always."
+        },
+        {
+          "id": "b",
+          "text": "When it is associative and commutative, like a sum or a max."
+        },
+        {
+          "id": "c",
+          "text": "Only when there is a single reduce task."
+        },
+        {
+          "id": "d",
+          "text": "Only for joins."
+        }
+      ],
+      "answerId": "b",
+      "explanation": "Then values can be combined in any order and grouping — partially in each map task, finally in the reducer — with the same result. An average, for example, cannot be combined naively."
+    },
+    {
+      "id": "q-failure",
+      "prompt": "A map worker fails after completing its map tasks. What does the master do?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Nothing — completed tasks are done."
+        },
+        {
+          "id": "b",
+          "text": "Restarts the whole job."
+        },
+        {
+          "id": "c",
+          "text": "Redoes all its map tasks, even completed ones, because their output was on that node's local disk, and tells the reducers the new locations."
+        },
+        {
+          "id": "d",
+          "text": "Redoes only the reduce tasks."
+        }
+      ],
+      "answerId": "c",
+      "explanation": "Intermediate map output lives on the worker's local disk, not in the DFS, so it is lost with the node. Only a failure of the master node forces restarting the entire job."
+    },
+    {
+      "id": "q-inverted",
+      "prompt": "In an inverted index job over tweets, what does the map function emit for “tweet1: I love pancakes for breakfast”?",
+      "options": [
+        {
+          "id": "a",
+          "text": "(tweet1, [i, love, pancakes, for, breakfast])"
+        },
+        {
+          "id": "b",
+          "text": "(i, tweet1), (love, tweet1), (pancakes, tweet1), (for, tweet1), (breakfast, tweet1)"
+        },
+        {
+          "id": "c",
+          "text": "(pancakes, 1), (breakfast, 1)"
+        },
+        {
+          "id": "d",
+          "text": "(tweet1, 5)"
+        }
+      ],
+      "answerId": "b",
+      "explanation": "Each word becomes a key with the document id as value; the reducer for *pancakes* then receives [tweet1, tweet2] and outputs (pancakes, (tweet1, tweet2))."
+    },
+    {
+      "id": "q-join-key",
+      "prompt": "Joining Employee(Name, SSN) with AssignedDepartments(EmpSSN, DepName) in MapReduce, what is the map output key, and why tag the values with the relation name?",
+      "options": [
+        {
+          "id": "a",
+          "text": "The name; tags are optional."
+        },
+        {
+          "id": "b",
+          "text": "The SSN, so matching tuples meet in one reducer; the tag tells the reducer which tuples come from which relation so it pairs Employees with Departments."
+        },
+        {
+          "id": "c",
+          "text": "A random number, to balance load."
+        },
+        {
+          "id": "d",
+          "text": "The department name, so departments are grouped."
+        }
+      ],
+      "answerId": "b",
+      "explanation": "The join attribute is the key. The reducer for 777777777 receives Tony's employee tuple and two department tuples and outputs Tony–Sales and Tony–Marketing."
+    },
+    {
+      "id": "q-difference",
+      "prompt": "How is R − S computed with MapReduce?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Map emits (t, t) for both; reduce outputs t if it has two values."
+        },
+        {
+          "id": "b",
+          "text": "Map emits (t, R) or (t, S); reduce outputs (t, t) only if the value list is exactly [R]."
+        },
+        {
+          "id": "c",
+          "text": "Map filters out tuples of S; no reduce needed."
+        },
+        {
+          "id": "d",
+          "text": "It cannot be computed."
+        }
+      ],
+      "answerId": "b",
+      "explanation": "The reducer must know where each copy of t came from, so the value is the relation name. Option (a) describes intersection."
+    },
+    {
+      "id": "q-matvec",
+      "prompt": "Matrix-vector product x = Mv with v in memory at every map task: what does map emit for element mᵢⱼ?",
+      "options": [
+        {
+          "id": "a",
+          "text": "(j, mᵢⱼ)"
+        },
+        {
+          "id": "b",
+          "text": "(i, mᵢⱼ · vⱼ)"
+        },
+        {
+          "id": "c",
+          "text": "((i, j), vⱼ)"
+        },
+        {
+          "id": "d",
+          "text": "(vⱼ, i)"
+        }
+      ],
+      "answerId": "b",
+      "explanation": "All terms of $x_i = \\sum_j m_{ij} v_j$ get the key $i$; the reducer sums them. If $v$ doesn't fit in memory, split $M$ into vertical stripes and $v$ into matching horizontal stripes."
+    },
+    {
+      "id": "q-matmul",
+      "prompt": "In the one-step matrix multiplication C = AB with A of size m × n and B of size n × p, how many key-value pairs does one entry A[i, j] produce?",
+      "options": [
+        {
+          "id": "a",
+          "text": "1"
+        },
+        {
+          "id": "b",
+          "text": "m"
+        },
+        {
+          "id": "c",
+          "text": "p — one for every output cell (i, k) in row i"
+        },
+        {
+          "id": "d",
+          "text": "n"
+        }
+      ],
+      "answerId": "c",
+      "explanation": "A[i, j] contributes to every output column of row $i$, so it is sent to keys $(i, 1), \\ldots, (i, p)$. Symmetrically, B[j, k] is sent to the $m$ keys $(1, k), \\ldots, (m, k)$."
+    }
+  ],
+  "sections": [
+    {
+      "id": "objectives",
+      "title": "Learning objectives",
+      "kind": "objectives",
+      "blocks": [
+        {
+          "kind": "prose",
+          "md": "You are expected to know what MapReduce is and to be able to **write a MapReduce program for basic tasks**. The study material is chapter 2 of *Mining of Massive Datasets*; know its examples — building an inverted index, multiplying matrices, and computing joins. The original Google paper (Dean & Ghemawat) is optional reading."
+        },
+        {
+          "kind": "list",
+          "variant": "objectives",
+          "items": [
+            "Explain what scalable means today and why tasks that must touch every record need parallelism.",
+            "Describe the MapReduce programming model: map, grouping by key (shuffle), reduce, and their signatures.",
+            "Write map and reduce functions for word count and similar counting tasks, and say when a combiner is allowed.",
+            "Describe how a job executes on Hadoop — master, workers, splits, local intermediate files — and how node failures are handled.",
+            "Write a MapReduce program that builds an inverted index.",
+            "Implement selection, projection, union, intersection, difference, natural join and grouping with MapReduce.",
+            "Multiply a matrix by a vector, and two matrices in two steps or one, with MapReduce."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "scalable",
+      "title": "What scalable means",
+      "kind": "intuition",
+      "blocks": [
+        {
+          "kind": "table",
+          "headers": [
+            "What does scalable mean?",
+            "In the past",
+            "Now / soon"
+          ],
+          "rows": [
+            [
+              "Operationally",
+              "Works even if data doesn't fit in main memory",
+              "Can make use of 1000s of cheap computers"
+            ],
+            [
+              "Formally",
+              "No more than Nᵏ operations — polynomial time",
+              "No more than N · log N operations — and only one pass at the data, so make it count"
+            ]
+          ]
+        },
+        {
+          "kind": "steps",
+          "title": "Finding GATTACGATATTA",
+          "steps": [
+            {
+              "title": "Scan",
+              "md": "Compare the target with every sequence: 40 records, 40 comparisons — $N$ records, $N$ comparisons, $O(N)$."
+            },
+            {
+              "title": "Sort, then binary search",
+              "md": "Start at the 50% mark, skip to 75%, back to 62.5%, 68.75%… 40 records, only 4 comparisons: $O(\\log N)$, far better scalability."
+            },
+            {
+              "title": "Databases do this for you",
+              "md": "Relational databases are good at *needle in a haystack* problems — extracting small results from big data. `CREATE INDEX seq_idx ON sequence(seq)` is built once and used automatically."
+            }
+          ]
+        },
+        {
+          "kind": "prose",
+          "md": "**Read trimming** is different: trim the final $n$ bases of every sequence and produce a new dataset. No index helps — every record must be touched, so the task is fundamentally $O(N)$. What helps is parallelism: distribute the reads among $k$ computers, apply the trimming function $f$ to every item, and 40 records on 6 workers take 7 cycles — $O(N/k)$.\n\nThe same pattern appears everywhere: convert 405k TIFF images to PNG (the *New York Times* archive), run thousands of small simulations, find the most common word in each of millions of documents, compute each document's word frequencies. **There's a pattern here**: a function maps one item to a result, applied independently to every item."
+        },
+        {
+          "kind": "info",
+          "variant": "warning",
+          "title": "But what about one histogram over all documents?",
+          "md": "Mapping each document to its word frequencies yields many little histograms. We want **one big histogram**: how can a single computer see every occurrence of a given word, regardless of which document it appeared in? That question is what MapReduce answers."
+        },
+        {
+          "kind": "concepts",
+          "ids": [
+            "scalable"
+          ]
+        },
+        {
+          "kind": "recall",
+          "cards": [
+            {
+              "prompt": "What does scalable mean operationally today?",
+              "answer": "Can make use of thousands of cheap computers (and you may get only one pass over the data)."
+            },
+            {
+              "prompt": "Why can't an index speed up read trimming?",
+              "answer": "Every record must be touched; the task is fundamentally O(N). Only parallelism helps: O(N/k) with k workers."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "model",
+      "title": "The MapReduce model",
+      "kind": "playground",
+      "blocks": [
+        {
+          "kind": "prose",
+          "md": "Take the **word-length histogram**: how many big (10+ letters), medium (5–9), small (2–4) and tiny (1) words does a document use? Split the document into chunks and process each chunk on a different computer: map task 1 (204 words) emits (yellow, 20), (red, 71), (blue, 93), (pink, 6); map task 2 (190 words) emits (yellow, 17), (red, 77), (blue, 107), (pink, 3). The **shuffle** step brings the pairs with the same key together — (yellow, 17) with (yellow, 20) — and the **reduce** tasks add them: (yellow, 37), (red, 148), (blue, 200), (pink, 9)."
+        },
+        {
+          "kind": "info",
+          "variant": "insight",
+          "title": "The MapReduce programming model",
+          "md": "Input and output are each a set of **key/value pairs**. The programmer specifies two functions:\n\n- `map(in_key, in_value) -> list(out_key, intermediate_value)` processes an input pair and produces a set of intermediate pairs;\n- `reduce(out_key, list(intermediate_value)) -> list(out_value)` combines all intermediate values for one key and produces a set of merged output values (usually just one).\n\nIn between, the system **groups by key**. The model is inspired by primitives from functional languages such as Lisp, Scheme and Haskell."
+        },
+        {
+          "kind": "code",
+          "lang": "python",
+          "code": "def map(input_key, input_value):\n    # input_key: document name, input_value: document contents\n    for word in input_value.split():\n        emit_intermediate(word, 1)\n\ndef reduce(output_key, intermediate_values):\n    # output_key: a word, intermediate_values: a list of counts\n    result = 0\n    for v in intermediate_values:\n        result += v\n    emit(output_key, result)",
+          "caption": "“What does this do?” — Google's classic example: word count."
+        },
+        {
+          "kind": "widget",
+          "type": "map-reduce-lab",
+          "title": "MapReduce, stage by stage",
+          "description": "Pick a job from the lecture, edit its input, and watch the map output, the shuffle and the reducers."
+        },
+        {
+          "kind": "prose",
+          "md": "**In more detail** (MMDS §2.2). A **map task** gets one or more chunks of the input and turns each element into zero or more key-value pairs — keys need not be unique. **Grouping by key** is done by the system: the master picks the number $r$ of reduce tasks, a hash function sends every key to one of them, and all values of a key are merged into one list. A **reduce task** receives some keys with their value lists; one application of the reduce function to one key is a *reducer*. Using fewer reduce tasks than keys reduces overhead, and since value lists differ in length (**skew**), more reduce tasks than compute nodes balances the load."
+        },
+        {
+          "kind": "prose",
+          "md": "**Combiners.** When the reduce function is **associative and commutative** — values can be combined in any order and grouping — part of it can run inside each map task. Word count then sends one pair $(w, m)$ per map task instead of $m$ pairs $(w, 1)$. The reducers are still needed to combine the partial results of different map tasks. Try the combiner toggle above: same output, fewer pairs shuffled."
+        },
+        {
+          "kind": "steps",
+          "title": "Count friends — a social-network example",
+          "intro": "Input: friendship pairs in both directions — (Jim, Sue), (Sue, Jim), (Lin, Joe), (Joe, Lin), (Jim, Kai), (Kai, Jim), (Jim, Lin), (Lin, Jim). Desired output: Jim 3, Lin 2, Sue 1, Kai 1, Joe 1.",
+          "steps": [
+            {
+              "title": "Map",
+              "md": "For each pair (person, friend) emit (person, 1)."
+            },
+            {
+              "title": "Shuffle",
+              "md": "Jim → (1, 1, 1), Lin → (1, 1), Sue → (1), Kai → (1), Joe → (1)."
+            },
+            {
+              "title": "Reduce",
+              "md": "Sum the list: (Jim, 3), (Lin, 2), (Sue, 1), (Kai, 1), (Joe, 1)."
+            }
+          ]
+        },
+        {
+          "kind": "concepts",
+          "ids": [
+            "map",
+            "shuffle",
+            "reduce",
+            "combiner"
+          ]
+        },
+        {
+          "kind": "practice",
+          "id": "l7-model",
+          "tasks": [
+            {
+              "id": "max-temp",
+              "prompt": "Input: lines (city, temperature). Write map and reduce functions that output the maximum temperature per city. Can the reduce function serve as a combiner?",
+              "check": {
+                "mode": "open"
+              },
+              "solution": "Map: for (city, t) emit (city, t). Reduce: for (city, [t₁, …, tₙ]) emit (city, max(tᵢ)). **Yes** — max is associative and commutative, so each map task may pre-compute a local maximum per city."
+            },
+            {
+              "id": "average",
+              "prompt": "Is “average” safe as a combiner if the reducer averages the combiners' outputs? Answer yes or no.",
+              "check": {
+                "mode": "text",
+                "accept": [
+                  "no"
+                ],
+                "placeholder": "yes / no"
+              },
+              "solution": "**No** — the average of averages is wrong when groups have different sizes. Emit (sum, count) pairs instead and divide only in the final reducer."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "execution",
+      "title": "How a MapReduce job runs",
+      "kind": "visual",
+      "blocks": [
+        {
+          "kind": "table",
+          "headers": [
+            "Implementation"
+          ],
+          "rows": [
+            [
+              "There is one master node."
+            ],
+            [
+              "The master partitions the input file into M splits, by key."
+            ],
+            [
+              "The master assigns workers (= servers) to the M map tasks and keeps track of their progress."
+            ],
+            [
+              "Workers write their output to local disk, partitioned into R regions."
+            ],
+            [
+              "The master assigns workers to the R reduce tasks."
+            ],
+            [
+              "Reduce workers read their regions from the map workers' local disks."
+            ]
+          ]
+        },
+        {
+          "kind": "timeline",
+          "items": [
+            {
+              "label": "Map task",
+              "title": "Split → record reader → map → combine",
+              "md": "Reads its split from HDFS, parses records, applies map and the optional combiner, and writes partitioned output to **local storage**."
+            },
+            {
+              "label": "Reduce task",
+              "title": "Copy → sort → reduce",
+              "md": "Copies its region from every map worker, sorts and merges by key, applies reduce, and writes the result as a file to **HDFS**."
+            }
+          ]
+        },
+        {
+          "kind": "prose",
+          "md": "**Hadoop at a glance**: data on HDFS is divided into input partitions, one map per partition, the map outputs are shuffled across the network, sorted in parallel, reduced, and written back to HDFS as output partitions.\n\n**Failures** (MMDS §2.2.6) are the normal case when thousands of components run for hours. The master pings workers periodically. If a **map worker** fails, all its map tasks are redone — even completed ones, because their output sat on that node's local disk — and the reduce tasks are told where to read instead. If a **reduce worker** fails, its running tasks are simply rescheduled. Only the failure of the **master** forces the whole job to restart."
+        },
+        {
+          "kind": "prose",
+          "md": "**Where MapReduce runs.** Cluster computing uses a large number of commodity servers connected by a high-speed commodity network: a **rack** holds a small number of servers (8–64 in the book), a **data center** holds many racks, and racks are connected by a switch. In the design space of systems — transaction processing, shared-memory and data-parallel search, HPC, grid — this is **DISC**, data-intensive scalable computing. Of the parallel architectures (shared memory, shared disk, shared nothing), **shared nothing** scales to thousands of computers; shared memory is easiest to program, but expensive.\n\nIt relies on a **distributed file system** (MMDS §2.1): huge files, rarely updated, divided into chunks of typically 64 MB, each replicated (perhaps three times) on different racks, with a master node recording where the chunks are. Lecture 9 covers GFS and HDFS in detail."
+        },
+        {
+          "kind": "concepts",
+          "ids": [
+            "master-workers",
+            "failures"
+          ]
+        },
+        {
+          "kind": "recall",
+          "cards": [
+            {
+              "prompt": "Where does map output go, and why does that matter for failures?",
+              "answer": "To the map worker's local disk, partitioned into R regions. If that worker fails, even its completed map tasks must be redone."
+            },
+            {
+              "prompt": "Which failure restarts the entire job?",
+              "answer": "Only the failure of the master node."
+            },
+            {
+              "prompt": "Name the phases of a map task and a reduce task.",
+              "answer": "Map: split, record reader, map, combine. Reduce: copy, sort, reduce."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "inverted-index",
+      "title": "Building an inverted index",
+      "kind": "examples",
+      "blocks": [
+        {
+          "kind": "prose",
+          "md": "An **inverted index** lists, for every word, the documents that contain it — the core of every search engine. For example:"
+        },
+        {
+          "kind": "table",
+          "headers": [
+            "Input",
+            "Desired output"
+          ],
+          "rows": [
+            [
+              "tweet1, (“I love pancakes for breakfast”)",
+              "“pancakes”, (tweet1, tweet2)"
+            ],
+            [
+              "tweet2, (“I dislike pancakes”)",
+              "“breakfast”, (tweet1, tweet3)"
+            ],
+            [
+              "tweet3, (“What should I eat for breakfast?”)",
+              "“eat”, (tweet3, tweet4)"
+            ],
+            [
+              "tweet4, (“I love to eat”)",
+              "“love”, (tweet1, tweet4)"
+            ]
+          ]
+        },
+        {
+          "kind": "code",
+          "lang": "python",
+          "code": "def map(tweet_id, text):\n    for word in set(text.lower().split()):\n        emit_intermediate(word, tweet_id)\n\ndef reduce(word, tweet_ids):\n    emit(word, sorted(set(tweet_ids)))",
+          "caption": "Inverted index. Choose “Inverted index” in the playground above to run exactly this."
+        },
+        {
+          "kind": "concepts",
+          "ids": [
+            "inverted-index"
+          ]
+        },
+        {
+          "kind": "practice",
+          "id": "l7-inverted",
+          "tasks": [
+            {
+              "id": "positions",
+              "prompt": "Change the inverted index so it also records how often each word occurs in each document. What do map and reduce emit?",
+              "check": {
+                "mode": "open"
+              },
+              "solution": "Map: for document d, count each word locally and emit (w, (d, count)). Reduce: for word w, output (w, list of (d, count)). Alternatively map emits ((w, d), 1), a first reduce sums, and a second job regroups by w."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "relational",
+      "title": "Relational algebra and joins",
+      "kind": "examples",
+      "blocks": [
+        {
+          "kind": "table",
+          "headers": [
+            "Operation (MMDS §2.3)",
+            "Map",
+            "Reduce"
+          ],
+          "rows": [
+            [
+              "Selection σ_C(R)",
+              "For each tuple t satisfying C, emit (t, t)",
+              "Identity (can even be skipped)"
+            ],
+            [
+              "Projection π_S(R)",
+              "Emit (t′, t′) with t′ the tuple restricted to S",
+              "Turn (t′, [t′, …, t′]) into (t′, t′) — duplicate elimination"
+            ],
+            [
+              "Union R ∪ S",
+              "Emit (t, t) for tuples of both",
+              "Emit (t, t) once"
+            ],
+            [
+              "Intersection R ∩ S",
+              "Emit (t, t) for tuples of both",
+              "Emit (t, t) only if the list is [t, t]"
+            ],
+            [
+              "Difference R − S",
+              "Emit (t, R) or (t, S)",
+              "Emit (t, t) only if the list is [R]"
+            ],
+            [
+              "Natural join R(A,B) ⋈ S(B,C)",
+              "Emit (b, (R, a)) and (b, (S, c))",
+              "For key b, output every (a, b, c) pairing an R value with an S value"
+            ],
+            [
+              "Grouping γ_{A,θ(B)}(R)",
+              "For (a, b, c) emit (a, b)",
+              "Apply θ (SUM, MAX…) to [b₁, …, bₙ]: emit (a, x)"
+            ]
+          ],
+          "caption": "Relational-algebra operations in MapReduce."
+        },
+        {
+          "kind": "steps",
+          "title": "A join: Employee ⋈ Assigned Departments",
+          "intro": "Employee(Name, SSN) = {(Sue, 999999999), (Tony, 777777777)}; Assigned Departments(EmpSSN, DepName) = {(999999999, Accounts), (777777777, Sales), (777777777, Marketing)}.",
+          "steps": [
+            {
+              "title": "Before map: lump the tuples together",
+              "md": "Tag every tuple with its relation and put them in one dataset: (Employee, Sue, 999999999), …, (Department, 777777777, Marketing). The tags let the reducer tell the relations apart."
+            },
+            {
+              "title": "Map: key = the join attribute",
+              "md": "key = 999999999 → (Employee, Sue, 999999999) and (Department, 999999999, Accounts); key = 777777777 → Tony's employee tuple and the Sales and Marketing tuples. The SSN is the key so that matching tuples meet."
+            },
+            {
+              "title": "Reduce: pair them up",
+              "md": "Key 999999999 yields (Sue, 999999999, 999999999, Accounts); key 777777777 yields (Tony, …, Sales) and (Tony, …, Marketing)."
+            },
+            {
+              "title": "Same pattern, again",
+              "md": "Order(orderid, account, date) ⋈ LineItem(orderid, itemid, qty): key = orderid, values tagged “Order” or “Line”; the reducer for key 1 outputs (1, aaa, d1, 1, 10, 1) and (1, aaa, d1, 1, 20, 3)."
+            }
+          ]
+        },
+        {
+          "kind": "concepts",
+          "ids": [
+            "mr-join"
+          ]
+        },
+        {
+          "kind": "practice",
+          "id": "l7-relational",
+          "tasks": [
+            {
+              "id": "projection-combiner",
+              "prompt": "Projection eliminates duplicates in the reducer. Can a combiner help, and why are the reducers still needed?",
+              "check": {
+                "mode": "open"
+              },
+              "solution": "Yes: duplicate elimination is associative and commutative, so each map task can drop its local duplicates. The reducers are still needed to remove identical tuples produced by **different** map tasks."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "matrices",
+      "title": "Matrix-vector and matrix multiplication",
+      "kind": "examples",
+      "blocks": [
+        {
+          "kind": "prose",
+          "md": "**Matrix-vector multiplication** (MMDS §2.3.1) — at the heart of ranking web pages, where $n$ is in the trillions. $x_i = \\sum_j m_{ij} v_j$. If $v$ fits in main memory at every map task: **map** turns element $m_{ij}$ into $(i, m_{ij} v_j)$; **reduce** sums all values with key $i$ to get $(i, x_i)$. If $v$ does not fit, divide $M$ into vertical **stripes** and $v$ into horizontal stripes of the same height; each map task gets a chunk of one matrix stripe and the matching vector stripe."
+        },
+        {
+          "kind": "prose",
+          "md": "**Matrix multiplication** $P = MN$, $p_{ik} = \\sum_j m_{ij} n_{jk}$, treats the matrices as relations $M(I, J, V)$ and $N(J, K, W)$. It is almost a natural join on $J$ followed by grouping and aggregation — so the book's first method uses **two MapReduce jobs**:\n\n1. **Map:** $m_{ij} \\to (j, (M, i, m_{ij}))$ and $n_{jk} \\to (j, (N, k, n_{jk}))$. **Reduce:** for key $j$, for every $M$ value and every $N$ value emit $((i, k), m_{ij} n_{jk})$.\n2. **Map:** identity. **Reduce:** for key $(i, k)$, sum the values."
+        },
+        {
+          "kind": "prose",
+          "md": "**One MapReduce step** (MMDS §2.3.10, with a worked example below). Let $A$ be $m \\times n$ and $B$ be $n \\times p$. The key is the **output coordinate** $(i, k)$; one reducer per output cell computes $\\sum_j A[i,j] B[j,k]$."
+        },
+        {
+          "kind": "code",
+          "lang": "python",
+          "code": "def map_A(i, j, a):\n    for k in range(1, p + 1):          # A[i,j] contributes to every column of row i\n        emit((i, k), (\"A\", j, a))\n\ndef map_B(j, k, b):\n    for i in range(1, m + 1):          # B[j,k] contributes to every row of column k\n        emit((i, k), (\"B\", j, b))\n\ndef reduce(key, values):\n    left, right = {}, {}\n    for tag, j, value in values:\n        (left if tag == \"A\" else right)[j] = value\n    total = sum(left[j] * right[j] for j in left.keys() & right.keys())\n    emit(key, total)                    # unmatched entries count as zero",
+          "caption": "Keep both the tag and j in every value: the reducer needs to know which operand it has and which can match it."
+        },
+        {
+          "kind": "steps",
+          "title": "Worked example",
+          "intro": "$A = \\begin{pmatrix} 1 & 2 & 0 \\\\ -1 & 3 & 2 \\end{pmatrix}$, $B = \\begin{pmatrix} 4 & 0 \\\\ 0 & 5 \\\\ 6 & 7 \\end{pmatrix}$, so $m = 2$, $n = 3$, $p = 2$. Zeros are not stored.",
+          "steps": [
+            {
+              "title": "Routing",
+              "md": "A[2,3] = 2 emits ((2,1), (A,3,2)) and ((2,2), (A,3,2)). B[3,2] = 7 emits ((1,2), (B,3,7)) and ((2,2), (B,3,7)). They meet at key (2,2)."
+            },
+            {
+              "title": "Key (1,1)",
+              "md": "A values (1,1), (2,2); B values (1,4), (3,6). Shared j = 1: $1 \\times 4 = 4$."
+            },
+            {
+              "title": "Key (1,2)",
+              "md": "A values (1,1), (2,2); B values (2,5), (3,7). Shared j = 2: $2 \\times 5 = 10$."
+            },
+            {
+              "title": "Key (2,1)",
+              "md": "A values (1,−1), (2,3), (3,2); B values (1,4), (3,6): $-1 \\times 4 + 2 \\times 6 = 8$."
+            },
+            {
+              "title": "Key (2,2)",
+              "md": "Shared j = 2 and 3: $3 \\times 5 + 2 \\times 7 = 29$. The A entry at j = 1 has no partner because B[1,2] = 0. So $C = \\begin{pmatrix} 4 & 10 \\\\ 8 & 29 \\end{pmatrix}$."
+            }
+          ]
+        },
+        {
+          "kind": "info",
+          "variant": "note",
+          "title": "One step or two?",
+          "md": "One step sends every entry of A to $p$ keys and every entry of B to $m$ keys. The book shows (§2.6.7) that two passes usually have lower communication cost — but both are correct, and both are fair exam material."
+        },
+        {
+          "kind": "concepts",
+          "ids": [
+            "mr-matmul"
+          ]
+        },
+        {
+          "kind": "practice",
+          "id": "l7-matrices",
+          "tasks": [
+            {
+              "id": "copies",
+              "prompt": "A is 100 × 50 and B is 50 × 20. In the one-step algorithm, how many key-value pairs does each entry of B produce?",
+              "check": {
+                "mode": "text",
+                "accept": [
+                  "100"
+                ],
+                "placeholder": "pairs"
+              },
+              "solution": "Each B[j, k] goes to every output row of column k: **m = 100** pairs. (Each A entry produces p = 20.)"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "mistakes",
+      "title": "Common mistakes",
+      "kind": "mistakes",
+      "blocks": [
+        {
+          "kind": "info",
+          "variant": "pitfall",
+          "title": "Using a non-associative reducer as a combiner",
+          "md": "Averages, medians and “count distinct” cannot be combined naively. Combine (sum, count) pairs, or don't combine."
+        },
+        {
+          "kind": "info",
+          "variant": "pitfall",
+          "title": "Forgetting the relation tag in a join",
+          "md": "Without it the reducer cannot tell R-tuples from S-tuples and cannot pair them."
+        },
+        {
+          "kind": "info",
+          "variant": "pitfall",
+          "title": "Expecting completed map tasks to survive a failure",
+          "md": "Map output is on the worker's local disk; if the worker dies, its finished map tasks run again."
+        },
+        {
+          "kind": "info",
+          "variant": "pitfall",
+          "title": "Dropping j in matrix multiplication",
+          "md": "Every value must carry its inner index j, or the reducer multiplies the wrong entries."
+        }
+      ]
+    },
+    {
+      "id": "quiz",
+      "title": "Check your understanding",
+      "kind": "quiz",
+      "blocks": [
+        {
+          "kind": "prose",
+          "md": "Ten questions on the model, its execution and the algorithms you must be able to write."
+        }
+      ]
+    },
+    {
+      "id": "summary",
+      "title": "Cheat sheet",
+      "kind": "summary",
+      "blocks": [
+        {
+          "kind": "list",
+          "variant": "takeaways",
+          "items": [
+            "Scalable now means using thousands of cheap computers and getting one pass over the data; an O(N) task over N records on k workers takes O(N/k).",
+            "map(in_key, in_value) → list(out_key, intermediate_value); the system groups by key; reduce(out_key, list(intermediate_value)) → list(out_value).",
+            "Every key goes to exactly one reducer, so a reducer sees every occurrence of its key regardless of which input it came from.",
+            "A combiner runs the reduce function inside map tasks; it is valid when the reduce function is associative and commutative.",
+            "The master splits the input into M map tasks and R reduce tasks; map output stays on local disk, so a failed map worker's tasks are redone even if finished; only a master failure restarts the job.",
+            "Inverted index: map emits (word, document id), reduce collects the list of documents per word.",
+            "Natural join R(A,B) ⋈ S(B,C): map emits (b, (R, a)) and (b, (S, c)); reduce pairs every R value with every S value for that b.",
+            "Matrix multiplication: two jobs (join on j, then group by (i, k) and sum) or one job keyed by output cell (i, k) that matches values on j."
+          ]
+        },
+        {
+          "kind": "table",
+          "headers": [
+            "Task",
+            "Map emits",
+            "Reduce does"
+          ],
+          "rows": [
+            [
+              "Word count",
+              "(w, 1) per word",
+              "sum"
+            ],
+            [
+              "Inverted index",
+              "(w, doc id)",
+              "collect distinct ids"
+            ],
+            [
+              "Natural join on B",
+              "(b, (R, a)), (b, (S, c))",
+              "pair every R value with every S value"
+            ],
+            [
+              "Group by A, θ(B)",
+              "(a, b)",
+              "apply θ"
+            ],
+            [
+              "Matrix × vector",
+              "(i, mᵢⱼ vⱼ)",
+              "sum"
+            ],
+            [
+              "Matrix × matrix (one step)",
+              "((i,k), (A, j, aᵢⱼ)) for all k; ((i,k), (B, j, bⱼₖ)) for all i",
+              "match on j, multiply, sum"
+            ]
+          ],
+          "caption": "The MapReduce programs to know."
+        }
+      ]
+    }
+  ]
+}

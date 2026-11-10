@@ -1,0 +1,2201 @@
+{
+  "meta": {
+    "slug": "distributed-databases",
+    "number": 3,
+    "title": "Distributed Databases",
+    "subtitle": "Fragmentation, sharding, replication and distributed transactions",
+    "summary": "One machine runs out of space, speed and redundancy, so the data has to be spread across a cluster — without the user noticing. This lecture covers how a relation is cut into fragments and put back together, how shards and replicas are placed, how a quorum and two-phase commit keep the result correct, and how joins are computed when the rows live on different machines.",
+    "topics": [
+      "Horizontal fragmentation",
+      "Vertical fragmentation",
+      "Sharding",
+      "Data transparency",
+      "Query optimization",
+      "Replication",
+      "Quorum consensus",
+      "Two-phase commit",
+      "Semi-join and Bloom filters",
+      "Greenplum",
+      "MemSQL",
+      "CAP and PACELC"
+    ],
+    "difficulty": "core",
+    "estimatedMinutes": 90,
+    "sources": [
+      {
+        "label": "Distributed Databases",
+        "kind": "slides",
+        "detail": "Prof. Dr. Maximilian E. Schüle, Universität Bamberg"
+      },
+      {
+        "label": "Database Management Systems, Ch. 2 and 4",
+        "kind": "chapter",
+        "detail": "Ramakrishnan & Gehrke — ER model and relational algebra (prerequisite refresher)"
+      },
+      {
+        "label": "Greenplum administrator guide",
+        "kind": "notes",
+        "detail": "DDL for distribution and partitioning"
+      },
+      {
+        "label": "MemSQL distributed SQL",
+        "kind": "notes",
+        "detail": "Shard keys and reference tables"
+      }
+    ],
+    "objectives": [
+      "Fragment a relation horizontally and vertically, and say which operator reconstructs it.",
+      "Check a fragmentation for completeness, reconstructability and disjointness.",
+      "Explain why derived fragmentation turns a complete join graph into node-local joins.",
+      "Distinguish fragmentation, replication and location transparency, and rewrite a query plan over fragments.",
+      "Pick read and write quorums that satisfy Qr + Qw > W and 2·Qw > W, and say what they guarantee.",
+      "Trace two-phase commit through its states and name exactly when an agent blocks.",
+      "Choose between co-located, distributed and broadcast joins, and reduce transfer with a semi-join or a Bloom filter.",
+      "Describe what Greenplum and MemSQL do, and write a Greenplum distribution and partitioning clause."
+    ],
+    "takeaways": [
+      "Horizontal fragmentation splits tuples (selection, reconstructed by union); vertical fragmentation splits attributes (projection, reconstructed by join on a common key).",
+      "A fragmentation must be complete and reconstructable; disjointness is optional and is given up on purpose when replication is added.",
+      "Derived fragmentation aligns a second relation with the first via a semi-join, so a complete join graph collapses into independent local joins.",
+      "Transparency comes in three flavours — fragmentation, replication and location — and the optimizer needs the first to push selections and projections into fragments.",
+      "Quorum consensus with Qr + Qw > W and 2·Qw > W guarantees every read overlaps the latest write; relaxing it gives eventual consistency.",
+      "2PC makes a distributed transaction atomic but blocks: an agent in Prepared has surrendered its vote and waits for a coordinator that may be down.",
+      "Semi-joins ship only join-column values; a Bloom filter ships bits instead, trading false drops for a much smaller message.",
+      "Greenplum DISTRIBUTED BY shards across segments while PARTITION BY splits within a segment; MemSQL shards by primary key and replicates reference tables for broadcast joins."
+    ]
+  },
+  "concepts": [
+    {
+      "id": "why-cluster",
+      "term": "Limits of a single machine",
+      "short": "Space, performance, geo-locality and redundancy each cap what one node can do.",
+      "detail": "A single machine holds a few terabytes, delivers hundreds of GFLOPS, sits at one point on the globe with the speed of light between it and everyone else, and has no redundancy when it fails. Every one of those is a reason to use several machines.",
+      "tags": [
+        "motivation"
+      ]
+    },
+    {
+      "id": "acid-base",
+      "term": "ACID versus BASE",
+      "short": "Strong guarantees cost synchronisation; weak ones push the problem into your application.",
+      "detail": "ACID is atomicity, consistency, isolation and durability. BASE is basically available, soft state and eventual consistency. BASE is faster because it synchronises less, but it gives no consistent view — unusable for banking, and a source of subtle bugs elsewhere. Before choosing BASE, be sure you need the performance, or you will end up reimplementing ACID in the application layer.",
+      "tags": [
+        "foundations"
+      ]
+    },
+    {
+      "id": "replication",
+      "term": "Replication",
+      "short": "Several sites keep copies of the same data.",
+      "detail": "Replication buys faster retrieval, higher read throughput, tolerance of node failures and better locality. The price is keeping the copies in agreement on every write.",
+      "tags": [
+        "placement"
+      ]
+    },
+    {
+      "id": "fragmentation",
+      "term": "Fragmentation",
+      "short": "A relation r is divided into fragments r₁ … rₙ that together carry enough information to rebuild r.",
+      "detail": "Fragmentation and replication combine freely: a relation is cut into fragments, and the system keeps several identical replicas of each fragment.",
+      "tags": [
+        "placement"
+      ]
+    },
+    {
+      "id": "horizontal-fragmentation",
+      "term": "Horizontal fragmentation",
+      "short": "Each tuple of r is assigned to one or more fragments — a selection.",
+      "detail": "Fragments are built with selection predicates and put back together with union. This is the same operation as sharding: every machine holds a chunk of the rows.",
+      "tags": [
+        "fragmentation"
+      ]
+    },
+    {
+      "id": "vertical-fragmentation",
+      "term": "Vertical fragmentation",
+      "short": "The schema of r is split into smaller schemas — a projection.",
+      "detail": "Every fragment schema must contain a common candidate key (or superkey) so the join back is lossless. Where no natural key is available, a tuple-id — an artificial surrogate added to each fragment — serves as one.",
+      "tags": [
+        "fragmentation"
+      ]
+    },
+    {
+      "id": "fragmentation-correctness",
+      "term": "Correctness of a fragmentation",
+      "short": "Completeness and reconstructability are required; disjointness is optional.",
+      "detail": "**Completeness**: every tuple of r occurs in at least one fragment. **Reconstructability**: r can be recomputed from the fragments — union for horizontal, join for vertical. **Disjointness**: fragments do not overlap; this one is deliberately abandoned once fragmentation is combined with replication.",
+      "tags": [
+        "fragmentation"
+      ]
+    },
+    {
+      "id": "decomposition-predicates",
+      "term": "Decomposition predicates",
+      "short": "n predicates yield 2ⁿ fragments, one per combination of the predicates and their negations.",
+      "detail": "Building all $2^n$ combinations guarantees completeness and disjointness by construction. Mutually exclusive predicates collapse most combinations to the empty set: three faculty predicates give $2^3 = 8$ combinations but only four non-empty fragments, the fourth being the tuples matching none of them.",
+      "tags": [
+        "fragmentation"
+      ]
+    },
+    {
+      "id": "derived-fragmentation",
+      "term": "Derived horizontal fragmentation",
+      "short": "Fragment the second relation along the fragmentation of the first, using a semi-join.",
+      "detail": "Fragmenting two relations on unrelated attributes makes the join graph complete — every fragment of one must meet every fragment of the other, and most of those joins are empty. Deriving the second fragmentation from the first makes the graph fall apart into independent, node-local joins.",
+      "tags": [
+        "fragmentation",
+        "optimization"
+      ]
+    },
+    {
+      "id": "allocation",
+      "term": "Allocation",
+      "short": "Deciding which node stores which fragment.",
+      "detail": "Fragments are placed where they are used: the physics lectures and physics professors on the physics node, administration data on the administration node. More shards than machines gives better skew handling; MemSQL, for example, allocates eight shards per leaf node.",
+      "tags": [
+        "placement"
+      ]
+    },
+    {
+      "id": "sharding",
+      "term": "Sharding",
+      "short": "Horizontal fragmentation across the machines of a cluster.",
+      "detail": "Each machine holds a chunk of the dataset. Query runtimes improve — especially when no cross-shard communication is needed — and the dataset may exceed the capacity of any single machine. Performance then depends heavily on the interconnect.",
+      "tags": [
+        "placement"
+      ]
+    },
+    {
+      "id": "data-transparency",
+      "term": "Data transparency",
+      "short": "The degree to which a user can stay unaware of how and where data is stored.",
+      "detail": "Three kinds matter: **fragmentation transparency** (the user does not name fragments), **replication transparency** (the user does not choose a copy) and **location transparency** (the user does not name a site).",
+      "tags": [
+        "transparency"
+      ]
+    },
+    {
+      "id": "query-translation",
+      "term": "Query translation and optimization",
+      "short": "Translate the query onto fragments, then optimize given where those fragments live.",
+      "detail": "It requires fragmentation transparency and takes two steps: reconstruct the relation from its fragments, then combine that with the algebraic query plan. The optimizer's job is to push selections and projections down into the fragments and to avoid reconstructing anything it does not need.",
+      "tags": [
+        "optimization"
+      ]
+    },
+    {
+      "id": "rowa",
+      "term": "Read one, write all",
+      "short": "Read from any single replica; write to every replica.",
+      "detail": "Reads are as cheap as they can be, but a write must reach every copy, so it is expensive and fails whenever any replica is unavailable. In quorum terms it is $Q_w = W$ and $Q_r = 1$.",
+      "tags": [
+        "replication"
+      ]
+    },
+    {
+      "id": "quorum-consensus",
+      "term": "Quorum consensus protocol",
+      "short": "Weight each site, then require reads and writes to lock enough weight to overlap.",
+      "detail": "Let $W$ be the total of all site weights and choose a read quorum $Q_r$ and a write quorum $Q_w$ with $Q_r + Q_w > W$ and $2 Q_w > W$. The first condition forces every read to intersect the latest write; the second stops two writes proceeding at once. Tuning $Q_r$ against $Q_w$ shifts the cost between reads and writes.",
+      "tags": [
+        "replication"
+      ]
+    },
+    {
+      "id": "two-phase-commit",
+      "term": "Two-phase commit",
+      "short": "A coordinator collects votes, then broadcasts one decision to all agents.",
+      "detail": "2PC gives a distributed transaction atomicity: all n agents persist the changes or all discard them. Phase one is PREPARE and the READY or FAILED votes; phase two is the COMMIT or ABORT decision and the ACKs. The decisive action at every step is writing the log record *before* sending the message.",
+      "tags": [
+        "transactions"
+      ]
+    },
+    {
+      "id": "2pc-blocking",
+      "term": "Why 2PC blocks",
+      "short": "A prepared agent has given up its right to decide and must wait for the coordinator.",
+      "detail": "In state Prepared an agent may neither commit nor abort on its own. If the coordinator crashes after collecting the votes but before sending the decision, every prepared agent is blocked and keeps its locks until the coordinator recovers. The coordinator is a single point of failure.",
+      "tags": [
+        "transactions"
+      ]
+    },
+    {
+      "id": "2pc-variants",
+      "term": "Beyond basic 2PC",
+      "short": "Linear 2PC, presumed abort, 3PC and consensus protocols.",
+      "detail": "**Linear 2PC** chains the agents: $2(n-1)$ messages instead of $4n$, at higher latency. **Presumed abort** reads a missing log entry as abort, saving log writes and ACKs. **3PC** adds a pre-commit phase that removes the blocking at the cost of a round trip, and is rare in practice. **Paxos and Raft** replicate the coordinator itself, so its crash no longer blocks anyone.",
+      "tags": [
+        "transactions"
+      ]
+    },
+    {
+      "id": "join-types",
+      "term": "Co-located, distributed and broadcast joins",
+      "short": "Three ways to get matching rows onto the same machine.",
+      "detail": "A **co-located** join needs both tables sharded on the join column, so every machine joins locally and the master only concatenates. A **distributed** join re-partitions both tables on the join column first. A **broadcast** join sends the smaller relation to every machine. The last two involve cross-shard communication.",
+      "tags": [
+        "joins"
+      ]
+    },
+    {
+      "id": "semi-join",
+      "term": "Semi-join filter",
+      "short": "Ship only the join-column values, so only tuples with a partner travel back.",
+      "detail": "Send $\\pi_C(R)$ to the site holding $S$, compute $\\pi_C(R) \\bowtie S$ there, and send that back for the final join. Only tuples that actually have a join partner cross the network. The same filtering can be applied in both directions at once.",
+      "tags": [
+        "joins"
+      ]
+    },
+    {
+      "id": "bloom-filter-join",
+      "term": "Bloom filter join",
+      "short": "Ship a bit vector instead of the join values — smaller, at the cost of false drops.",
+      "detail": "Hash every join value of $R$ into an $m$-bit vector with $k$ hash functions and send the bits. The remote site keeps a tuple when all of its bits are set. There are no false negatives, so no real match is ever lost; false positives — classically called **false drops** — simply ship a few extra tuples, which the final join discards anyway.",
+      "tags": [
+        "joins"
+      ]
+    },
+    {
+      "id": "greenplum",
+      "term": "Greenplum",
+      "short": "A distributed, open-source database built on PostgreSQL.",
+      "detail": "Vanilla PostgreSQL supports read replicas but neither data distribution nor distributed queries. Greenplum adds both: a **master** node holding the schemas and **segment** nodes holding the data, plus a standby master and mirror segments. `DISTRIBUTED BY` shards across segments (hash or random round-robin); `PARTITION BY` splits data within a segment by list or range, with subpartitioning.",
+      "tags": [
+        "systems"
+      ]
+    },
+    {
+      "id": "memsql",
+      "term": "MemSQL",
+      "short": "A MySQL-compatible distributed database of aggregator and leaf nodes.",
+      "detail": "**Aggregator** nodes hold metadata, distribute queries, aggregate results and handle monitoring and failover; **leaf** nodes store data and execute SQL. Tables are sharded by primary key unless a `SHARD KEY` is given, and reference tables are replicated to every machine so broadcast joins become local.",
+      "tags": [
+        "systems"
+      ]
+    },
+    {
+      "id": "cap",
+      "term": "The CAP theorem",
+      "short": "Under a network partition you must choose between consistency and availability.",
+      "detail": "Conjectured by Brewer in 2000 and proven by Gilbert and Lynch in 2002. Partitions are not a design choice — they happen — so the real statement is: *if* the network partitions, choose. CP systems refuse requests on the minority side; AP systems accept writes everywhere and reconcile later. The choice is made per operation, not once for the whole system.",
+      "tags": [
+        "consistency"
+      ]
+    },
+    {
+      "id": "pacelc",
+      "term": "PACELC",
+      "short": "If Partition, trade Availability against Consistency; Else trade Latency against Consistency.",
+      "detail": "Abadi's refinement makes the cost visible even when nothing is broken: every synchronous replica has to be waited for. Dynamo, Cassandra and Riak are PA/EL; MongoDB is PA/EC; HBase, Spanner and VoltDB are PC/EC.",
+      "tags": [
+        "consistency"
+      ]
+    },
+    {
+      "id": "consistency-models",
+      "term": "Consistency models and session guarantees",
+      "short": "From linearisable to eventual, each level allows more reordering and more parallelism.",
+      "detail": "**Linearisable** reads see the latest committed write in real-time order; **sequential** fixes one order for everyone but not the real-time one; **causal** orders only dependent operations; **eventual** merely promises convergence once updates stop. Session guarantees make eventual consistency programmable: read your writes, monotonic reads, monotonic writes, and writes follow reads.",
+      "tags": [
+        "consistency"
+      ]
+    }
+  ],
+  "quiz": [
+    {
+      "id": "q-operators",
+      "prompt": "Which pair of operators fragments and then reconstructs a relation, for horizontal and vertical fragmentation respectively?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Selection / union, and projection / join."
+        },
+        {
+          "id": "b",
+          "text": "Projection / join, and selection / union."
+        },
+        {
+          "id": "c",
+          "text": "Selection / join, and projection / union."
+        },
+        {
+          "id": "d",
+          "text": "Union / selection in both cases."
+        }
+      ],
+      "answerId": "a",
+      "explanation": "Horizontal fragmentation picks tuples, so it fragments with **selection** ($\\sigma$) and reconstructs with **union** ($\\cup$). Vertical fragmentation picks attributes, so it fragments with **projection** ($\\pi$) and reconstructs with a **join** ($\\bowtie$) on the shared key."
+    },
+    {
+      "id": "q-vertical-key",
+      "prompt": "What must every fragment of a vertical fragmentation contain, and why?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Every attribute of the primary key of at least one other fragment, to allow foreign-key checks."
+        },
+        {
+          "id": "b",
+          "text": "A common candidate key or superkey, so the join back is lossless."
+        },
+        {
+          "id": "c",
+          "text": "At least half the attributes, so no fragment becomes too narrow."
+        },
+        {
+          "id": "d",
+          "text": "Nothing in particular — any split of the schema can be reconstructed."
+        }
+      ],
+      "answerId": "b",
+      "explanation": "Without a shared candidate key the join cannot line the pieces back up, and an arbitrary vertical split is **not** reconstructable. Either repeat the primary key in every fragment — which sacrifices disjointness — or add a **tuple-id**, an artificial surrogate stored in each vertical fragment."
+    },
+    {
+      "id": "q-predicates",
+      "prompt": "You fragment a relation using three decomposition predicates p₁, p₂ and p₃. How many fragments does building every combination give, and why would you do it that way?",
+      "options": [
+        {
+          "id": "a",
+          "text": "3 fragments, one per predicate; it is the smallest complete set."
+        },
+        {
+          "id": "b",
+          "text": "6 fragments; every predicate contributes a positive and a negative fragment."
+        },
+        {
+          "id": "c",
+          "text": "2³ = 8 fragments; completeness and disjointness hold by construction."
+        },
+        {
+          "id": "d",
+          "text": "9 fragments, because the predicates must be paired with each other."
+        }
+      ],
+      "answerId": "c",
+      "explanation": "$n$ predicates give $2^n$ fragments, one for every combination of each predicate and its negation. Because the combinations cover everything and overlap nowhere, completeness and disjointness are automatic. Mutually exclusive predicates then collapse most of them to the empty set — three faculty predicates leave only four non-empty fragments, the last being the professors in none of those faculties."
+    },
+    {
+      "id": "q-disjointness",
+      "prompt": "Which correctness property of a fragmentation is optional, and when is it deliberately given up?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Completeness, given up when some tuples are archived elsewhere."
+        },
+        {
+          "id": "b",
+          "text": "Reconstructability, given up when queries only ever read one fragment."
+        },
+        {
+          "id": "c",
+          "text": "Disjointness, given up when fragmentation is combined with replication."
+        },
+        {
+          "id": "d",
+          "text": "None of them — all three are mandatory."
+        }
+      ],
+      "answerId": "c",
+      "explanation": "Completeness (every tuple appears somewhere) and reconstructability (r can be recomputed) are required, or the fragmentation loses data. **Disjointness** is optional and is abandoned on purpose whenever fragments are replicated — and also whenever the primary key is repeated across vertical fragments."
+    },
+    {
+      "id": "q-derived",
+      "prompt": "Professors are fragmented by faculty and lectures are fragmented by hours per week. Why is this bad, and what fixes it?",
+      "options": [
+        {
+          "id": "a",
+          "text": "The join graph is complete — 3 × 3 joins, most of them empty. Derive the lecture fragmentation from the professor fragmentation with a semi-join."
+        },
+        {
+          "id": "b",
+          "text": "The fragmentation is not reconstructable. Add the tuple-id to both relations."
+        },
+        {
+          "id": "c",
+          "text": "The fragments are not disjoint. Use mutually exclusive predicates on hours per week."
+        },
+        {
+          "id": "d",
+          "text": "Nothing is wrong; the optimizer will rewrite the plan anyway."
+        }
+      ],
+      "answerId": "a",
+      "explanation": "Two unrelated fragmentations force every fragment of one to be joined against every fragment of the other — nine joins here, nearly all empty. **Derived fragmentation** builds the lecture fragments as semi-joins against the matching professor fragments, so the join graph falls apart into three independent, node-local joins."
+    },
+    {
+      "id": "q-transparency",
+      "prompt": "Which kind of transparency does query translation onto fragments specifically require?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Replication transparency, so the optimizer can pick any copy."
+        },
+        {
+          "id": "b",
+          "text": "Fragmentation transparency, so the user's query names the relation rather than its fragments."
+        },
+        {
+          "id": "c",
+          "text": "Location transparency, so the optimizer can ignore where fragments live."
+        },
+        {
+          "id": "d",
+          "text": "Transaction transparency, so 2PC can be skipped."
+        }
+      ],
+      "answerId": "b",
+      "explanation": "The translator generates a plan **over the fragments** from a query written against the whole relation, which only makes sense if the user never had to name fragments — that is fragmentation transparency. The optimizer then uses knowledge of *where* those fragments sit to improve the plan."
+    },
+    {
+      "id": "q-optimized-plan",
+      "prompt": "A query selects lecture titles where the professor's rank is C4. The naive plan unions all professor fragments, unions all lecture fragments, then joins. What does the optimized plan do?",
+      "options": [
+        {
+          "id": "a",
+          "text": "It replaces the join with a semi-join and ships the result to the master."
+        },
+        {
+          "id": "b",
+          "text": "It reconstructs both relations first, but caches the unions for later queries."
+        },
+        {
+          "id": "c",
+          "text": "It pushes the selection and the join into each site, then unions the small per-site results."
+        },
+        {
+          "id": "d",
+          "text": "It broadcasts the professor relation to every lecture fragment."
+        }
+      ],
+      "answerId": "c",
+      "explanation": "Because the fragmentation is derived, each site already holds the professors *and* the lectures of one faculty. The optimizer pushes $\\sigma_{rang = C4}$ and the join below the union, so each node computes $\\pi_{titel}(\\sigma(\\text{Prof}) \\bowtie \\text{Vorls})$ locally and only the small results are unioned. The union moves from the bottom of the plan to the top."
+    },
+    {
+      "id": "q-quorum",
+      "prompt": "Four sites carry weights 3, 1, 2 and 2, so W = 8. Which pair of quorums is valid for the quorum consensus protocol?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Qr = 4, Qw = 4"
+        },
+        {
+          "id": "b",
+          "text": "Qr = 4, Qw = 5"
+        },
+        {
+          "id": "c",
+          "text": "Qr = 5, Qw = 3"
+        },
+        {
+          "id": "d",
+          "text": "Qr = 2, Qw = 6, but only if site S1 is always included"
+        }
+      ],
+      "answerId": "b",
+      "explanation": "Both conditions must hold: $Q_r + Q_w > W$ and $2 Q_w > W$. For (4, 5): $9 > 8$ and $10 > 8$, so it is valid. (4, 4) fails the first ($8 \\not> 8$); (5, 3) fails both. The first condition makes every read overlap the latest write; the second stops two writes running concurrently."
+    },
+    {
+      "id": "q-2pc-block",
+      "prompt": "In two-phase commit, exactly when is an agent blocked?",
+      "options": [
+        {
+          "id": "a",
+          "text": "While waiting for PREPARE — it cannot start work until the coordinator speaks."
+        },
+        {
+          "id": "b",
+          "text": "After sending FAILED, until the coordinator confirms the abort."
+        },
+        {
+          "id": "c",
+          "text": "In state Prepared, if the coordinator crashes after collecting votes but before sending the decision."
+        },
+        {
+          "id": "d",
+          "text": "Never — 2PC is a non-blocking protocol."
+        }
+      ],
+      "answerId": "c",
+      "explanation": "Sending READY surrenders the agent's right to decide: in **Prepared** it may neither commit nor abort alone. If the coordinator dies between collecting the votes and broadcasting the decision, every prepared agent waits — holding its locks — until the coordinator recovers. This is why 2PC is called a *blocking* protocol and why 3PC, Paxos and Raft exist."
+    },
+    {
+      "id": "q-join-choice",
+      "prompt": "Which join strategy requires no cross-shard communication at all, and what does it demand in return?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Broadcast join; it demands that one relation is small."
+        },
+        {
+          "id": "b",
+          "text": "Co-located join; it demands that both tables are sharded on the join column."
+        },
+        {
+          "id": "c",
+          "text": "Distributed join; it demands that both tables are re-partitioned first."
+        },
+        {
+          "id": "d",
+          "text": "Semi-join; it demands a Bloom filter on the join column."
+        }
+      ],
+      "answerId": "b",
+      "explanation": "If both tables are sharded on the join column, matching rows are already on the same machine, so each node joins locally and only the results go to the master. A **broadcast** join copies the smaller relation everywhere and a **distributed** join re-partitions both tables — both move data across the interconnect."
+    },
+    {
+      "id": "q-bloom",
+      "prompt": "A Bloom filter is used to reduce the data shipped for a distributed join. What kind of error can it introduce?",
+      "options": [
+        {
+          "id": "a",
+          "text": "False drops: some tuples without a join partner pass the filter and are shipped needlessly."
+        },
+        {
+          "id": "b",
+          "text": "False negatives: some matching tuples are filtered out, so the join result is incomplete."
+        },
+        {
+          "id": "c",
+          "text": "Both false positives and false negatives, which is why the join must be verified twice."
+        },
+        {
+          "id": "d",
+          "text": "None — a Bloom filter is exact, just smaller than the projection."
+        }
+      ],
+      "answerId": "a",
+      "explanation": "A Bloom filter never produces false negatives, so no genuine match is ever lost and **the join result stays exact**. Collisions only let extra tuples through — classically called *false drops* — and the real join at the other site discards them. The gain is the message size: a few bits instead of every join-column value."
+    },
+    {
+      "id": "q-greenplum",
+      "prompt": "In Greenplum, what is the difference between DISTRIBUTED BY and PARTITION BY?",
+      "options": [
+        {
+          "id": "a",
+          "text": "DISTRIBUTED BY chooses the replication factor; PARTITION BY chooses the shard key."
+        },
+        {
+          "id": "b",
+          "text": "DISTRIBUTED BY spreads rows across segment nodes; PARTITION BY splits the data within a segment."
+        },
+        {
+          "id": "c",
+          "text": "They are synonyms; PARTITION BY is the older spelling."
+        },
+        {
+          "id": "d",
+          "text": "DISTRIBUTED BY applies to the master node; PARTITION BY applies to mirror segments."
+        }
+      ],
+      "answerId": "b",
+      "explanation": "`DISTRIBUTED BY (col)` is the **sharding** decision — how rows are spread across segments, by hash or `DISTRIBUTED RANDOMLY` for round-robin. `PARTITION BY` is a local decision **inside** a segment, by list of values or by range, and can be subpartitioned. Master nodes hold the schemas; segment nodes hold the data."
+    }
+  ],
+  "sections": [
+    {
+      "id": "objectives",
+      "title": "Learning objectives",
+      "kind": "objectives",
+      "blocks": [
+        {
+          "kind": "prose",
+          "md": "A guest lecture by Prof. Dr. Maximilian E. Schüle (Universität Bamberg). Where the previous lectures were about finding similar items, this one spreads the **data** itself, and asks the harder question that follows: once a relation lives on several machines, how do you still get one correct answer out of it?"
+        },
+        {
+          "kind": "list",
+          "variant": "objectives",
+          "items": [
+            "Fragment a relation horizontally and vertically, and say which operator reconstructs it.",
+            "Check a fragmentation for completeness, reconstructability and disjointness.",
+            "Explain why derived fragmentation turns a complete join graph into node-local joins.",
+            "Distinguish fragmentation, replication and location transparency, and rewrite a query plan over fragments.",
+            "Pick read and write quorums that satisfy Qr + Qw > W and 2·Qw > W, and say what they guarantee.",
+            "Trace two-phase commit through its states and name exactly when an agent blocks.",
+            "Choose between co-located, distributed and broadcast joins, and reduce transfer with a semi-join or a Bloom filter.",
+            "Describe what Greenplum and MemSQL do, and write a Greenplum distribution and partitioning clause."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "prerequisites",
+      "title": "Refresher: ER model and relational algebra",
+      "kind": "concepts",
+      "blocks": [
+        {
+          "kind": "info",
+          "variant": "note",
+          "title": "Prerequisite, not course material",
+          "md": "The course expects you to know relational algebra, the ER model and SQL from the bachelor database course; they are not examined as such, but this lecture and its exercises use them constantly. This is a compact refresher from chapters 2 and 4 of Ramakrishnan & Gehrke."
+        },
+        {
+          "kind": "prose",
+          "md": "**The ER model** describes an enterprise as **entities** (objects, grouped into **entity sets** that share **attributes**) and **relationships** between them (grouped into **relationship sets**, which may carry attributes of their own). A **key** is a minimal set of attributes that uniquely identifies an entity. Constraints refine the picture:\n\n- **Key (cardinality) constraints** — one-to-one, one-to-many, many-to-many: e.g. each department has at most one manager.\n- **Participation constraints** — *total* when every entity must take part in the relationship (every department has a manager), otherwise *partial*.\n- **Weak entities** — identified only together with an *owner* entity through an identifying relationship, using a *partial key* (a dependant of an employee).\n- **Class hierarchies (ISA)** — subclasses inherit attributes; *overlap* and *covering* constraints say whether an entity can be in several subclasses and whether every entity must be in one.\n- **Aggregation** — treat a relationship set as an entity set so it can take part in another relationship.\n\nER is used for *conceptual design*, one step of database design: requirements analysis, conceptual design, logical design (mapping to relations), schema refinement, physical design, and application and security design."
+        },
+        {
+          "kind": "prose",
+          "md": "**Relational algebra** is a procedural query language: each query is a step-by-step composition of operators, every operator takes relation instances and returns one, so they nest freely. The textbook uses *Sailors(sid, sname, rating, age)*, *Boats(bid, bname, color)* and *Reserves(sid, bid, day)*."
+        },
+        {
+          "kind": "table",
+          "headers": [
+            "Operator",
+            "Symbol",
+            "What it does",
+            "Example"
+          ],
+          "rows": [
+            [
+              "Selection",
+              "σ",
+              "Keeps the rows satisfying a condition",
+              "σ rating>8 (Sailors)"
+            ],
+            [
+              "Projection",
+              "π",
+              "Keeps the listed columns, removing duplicate rows",
+              "π sname,rating (Sailors)"
+            ],
+            [
+              "Union, intersection, difference",
+              "∪ ∩ −",
+              "Set operations on union-compatible relations (same number of fields, same domains)",
+              "S1 ∪ S2"
+            ],
+            [
+              "Cross-product",
+              "×",
+              "Every row of R combined with every row of S",
+              "Sailors × Reserves"
+            ],
+            [
+              "Renaming",
+              "ρ",
+              "Names a result or renames its fields",
+              "ρ(Temp, σ bid=103 (Reserves))"
+            ],
+            [
+              "Condition join",
+              "⋈c",
+              "σc(R × S)",
+              "Sailors ⋈ Sailors.sid<Reserves.sid Reserves"
+            ],
+            [
+              "Equijoin / natural join",
+              "⋈",
+              "Join on equality; the natural join equates all common fields and keeps one copy",
+              "Sailors ⋈ Reserves"
+            ],
+            [
+              "Division",
+              "/",
+              "Rows of A that are paired with every row of B — “for all” queries",
+              "π sid,bid (Reserves) / π bid (Boats)"
+            ]
+          ],
+          "caption": "The operators this lecture uses for fragmentation (σ, π), reconstruction (∪, ⋈) and semi-joins (⋉ = the join restricted to the left relation's fields)."
+        },
+        {
+          "kind": "steps",
+          "title": "Names of sailors who have reserved boat 103",
+          "steps": [
+            {
+              "title": "Select the reservations",
+              "md": "$\\sigma_{bid=103}(Reserves)$ keeps the reservations of boat 103."
+            },
+            {
+              "title": "Join with the sailors",
+              "md": "$\\sigma_{bid=103}(Reserves) \\bowtie Sailors$ attaches each sailor's details via the shared field *sid*."
+            },
+            {
+              "title": "Project the names",
+              "md": "$\\pi_{sname}(\\sigma_{bid=103}(Reserves) \\bowtie Sailors)$. Pushing the selection below the join — rather than selecting after it — is exactly the kind of rewrite the distributed optimizer applies to fragments."
+            }
+          ]
+        },
+        {
+          "kind": "practice",
+          "id": "l3-algebra",
+          "tasks": [
+            {
+              "id": "red-boats",
+              "prompt": "Write a relational algebra expression for the names of sailors who have reserved a **red** boat.",
+              "check": {
+                "mode": "open",
+                "palette": "algebra"
+              },
+              "solution": "$\\pi_{sname}(\\pi_{bid}(\\sigma_{color='red'}(Boats)) \\bowtie Reserves \\bowtie Sailors)$ — select red boats, keep their ids, join with Reserves and Sailors, project the names."
+            },
+            {
+              "id": "reconstruct",
+              "prompt": "A relation is cut into fragments with σ. Which operator puts it back together?",
+              "check": {
+                "mode": "select",
+                "options": [
+                  "∪",
+                  "⋈",
+                  "×",
+                  "−"
+                ],
+                "answer": [
+                  "∪"
+                ]
+              },
+              "solution": "**Union**: horizontal fragments are sets of rows. Vertical fragments, cut with π, are put back with a join ⋈."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "why-clusters",
+      "title": "Why a cluster at all",
+      "kind": "intuition",
+      "blocks": [
+        {
+          "kind": "prose",
+          "md": "A single machine runs into four walls at once. **Space**: a few terabytes. **Performance**: hundreds of GFLOPS. **Geo-locality**: it sits at one point on the planet, and the speed of light does the rest. **Redundancy**: there is none — when it dies, the data is unreachable.\n\nSo we use several machines. The goal is that the cluster presents itself as a single system: the user should not have to know there is more than one."
+        },
+        {
+          "kind": "prose",
+          "md": "That leaves one big decision — how consistent the illusion has to be.\n\n**ACID** is the strict answer. *Atomicity*: a transaction executes completely or not at all. *Consistency*: transactions cannot introduce inconsistencies. *Isolation*: concurrent transactions cannot see each other. *Durability*: all changes survive.\n\n**BASE** is the relaxed one. *Basically available*: requests may fail. *Soft state*: the state may change over time on its own. *Eventual consistency*: once input stops, the system converges."
+        },
+        {
+          "kind": "info",
+          "variant": "warning",
+          "title": "Do not reach for BASE by default",
+          "md": "ACID costs performance because it needs synchronisation — that part is true. But BASE gives no consistent view of the data, which produces subtle bugs and confuses customers, and it is simply unusable for critical systems such as banking. Before choosing BASE, be sure you really need the performance **and** really do not need the guarantees. Otherwise you will end up implementing ACID in the application layer, where it is harder and slower."
+        },
+        {
+          "kind": "concepts",
+          "ids": [
+            "why-cluster",
+            "acid-base"
+          ]
+        },
+        {
+          "kind": "recall",
+          "cards": [
+            {
+              "prompt": "Name four limits of a single machine.",
+              "answer": "Space, performance, geo-locality (the speed of light) and redundancy."
+            },
+            {
+              "prompt": "What does BASE stand for, and what does it give up?",
+              "answer": "Basically available, soft state, eventual consistency — it gives up a consistent view to synchronise less."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "fragmentation",
+      "title": "Horizontal and vertical fragmentation",
+      "kind": "concepts",
+      "blocks": [
+        {
+          "kind": "prose",
+          "md": "Assume a relational data model. There are two independent things you can do with a relation across a cluster, and they compose freely.\n\n**Replication** keeps multiple copies of the data at different sites, for faster retrieval and fault tolerance. **Fragmentation** partitions a relation into fragments stored at distinct sites. Combine them and the system keeps several identical replicas of each fragment."
+        },
+        {
+          "kind": "prose",
+          "md": "Fragmentation divides a relation $r$ into fragments $r_1, r_2, \\dots, r_n$ that together contain enough information to reconstruct $r$. There are exactly two ways to cut a table:\n\n**Horizontal fragmentation** assigns each *tuple* of $r$ to one or more fragments — you cut across rows. **Vertical fragmentation** splits the *schema* of $r$ into several smaller schemas — you cut down columns. Every vertical fragment must contain a common candidate key (or superkey) so the join back is lossless; where none exists, add a **tuple-id**, an artificial attribute that serves as one."
+        },
+        {
+          "kind": "widget",
+          "type": "fragmentation-lab",
+          "title": "Fragmentation lab",
+          "description": "The professors relation from the lecture. Switch between horizontal and vertical, change the predicate or move attributes between fragments, and watch the correctness criteria react."
+        },
+        {
+          "kind": "table",
+          "headers": [
+            "",
+            "Vertical",
+            "Horizontal"
+          ],
+          "rows": [
+            [
+              "fragment with",
+              "π — projection",
+              "σ — selection"
+            ],
+            [
+              "reconstruct with",
+              "⋈ — join",
+              "∪ — union"
+            ],
+            [
+              "cuts",
+              "columns (the schema)",
+              "rows (the tuples)"
+            ],
+            [
+              "needs",
+              "a common candidate key",
+              "decomposition predicates"
+            ]
+          ],
+          "caption": "The whole of fragmentation in one table — worth memorising as a unit."
+        },
+        {
+          "kind": "concepts",
+          "ids": [
+            "fragmentation",
+            "horizontal-fragmentation",
+            "vertical-fragmentation"
+          ]
+        },
+        {
+          "kind": "recall",
+          "cards": [
+            {
+              "prompt": "Which operators fragment and reconstruct a relation horizontally? Vertically?",
+              "answer": "Horizontal: selection σ, rebuilt with union ∪. Vertical: projection π, rebuilt with a join ⋈ on a shared key."
+            },
+            {
+              "prompt": "What must every vertical fragment contain?",
+              "answer": "A common candidate key or superkey (or an artificial tuple-id), so the join back is lossless."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "reconstruction",
+      "title": "Correctness and reconstruction",
+      "kind": "visual",
+      "blocks": [
+        {
+          "kind": "prose",
+          "md": "A fragmentation of $R$ into $R_1, \\dots, R_n$ has to satisfy three criteria — two mandatory, one negotiable.\n\n**Completeness**: every tuple of $R$ occurs in at least one fragment. **Reconstructability**: $R$ can be recomputed from the fragments — union for horizontal, join for vertical. **Disjointness**: the fragments do not overlap. The third is optional, and it is deliberately given up whenever fragmentation is combined with replication — or whenever the primary key is repeated across vertical fragments."
+        },
+        {
+          "kind": "info",
+          "variant": "insight",
+          "title": "Why build all 2ⁿ combinations",
+          "md": "With $n$ decomposition predicates $p_1, \\dots, p_n$, building one fragment for every combination of each predicate and its negation gives $2^n$ fragments — and makes completeness and disjointness true **by construction**, with nothing left to check. Two predicates already yield four fragments:\n\n$R_1 = \\sigma_{p_1 \\wedge p_2}(R)$, $R_2 = \\sigma_{p_1 \\wedge \\neg p_2}(R)$, $R_3 = \\sigma_{\\neg p_1 \\wedge p_2}(R)$, $R_4 = \\sigma_{\\neg p_1 \\wedge \\neg p_2}(R)$."
+        },
+        {
+          "kind": "steps",
+          "title": "Fragmenting the professors by faculty",
+          "intro": "Three decomposition predicates on Department: theology, physics, philosophy.",
+          "steps": [
+            {
+              "title": "Write the predicates",
+              "md": "$p_1 \\equiv$ Department = 'Theology', $p_2 \\equiv$ Department = 'Physics', $p_3 \\equiv$ Department = 'Philosophy'."
+            },
+            {
+              "title": "Enumerate all 2³ = 8 combinations",
+              "md": "In principle there is a fragment for every sign pattern of the three predicates — eight of them."
+            },
+            {
+              "title": "Notice the predicates are mutually exclusive",
+              "md": "A professor cannot be in two departments, so any combination with two positives is empty. Eight combinations collapse to four non-empty fragments."
+            },
+            {
+              "title": "Read off the fragments",
+              "md": "$\\text{TheolProfs} = \\sigma_{p_1 \\wedge \\neg p_2 \\wedge \\neg p_3}(R) = \\sigma_{p_1}(R)$, and likewise for physics and philosophy. The conjunctions simplify to single selections."
+            },
+            {
+              "title": "Do not forget the fourth fragment",
+              "md": "$\\text{OtherProfs} = \\sigma_{\\neg p_1 \\wedge \\neg p_2 \\wedge \\neg p_3}(R)$ catches everyone in none of the three faculties. Drop it and completeness is lost — this is the fragment people forget in exams."
+            }
+          ]
+        },
+        {
+          "kind": "concepts",
+          "ids": [
+            "fragmentation-correctness",
+            "decomposition-predicates"
+          ]
+        },
+        {
+          "kind": "recall",
+          "cards": [
+            {
+              "prompt": "Which correctness rules must a fragmentation satisfy, and which is optional?",
+              "answer": "Completeness and reconstructability are required; disjointness is optional."
+            },
+            {
+              "prompt": "How many fragments do n simple predicates produce?",
+              "answer": "2ⁿ — one per combination of each predicate or its negation (some may be empty)."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "derived",
+      "title": "Derived fragmentation",
+      "kind": "examples",
+      "blocks": [
+        {
+          "kind": "prose",
+          "md": "Fragmenting one relation well is easy. Fragmenting two relations that get joined is where it goes wrong.\n\nSuppose the professors are fragmented by faculty, and the lectures are fragmented on their own attribute — hours per week: $\\text{2SWSVorls} = \\sigma_{SWS=2}$, $\\text{3SWSVorls} = \\sigma_{SWS=3}$, $\\text{4SWSVorls} = \\sigma_{SWS=4}$. Each fragmentation is perfectly correct on its own. Together they are a disaster for query processing, because the fragmentation of the lectures has nothing to do with the fragmentation of the professors."
+        },
+        {
+          "kind": "steps",
+          "title": "From a complete join graph to local joins",
+          "intro": "The query joins lectures to the professors who read them: select Titel, Name from Vorlesungen, Professoren where gelesenVon = PersNr.",
+          "steps": [
+            {
+              "title": "Write the plan over the unrelated fragments",
+              "md": "Every professor fragment might match every lecture fragment, so the plan becomes $\\Pi_{Titel,Name}\\big((\\text{TheolProfs} \\bowtie \\text{2SWSVorls}) \\cup \\cdots \\cup (\\text{PhiloProfs} \\bowtie \\text{4SWSVorls})\\big)$."
+            },
+            {
+              "title": "Count the joins",
+              "md": "The join graph is **complete**: $3 \\times 3 = 9$ joins. Most of them are empty — a 2-hour lecture read by a theologian contributes nothing to the physics fragment — but you cannot know that without doing the work, and the operands sit on different machines."
+            },
+            {
+              "title": "Derive the second fragmentation from the first",
+              "md": "Instead of inventing a predicate for the lectures, fragment them **along** the professors using a semi-join: $\\text{TheolVorls} = \\text{Vorlesungen} \\ltimes_{gelesenVon = PersNr} \\text{TheolProfs}$, and the same for physics and philosophy."
+            },
+            {
+              "title": "Watch the join graph fall apart",
+              "md": "Now each lecture fragment has exactly one possible partner. The plan becomes $\\Pi_{Titel,Name}\\big((\\text{TheolProfs} \\bowtie_p \\text{TheolVorls}) \\cup (\\text{PhysikProfs} \\bowtie_p \\text{PhysikVorls}) \\cup (\\text{PhiloProfs} \\bowtie_p \\text{PhiloVorls})\\big)$ with $p \\equiv (\\text{PersNr} = \\text{gelesenVon})$ — three independent joins, each entirely local to one node."
+            }
+          ]
+        },
+        {
+          "kind": "info",
+          "variant": "insight",
+          "title": "This is the same idea as a co-located join",
+          "md": "Derived fragmentation is the relational-algebra name for what a distributed system calls **sharding both tables on the join key**. Align the partitioning of the two relations and the join needs no communication; leave them unaligned and every fragment has to meet every other one."
+        },
+        {
+          "kind": "concepts",
+          "ids": [
+            "derived-fragmentation"
+          ]
+        },
+        {
+          "kind": "recall",
+          "cards": [
+            {
+              "prompt": "What is derived fragmentation?",
+              "answer": "Fragmenting a second relation along the fragmentation of the first, with a semi-join, so joins become node-local."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "sharding",
+      "title": "Sharding, allocation and transparency",
+      "kind": "concepts",
+      "blocks": [
+        {
+          "kind": "prose",
+          "md": "**Sharding** is horizontal fragmentation applied across the machines of a cluster: every machine holds a chunk of the dataset. It improves query runtimes — especially when no cross-shard communication is needed — and it accommodates datasets larger than any single machine. In exchange, performance now depends heavily on the interconnect.\n\n**Allocation** decides which node stores which fragment. Put the physics lectures and the physics professors on the physics node, the administration data on the administration node, and the derived fragmentation above pays off immediately."
+        },
+        {
+          "kind": "prose",
+          "md": "Shards can be spread over the machines in several ways: one shard per machine, or several shards per machine — MemSQL, for instance, allocates eight shards to a leaf node. Having **more shards than machines** gives better skew handling, because a hot shard can be moved without moving everything else.\n\nReplication and sharding also combine: each shard is replicated, so you get the throughput and fault tolerance of replication together with the capacity of sharding, at the cost of more resources."
+        },
+        {
+          "kind": "prose",
+          "md": "None of this should reach the user. **Data transparency** is the degree to which a user may remain unaware of how and where data items are stored, and it comes in three kinds:\n\n- **Fragmentation transparency** — the user queries the relation, not its fragments.\n- **Replication transparency** — the user does not choose which copy to read.\n- **Location transparency** — the user does not name a site."
+        },
+        {
+          "kind": "concepts",
+          "ids": [
+            "sharding",
+            "allocation",
+            "data-transparency"
+          ]
+        },
+        {
+          "kind": "recall",
+          "cards": [
+            {
+              "prompt": "What is sharding?",
+              "answer": "Horizontal fragmentation across the machines of a cluster."
+            },
+            {
+              "prompt": "Name the three kinds of data transparency.",
+              "answer": "Fragmentation, replication and location transparency."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "optimization",
+      "title": "Query translation and optimization",
+      "kind": "examples",
+      "blocks": [
+        {
+          "kind": "prose",
+          "md": "Query processing over fragments requires fragmentation transparency and splits into two roles. The **query translator** generates a plan on the fragments; the **query optimizer** then improves that plan using knowledge of where the fragments live. Conceptually it is two steps: reconstruct the relation from its fragments, then combine that with the algebraic query plan — and then push as much as possible back down."
+        },
+        {
+          "kind": "code",
+          "lang": "sql",
+          "code": "SELECT titel\nFROM   Vorlesungen v, Professoren p\nWHERE  v.gelesenVon = p.persNr\n  AND  p.rang = 'C4';",
+          "caption": "The running example: titles of the lectures read by full professors.",
+          "run": {
+            "hint": "change 'C4' to 'C3', or select p.name as well"
+          }
+        },
+        {
+          "kind": "steps",
+          "title": "From the naive plan to the optimized one",
+          "steps": [
+            {
+              "title": "The translator's plan puts the unions at the bottom",
+              "md": "$\\pi_{titel}\\Big(\\sigma_{p.rang = C4}\\big((\\text{TheolVorls} \\cup \\text{PhysikVorls} \\cup \\text{PhiloVorls}) \\bowtie (\\text{TheolProfs} \\cup \\text{PhysikProfs} \\cup \\text{PhiloProfs})\\big)\\Big)$ — both relations are fully reconstructed first, which means shipping every fragment to one place before anything is filtered."
+            },
+            {
+              "title": "Push the selection down",
+              "md": "$\\sigma_{rang = C4}$ touches only Professoren, so it can move below the join and into each professor fragment. Each node now filters its own, much smaller, set of professors."
+            },
+            {
+              "title": "Push the join below the union",
+              "md": "This is only legal because the fragmentation is derived: $\\text{TheolVorls}$ can match nothing but $\\text{TheolProfs}$. So $(\\bigcup_i A_i) \\bowtie (\\bigcup_i B_i)$ collapses to $\\bigcup_i (A_i \\bowtie B_i)$ instead of the full cross product of fragments."
+            },
+            {
+              "title": "Push the projection down too",
+              "md": "Each node can apply $\\pi_{titel}$ to its own result, so only a list of titles ever crosses the network."
+            },
+            {
+              "title": "Read the optimized plan",
+              "md": "$\\big(\\pi_{titel}(\\sigma \\bowtie)\\big)_{\\text{Theol}} \\cup \\big(\\pi_{titel}(\\sigma \\bowtie)\\big)_{\\text{Physik}} \\cup \\big(\\pi_{titel}(\\sigma \\bowtie)\\big)_{\\text{Philo}}$. The union has travelled from the bottom of the plan to the top — the whole point of the exercise. Each site computes a complete, independent sub-answer and only the small results are merged."
+            }
+          ]
+        },
+        {
+          "kind": "concepts",
+          "ids": [
+            "query-translation"
+          ]
+        },
+        {
+          "kind": "recall",
+          "cards": [
+            {
+              "prompt": "What are the two roles in distributed query processing?",
+              "answer": "The query translator rewrites the query onto fragments; the optimizer then picks a plan given where those fragments live."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "replication",
+      "title": "Replication and quorum consensus",
+      "kind": "playground",
+      "blocks": [
+        {
+          "kind": "prose",
+          "md": "Under replication every machine holds a consistent copy of the entire dataset. That improves query throughput, survives node failures, and solves the locality problem — at the price of keeping the copies in agreement on every write.\n\nThere are three classic ways to control that. **Read one, write all (ROWA)** — cheap reads, expensive writes that fail if any replica is down. A **single master with multiple replicas** — one writer, many readers. And **quorum consensus**, which makes the trade-off a dial rather than a switch."
+        },
+        {
+          "kind": "prose",
+          "md": "Quorum consensus assigns each site a **weight**. Let $W$ be the total of all site weights, and choose a read quorum $Q_r$ and a write quorum $Q_w$ such that:"
+        },
+        {
+          "kind": "formula",
+          "tex": "Q_r + Q_w > W \\qquad \\text{and} \\qquad 2 \\cdot Q_w > W",
+          "caption": "Every read then overlaps the latest write, and two writes can never proceed at once."
+        },
+        {
+          "kind": "prose",
+          "md": "Each read must lock enough replicas that their weights sum to at least $Q_r$; each write must lock enough to reach $Q_w$. Because the two quorums must overlap, any read is guaranteed to touch at least one site that took part in the most recent write — which is why replicas carry **version numbers**: the reader takes the value with the highest version among the sites it locked."
+        },
+        {
+          "kind": "widget",
+          "type": "quorum-lab",
+          "title": "Quorum consensus lab",
+          "description": "Four sites with the lecture's weights 3, 1, 2, 2. Set the quorums, lock sites by clicking them, and write and read. Break the rules and you can produce a stale read on purpose."
+        },
+        {
+          "kind": "table",
+          "headers": [
+            "Site",
+            "Copy",
+            "Weight",
+            "Value before",
+            "Version",
+            "Value after write",
+            "Version"
+          ],
+          "rows": [
+            [
+              "S1",
+              "A1",
+              "3",
+              "1000",
+              "1",
+              "1100",
+              "2"
+            ],
+            [
+              "S2",
+              "A2",
+              "1",
+              "1000",
+              "1",
+              "1000",
+              "1"
+            ],
+            [
+              "S3",
+              "A3",
+              "2",
+              "1000",
+              "1",
+              "1100",
+              "2"
+            ],
+            [
+              "S4",
+              "A4",
+              "2",
+              "1000",
+              "1",
+              "1000",
+              "1"
+            ]
+          ],
+          "caption": "W = 8, Qr = 4, Qw = 5. The write locked S1 and S3 (weight 5) and left S2 and S4 stale — but any read reaching weight 4 must include S1 or S3, so it still sees version 2."
+        },
+        {
+          "kind": "concepts",
+          "ids": [
+            "replication",
+            "rowa",
+            "quorum-consensus"
+          ]
+        },
+        {
+          "kind": "recall",
+          "cards": [
+            {
+              "prompt": "State the two quorum conditions and what each guarantees.",
+              "answer": "Qr + Qw > W: every read overlaps the latest write. 2·Qw > W: two writes can never proceed at once."
+            },
+            {
+              "prompt": "What is ROWA?",
+              "answer": "Read-one-write-all: read any single replica, write every replica."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "two-phase-commit",
+      "title": "Two-phase commit",
+      "kind": "playground",
+      "blocks": [
+        {
+          "kind": "prose",
+          "md": "Just as in a non-distributed system, a transaction has to be atomic. It ends in one of two ways: **commit** — it succeeded and all constraints hold, so it must become persistent and visible on every node — or **abort** — it failed, so it must be undone on every node.\n\nThe problem is that the nodes of a distributed system crash independently. The solution is the **two-phase commit protocol (2PC)**: one node acts as coordinator and lets $n$ agents $A_1, \\dots, A_n$ either all persist the changes of a transaction or all discard them."
+        },
+        {
+          "kind": "widget",
+          "type": "two-phase-commit-simulator",
+          "title": "Two-phase commit simulator",
+          "description": "Step through the protocol under four scenarios — including the one where the coordinator dies at the worst possible moment."
+        },
+        {
+          "kind": "table",
+          "headers": [
+            "Coordinator state",
+            "On",
+            "Action — the log record is written first"
+          ],
+          "rows": [
+            [
+              "Initial → Collecting",
+              "end of transaction",
+              "send PREPARE to all agents"
+            ],
+            [
+              "Collecting → Committing",
+              "READY from all agents",
+              "write commit to the log, then send COMMIT"
+            ],
+            [
+              "Collecting → Aborted",
+              "timeout or FAILED received",
+              "write abort to the log, then send ABORT"
+            ],
+            [
+              "Committing / Aborted → Done",
+              "ACK from all agents",
+              "the transaction is finished"
+            ]
+          ]
+        },
+        {
+          "kind": "table",
+          "headers": [
+            "Agent state",
+            "On",
+            "Action"
+          ],
+          "rows": [
+            [
+              "Waiting → Prepared",
+              "PREPARE received, locally fine",
+              "force log records to disk, write ready, send READY"
+            ],
+            [
+              "Waiting → Aborted",
+              "timeout or local error",
+              "write abort to the log, send FAILED"
+            ],
+            [
+              "Prepared → Committed",
+              "COMMIT received",
+              "write commit to the log, send ACK"
+            ],
+            [
+              "Prepared → Aborted",
+              "ABORT received",
+              "write abort to the log, send ACK"
+            ]
+          ]
+        },
+        {
+          "kind": "info",
+          "variant": "pitfall",
+          "title": "2PC is a blocking protocol",
+          "md": "In state **Prepared** an agent has given up its right to decide: it may neither commit nor abort on its own. If the coordinator crashes after collecting the votes but before sending the decision, every prepared agent is blocked and keeps its locks until the coordinator recovers. The coordinator is a single point of failure.\n\nThe four crash cases: coordinator **before** commit — all agents block in Prepared. Coordinator **after** commit — recovery reads the log and resends the decision. Agent **before** ready — the coordinator times out and aborts globally. Agent **after** ready — the agent asks the coordinator for the outcome when it restarts."
+        },
+        {
+          "kind": "prose",
+          "md": "Four refinements are worth knowing by name. **Linear 2PC** organises the agents as a chain $A_1 \\to \\cdots \\to A_n$, using $2(n-1)$ messages instead of $4n$ at the cost of latency. **Presumed abort** interprets a missing log entry as abort, saving log writes and ACK messages. **Three-phase commit** inserts a pre-commit phase that removes the blocking, at the price of another round trip — rarely used in practice. **Consensus protocols** such as Paxos and Raft replicate the coordinator itself, so its crash no longer blocks anyone; this is what modern systems actually do."
+        },
+        {
+          "kind": "concepts",
+          "ids": [
+            "two-phase-commit",
+            "2pc-blocking",
+            "2pc-variants"
+          ]
+        },
+        {
+          "kind": "recall",
+          "cards": [
+            {
+              "prompt": "What are the two phases of 2PC?",
+              "answer": "Voting: the coordinator collects prepare votes. Decision: it broadcasts commit (all yes) or abort to all agents."
+            },
+            {
+              "prompt": "Why does 2PC block?",
+              "answer": "An agent in the prepared state has given up its right to decide and must wait for the coordinator, which may be down."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "joins",
+      "title": "Joins across shards",
+      "kind": "playground",
+      "blocks": [
+        {
+          "kind": "prose",
+          "md": "Joins in a replicated setting are easy — every node has everything, so a join is a local join. Joins get interesting when the data is **sharded**, because the two rows that need to meet may live on different machines. There are three ways to arrange that meeting."
+        },
+        {
+          "kind": "widget",
+          "type": "join-strategy-explorer",
+          "title": "Join strategy explorer",
+          "description": "Co-located, distributed and broadcast joins, and exactly what each one puts on the wire."
+        },
+        {
+          "kind": "table",
+          "headers": [
+            "Medium",
+            "Bandwidth",
+            "Time to scan lineitem"
+          ],
+          "rows": [
+            [
+              "DRAM",
+              "20 GB/s",
+              "0.04 s"
+            ],
+            [
+              "FDR InfiniBand",
+              "7 GB/s",
+              "0.1 s"
+            ],
+            [
+              "PCIe SSD",
+              "2 GB/s",
+              "0.36 s"
+            ],
+            [
+              "SATA SSD",
+              "500 MB/s",
+              "1.6 s"
+            ],
+            [
+              "10 GB ethernet",
+              "1.25 GB/s",
+              "0.6 s"
+            ],
+            [
+              "rotating disk",
+              "200 MB/s",
+              "3.6 s"
+            ],
+            [
+              "1 GB ethernet",
+              "125 MB/s",
+              "6 s"
+            ]
+          ],
+          "caption": "The reason distribution pays at all: over InfiniBand or 10 GB ethernet, reading a table from the RAM of remote machines beats reading it from a local SSD."
+        },
+        {
+          "kind": "prose",
+          "md": "Whichever strategy you pick, the cheapest tuple to send is the one you do not send. A **semi-join filter** exploits that: ship only the join-column values, so only tuples that actually have a join partner ever travel."
+        },
+        {
+          "kind": "formula",
+          "tex": "R \\bowtie S = R \\bowtie (\\pi_C(R) \\bowtie S) \\qquad R \\ltimes S = R \\bowtie \\pi_C(S)",
+          "caption": "Send π_C(R) to the site holding S, compute the reduced S there, send it back, and finish the join locally."
+        },
+        {
+          "kind": "prose",
+          "md": "There are two ways to arrange this. The first filters one side: send $\\pi_C(S)$ to the site of $R$, reduce $R$, and ship the reduced $R$ over for the join. The second filters **both** sides at once — $(R \\bowtie \\pi_C(S)) \\bowtie (\\pi_C(R) \\bowtie S)$ — which is worth it when both relations are large and the join is selective.\n\nA **Bloom filter** takes the same idea one step further: instead of the join values themselves, ship a bit vector. Hash every join value of $R$ into $m$ bits with $k$ hash functions; the remote site keeps a tuple only if all of its bits are set. There are no false negatives, so no real match is ever lost. Collisions only let a few extra tuples through — classically called **false drops** — and the final join discards them anyway."
+        },
+        {
+          "kind": "widget",
+          "type": "semi-join-bloom-lab",
+          "title": "Semi-join and Bloom filter lab",
+          "description": "The exact relations from the lecture. Compare shipping all of S against a semi-join and against a Bloom filter, and watch the false drops appear as you shrink the filter."
+        },
+        {
+          "kind": "concepts",
+          "ids": [
+            "join-types",
+            "semi-join",
+            "bloom-filter-join"
+          ]
+        },
+        {
+          "kind": "recall",
+          "cards": [
+            {
+              "prompt": "Name the three ways of joining sharded data.",
+              "answer": "Co-located join, distributed join, broadcast join."
+            },
+            {
+              "prompt": "What does a Bloom-filter join ship instead of join values, and what is the cost?",
+              "answer": "A bit vector; some tuples without a partner are sent anyway (false drops/false positives)."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "systems",
+      "title": "Greenplum and MemSQL",
+      "kind": "visual",
+      "blocks": [
+        {
+          "kind": "prose",
+          "md": "What can vanilla **PostgreSQL** do? It supports read replicas, and since version 9.6 those replicas are kept in sync, which allows consistent reads and load-balanced read workloads. What it does **not** support is data distribution or distributed queries. For that you need a different system."
+        },
+        {
+          "kind": "prose",
+          "md": "**Pivotal Greenplum** is a distributed, open-source database built on PostgreSQL. Its cluster has a **master** node that holds the schemas and **segment** nodes that hold the data, plus a standby master and secondary (mirror) segments for failover. It supports both data distribution and partitioning, and the two are specified separately when the table is created:\n\n- **DISTRIBUTED BY** — how rows are spread (sharded) across segments, by hash or randomly (round robin).\n- **PARTITION BY** — how data is partitioned **within** a segment, by list of values or by range (numeric or date), with subpartitioning."
+        },
+        {
+          "kind": "code",
+          "lang": "sql",
+          "code": "-- hash distribution: rows are sharded across segments by prod_id\nCREATE TABLE products\n  (name varchar(40), prod_id integer, supplier_id integer)\nDISTRIBUTED BY (prod_id);\n\n-- round-robin distribution: even spread, but no locality on any column\nCREATE TABLE random_stuff\n  (things text, doodads text, etc text)\nDISTRIBUTED RANDOMLY;",
+          "caption": "Greenplum distribution: the sharding decision.",
+          "run": false
+        },
+        {
+          "kind": "code",
+          "lang": "sql",
+          "code": "CREATE TABLE sales\n  (trans_id int, date date, amount decimal(9,2), region text)\nDISTRIBUTED BY (trans_id)\nPARTITION BY RANGE (date)\n  SUBPARTITION BY LIST (region)\n    SUBPARTITION TEMPLATE\n      ( SUBPARTITION usa    VALUES ('usa'),\n        SUBPARTITION asia   VALUES ('asia'),\n        SUBPARTITION europe VALUES ('europe'),\n        DEFAULT SUBPARTITION other_regions )\n  ( START (date '2008-01-01') INCLUSIVE\n    END   (date '2009-01-01') EXCLUSIVE\n    EVERY (INTERVAL '1 month'),\n    DEFAULT PARTITION outlying_dates );",
+          "caption": "A fragmentation example: sharded across segments by trans_id, then range-partitioned by month and list-subpartitioned by region inside each segment.",
+          "run": false
+        },
+        {
+          "kind": "widget",
+          "type": "greenplum-explorer",
+          "title": "Greenplum fragmentation explorer",
+          "description": "The sales table above. See which segment each row lands on, then open a segment to find the monthly partitions and regional subpartitions inside it."
+        },
+        {
+          "kind": "prose",
+          "md": "**MemSQL** is another distributed database, compatible with MySQL. A cluster consists of **aggregator** nodes — which hold metadata, distribute queries, aggregate results, and handle cluster monitoring and failover — and **leaf** nodes, which are the storage layer and execute the SQL.\n\nData can be sharded across machines, and in addition tables can be replicated to all machines as **reference tables**, which makes broadcast joins local. Co-located and distributed joins are supported too. By default MemSQL shards a table by its primary key; a manual shard key can be given."
+        },
+        {
+          "kind": "code",
+          "lang": "sql",
+          "code": "CREATE TABLE clicks (\n  click_id BIGINT AUTO_INCREMENT,\n  user_id  INT,\n  page_id  INT,\n  ts       TIMESTAMP,\n  SHARD KEY (user_id),\n  PRIMARY KEY (click_id, user_id)\n);",
+          "caption": "Sharding clicks by user_id rather than by the primary key, so that all of one user's clicks — and any join on user_id — stay on one leaf node.",
+          "run": false
+        },
+        {
+          "kind": "concepts",
+          "ids": [
+            "greenplum",
+            "memsql"
+          ]
+        },
+        {
+          "kind": "recall",
+          "cards": [
+            {
+              "prompt": "Greenplum: what is the difference between DISTRIBUTED BY and PARTITION BY?",
+              "answer": "DISTRIBUTED BY spreads rows across segments (sharding); PARTITION BY splits data within a segment, by list or range."
+            },
+            {
+              "prompt": "How is MemSQL organised?",
+              "answer": "A MySQL-compatible distributed database of aggregator and leaf nodes; tables are sharded by key, and reference tables are replicated for joins."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "consistency",
+      "title": "CAP, PACELC and consistency",
+      "kind": "concepts",
+      "blocks": [
+        {
+          "kind": "prose",
+          "md": "Conjectured by Brewer in 2000 and proven by Gilbert and Lynch in 2002, the **CAP theorem** says a distributed data store can guarantee at most two of three properties.\n\n**Consistency**: every read returns the most recent write, as if there were a single copy. **Availability**: every request to a non-failing node receives a non-error answer. **Partition tolerance**: the system keeps working although messages between nodes are lost."
+        },
+        {
+          "kind": "table",
+          "headers": [
+            "Combination",
+            "What it means",
+            "Examples"
+          ],
+          "rows": [
+            [
+              "CA",
+              "Consistent and available, but cannot survive a partition",
+              "A single node; a classic 2PC cluster"
+            ],
+            [
+              "CP",
+              "Consistent and partition tolerant, refuses service on the minority side",
+              "HBase, Spanner, a quorum with Qr + Qw > W"
+            ],
+            [
+              "AP",
+              "Available and partition tolerant, reconciles conflicts afterwards",
+              "Dynamo, Cassandra, Riak"
+            ]
+          ]
+        },
+        {
+          "kind": "info",
+          "variant": "note",
+          "title": "Two out of three is a simplification",
+          "md": "Partitions are not a design choice — in a real network they simply happen. So the theorem really says: **if** the network partitions, you must choose between consistency and availability. CP refuses requests on the minority side (2PC blocks, a quorum system rejects writes) and the data stays correct; AP accepts writes on both sides and reconciles later with vector clocks, last-writer-wins or CRDTs, making conflicts the application's problem. And the choice is made **per operation**, not once for the whole system."
+        },
+        {
+          "kind": "prose",
+          "md": "**PACELC** is Abadi's refinement: *if there is a Partition, trade Availability against Consistency; Else trade Latency against Consistency.* It makes the second cost visible — even with nothing broken, every synchronous replica has to be waited for."
+        },
+        {
+          "kind": "table",
+          "headers": [
+            "System",
+            "Under partition",
+            "In normal operation"
+          ],
+          "rows": [
+            [
+              "Dynamo, Cassandra, Riak",
+              "PA — stay available",
+              "EL — favour latency"
+            ],
+            [
+              "MongoDB",
+              "PA — stay available",
+              "EC — favour consistency"
+            ],
+            [
+              "HBase, Spanner, VoltDB",
+              "PC — stay consistent",
+              "EC — favour consistency"
+            ],
+            [
+              "PostgreSQL (single node)",
+              "— not applicable",
+              "EC — favour consistency"
+            ]
+          ]
+        },
+        {
+          "kind": "prose",
+          "md": "Between linearisable and eventual there is a ladder, and each rung allows more reordering and therefore more parallelism. **Linearisable**: reads see the latest committed write, and operations appear in real-time order. **Sequential**: all nodes see the same order, but not necessarily the real-time one. **Causal**: operations that depend on each other are seen in order, concurrent ones may differ. **Eventual**: if updates stop, all replicas eventually converge."
+        },
+        {
+          "kind": "prose",
+          "md": "Eventual consistency alone is hard to program against, so systems offer **session guarantees** within one session: *read your writes* (a transaction sees its own updates), *monotonic reads* (a value once read is never replaced by an older one), *monotonic writes* (writes are applied in their issuing order) and *writes follow reads* (a write based on a read is ordered after it). These are implemented by pinning a session to a replica, or by carrying version vectors in the client."
+        },
+        {
+          "kind": "info",
+          "variant": "insight",
+          "title": "The quorum protocol is the CAP dial",
+          "md": "$Q_r + Q_w > W$ and $2 Q_w > W$ give strong consistency — a CP system. $Q_r + Q_w \\le W$ lets reads miss the latest write, which is eventual consistency and an AP system; this is exactly Dynamo's N/R/W configuration. $Q_w = W$ with $Q_r = 1$ is read one, write all: fast reads, expensive and fragile writes. $Q_w = 1$ gives fast writes, but readers have to inspect every replica."
+        },
+        {
+          "kind": "concepts",
+          "ids": [
+            "cap",
+            "pacelc",
+            "consistency-models"
+          ]
+        },
+        {
+          "kind": "recall",
+          "cards": [
+            {
+              "prompt": "What does CAP say?",
+              "answer": "Under a network partition you must choose between consistency and availability."
+            },
+            {
+              "prompt": "Expand PACELC.",
+              "answer": "If Partition: trade Availability against Consistency; Else: trade Latency against Consistency."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "mistakes",
+      "title": "Common mistakes",
+      "kind": "mistakes",
+      "blocks": [
+        {
+          "kind": "info",
+          "variant": "pitfall",
+          "title": "Mixing up which operator reconstructs which fragmentation",
+          "md": "Horizontal is **selection then union**; vertical is **projection then join**. The quickest way to recover it under pressure: horizontal cuts rows, and you glue rows back with $\\cup$; vertical cuts columns, and you glue columns back with $\\bowtie$."
+        },
+        {
+          "kind": "info",
+          "variant": "pitfall",
+          "title": "Forgetting the key in a vertical fragmentation",
+          "md": "An arbitrary vertical split is **not** reconstructable. Either repeat the primary key in every fragment — accepting that disjointness is lost — or give every tuple a surrogate tuple-id. A vertical fragmentation without a shared candidate key has simply destroyed data."
+        },
+        {
+          "kind": "info",
+          "variant": "pitfall",
+          "title": "Forgetting the negative fragment",
+          "md": "With predicates for theology, physics and philosophy you get four fragments, not three. The one for professors in none of those faculties is easy to omit and breaks completeness."
+        },
+        {
+          "kind": "info",
+          "variant": "pitfall",
+          "title": "Checking only one quorum condition",
+          "md": "$Q_r + Q_w > W$ alone is not enough; $2 Q_w > W$ is a separate requirement. With $W = 8$, the pair $Q_r = 5, Q_w = 4$ satisfies the first ($9 > 8$) but fails the second ($8 \\not> 8$), so two writes could proceed concurrently."
+        },
+        {
+          "kind": "info",
+          "variant": "pitfall",
+          "title": "Thinking a Bloom filter can lose a join result",
+          "md": "It cannot. A Bloom filter has no false negatives, so every genuine match passes and the join result is **exact**. Only extra tuples — false drops — get shipped, and the real join removes them. What you trade is bandwidth, not correctness."
+        },
+        {
+          "kind": "info",
+          "variant": "pitfall",
+          "title": "Claiming 2PC blocks whenever a node crashes",
+          "md": "An agent crashing is survivable: if it never sent READY, the coordinator times out and aborts globally. Blocking happens specifically when agents are in **Prepared** and the **coordinator** is the thing that died before broadcasting its decision."
+        }
+      ]
+    },
+    {
+      "id": "quiz",
+      "title": "Check your understanding",
+      "kind": "quiz",
+      "blocks": [
+        {
+          "kind": "prose",
+          "md": "Twelve questions across the whole lecture: fragmentation and its correctness criteria, derived fragmentation, transparency, quorums, 2PC, join strategies and Greenplum. The arithmetic ones are worth doing on paper first."
+        }
+      ]
+    },
+    {
+      "id": "summary",
+      "title": "Cheat sheet",
+      "kind": "summary",
+      "blocks": [
+        {
+          "kind": "list",
+          "variant": "takeaways",
+          "items": [
+            "Horizontal fragmentation splits tuples (selection, reconstructed by union); vertical fragmentation splits attributes (projection, reconstructed by join on a common key).",
+            "A fragmentation must be complete and reconstructable; disjointness is optional and is given up on purpose when replication is added.",
+            "Derived fragmentation aligns a second relation with the first via a semi-join, so a complete join graph collapses into independent local joins.",
+            "Transparency comes in three flavours — fragmentation, replication and location — and the optimizer needs the first to push selections and projections into fragments.",
+            "Quorum consensus with Qr + Qw > W and 2·Qw > W guarantees every read overlaps the latest write; relaxing it gives eventual consistency.",
+            "2PC makes a distributed transaction atomic but blocks: an agent in Prepared has surrendered its vote and waits for a coordinator that may be down.",
+            "Semi-joins ship only join-column values; a Bloom filter ships bits instead, trading false drops for a much smaller message.",
+            "Greenplum DISTRIBUTED BY shards across segments while PARTITION BY splits within a segment; MemSQL shards by primary key and replicates reference tables for broadcast joins."
+          ]
+        },
+        {
+          "kind": "table",
+          "headers": [
+            "Idea",
+            "Rule or formula",
+            "Where it shows up"
+          ],
+          "rows": [
+            [
+              "Horizontal fragmentation",
+              "σ to fragment, ∪ to reconstruct",
+              "Sharding"
+            ],
+            [
+              "Vertical fragmentation",
+              "π to fragment, ⋈ on the key to reconstruct",
+              "Splitting wide tables"
+            ],
+            [
+              "Decomposition predicates",
+              "n predicates → 2ⁿ fragments",
+              "Completeness and disjointness by construction"
+            ],
+            [
+              "Correctness",
+              "completeness + reconstructability (+ optional disjointness)",
+              "Every fragmentation question"
+            ],
+            [
+              "Derived fragmentation",
+              "Vorls ⋉ Profs, per fragment",
+              "Turning a complete join graph into local joins"
+            ],
+            [
+              "Transparency",
+              "fragmentation, replication, location",
+              "What the user is allowed not to know"
+            ],
+            [
+              "Quorum consensus",
+              "Qr + Qw > W and 2·Qw > W",
+              "Tunable consistency"
+            ],
+            [
+              "ROWA",
+              "Qw = W, Qr = 1",
+              "The cheap-read extreme of quorums"
+            ],
+            [
+              "2PC phase 1",
+              "PREPARE → READY / FAILED",
+              "Collecting votes"
+            ],
+            [
+              "2PC phase 2",
+              "COMMIT / ABORT → ACK",
+              "Broadcasting one decision"
+            ],
+            [
+              "2PC blocking",
+              "Prepared agents + dead coordinator",
+              "Why 3PC, Paxos and Raft exist"
+            ],
+            [
+              "Semi-join",
+              "R ⋈ S = R ⋈ (π_C(R) ⋈ S)",
+              "Shipping only tuples with a partner"
+            ],
+            [
+              "Bloom filter join",
+              "m bits, k hashes, false drops only",
+              "Shipping bits instead of values"
+            ],
+            [
+              "Greenplum",
+              "DISTRIBUTED BY across segments, PARTITION BY within one",
+              "The fragmentation example"
+            ],
+            [
+              "MemSQL",
+              "aggregator + leaf, SHARD KEY, reference tables",
+              "Broadcast joins made local"
+            ],
+            [
+              "CAP / PACELC",
+              "P → A vs C, Else L vs C",
+              "Placing a system on the map"
+            ]
+          ],
+          "caption": "Everything from this lecture that is worth carrying into an exam."
+        },
+        {
+          "kind": "info",
+          "variant": "insight",
+          "title": "The one sentence version",
+          "md": "Cut the relation so that the queries you care about stay local, replicate it so that failures and reads are cheap, use a quorum and two-phase commit to keep the copies honest, and when rows still have to meet across machines, send the smallest thing that identifies them — a projection, or just some bits."
+        }
+      ]
+    },
+    {
+      "id": "exercises",
+      "title": "Exercise sheet 01",
+      "kind": "exercises",
+      "blocks": [
+        {
+          "kind": "prose",
+          "md": "The homework sheet for this lecture. Every part has the official solution behind a reveal, and the ones with a definite answer — quorum sets, hash values, bit vectors, byte counts — are graded here as soon as you press **Check answer**.\n\nYour answers are saved in this browser, so you can leave and come back. For the open questions, write the answer out before revealing the solution: the self-assessment afterwards is only useful if you committed to something first."
+        },
+        {
+          "kind": "exercises",
+          "sheet": {
+            "id": "sheet-01",
+            "title": "Exercise sheet 01",
+            "description": "The seven homework problems on fragmentation, quorum consensus and Bloom filter joins. Type your answer, check the ones that grade themselves, and reveal the official solution when you are ready.",
+            "source": "Data Intensive Systems, Fall 2026 — Sheet 01",
+            "exercises": [
+              {
+                "id": "hw1",
+                "title": "Canonical and optimized plan over a combined fragmentation",
+                "intro": "The relation **Professors**:\n\n| PersNr | Name | Level | Room | Department | Salary | Taxclass |\n| --- | --- | --- | --- | --- | --- | --- |\n| 2125 | Sokrates | C4 | 226 | Philosophy | 85000 | 1 |\n| 2126 | Russel | C4 | 232 | Philosophy | 80000 | 3 |\n| 2127 | Kopernikus | C3 | 310 | Physics | 65000 | 5 |\n| 2133 | Popper | C3 | 52 | Philosophy | 68000 | 1 |\n| 2134 | Augustinus | C3 | 309 | Theology | 55000 | 5 |\n| 2136 | Curie | C4 | 36 | Physics | 95000 | 3 |\n| 2137 | Kant | C4 | 7 | Philosophy | 98000 | 1 |\n\nIt is fragmented in two stages. First **vertically**:\n\n$\\text{ProfVerw} := \\Pi_{PersNr, Name, Salary, Taxclass}(\\text{Professors})$\n\n$\\text{Profs} := \\Pi_{PersNr, Name, Level, Room, Department}(\\text{Professors})$\n\nThen the fragment Profs is fragmented **horizontally**:\n\n$\\text{TheolProfs} := \\sigma_{Department = \\text{'Theology'}}(\\text{Profs})$\n\n$\\text{PhysikProfs} := \\sigma_{Department = \\text{'Physics'}}(\\text{Profs})$\n\n$\\text{PhiloProfs} := \\sigma_{Department = \\text{'Philosophy'}}(\\text{Profs})$\n\nThe query to translate:\n\n    select Name, Salary, Level\n    from   Professors\n    where  salary > 80000;",
+                "tasks": [
+                  {
+                    "id": "hw1-a",
+                    "prompt": "Translate the query into the **canonical form** over the fragments — reconstruct the relation first, then apply the query.",
+                    "check": {
+                      "mode": "open",
+                      "palette": "algebra"
+                    },
+                    "hint": "Rebuild Profs from its three horizontal fragments with ∪, then rebuild Professors by joining that to ProfVerw on PersNr. Only then apply the selection and the projection.",
+                    "solution": "$\\Pi_{Name, Salary, Level}\\Big(\\sigma_{Salary > 80000}\\big(\\text{ProfVerw} \\bowtie_{PersNr = PersNr} (\\text{TheolProfs} \\cup \\text{PhysikProfs} \\cup \\text{PhiloProfs})\\big)\\Big)$\n\nAs a tree, bottom up:\n\n    ProfVerw          TheolProfs ∪ PhysikProfs ∪ PhiloProfs\n            ⋈ PersNr = PersNr\n            σ Salary > 80000\n            Π Name, Salary, Level\n\nThis is correct but wasteful: the whole relation is reconstructed before a single tuple is filtered away."
+                  },
+                  {
+                    "id": "hw1-b",
+                    "prompt": "Now **optimize** the plan using algebraic transformation rules. Name the rules you apply.",
+                    "check": {
+                      "mode": "open",
+                      "palette": "algebra"
+                    },
+                    "hint": "Two moves: push the selection down towards the table scans, and insert extra projections to keep intermediate results small. Which attribute is stored redundantly in both vertical fragments?",
+                    "solution": "$\\Pi_{Name, Salary, Level}\\Big(\\Pi_{PersNr, Name, Salary}\\big(\\sigma_{Salary > 80000}(\\text{ProfVerw})\\big) \\bowtie_{PersNr = PersNr} \\big(\\Pi_{PersNr, Level}(\\text{TheolProfs}) \\cup \\Pi_{PersNr, Level}(\\text{PhysikProfs}) \\cup \\Pi_{PersNr, Level}(\\text{PhiloProfs})\\big)\\Big)$\n\nThe two steps:\n\n1. **Push the selection down.** $\\sigma_{Salary > 80000}$ only mentions Salary, which lives in ProfVerw alone, so it moves below the join and straight onto that fragment scan. The horizontal fragments are untouched by it.\n2. **Insert additional projections.** Keep the intermediate results as small as possible: the ProfVerw branch needs only PersNr, Name and Salary, and each horizontal fragment needs only PersNr and Level. Note that **Name is redundant** — it is stored in both vertical fragments — so it is projected away on the Profs side and taken from ProfVerw."
+                  }
+                ]
+              },
+              {
+                "id": "hw2",
+                "title": "Fragmenting the exam relation",
+                "intro": "The relation **exam** with key StudNr:\n\n| StudNr | Name | Grade | Location |\n| --- | --- | --- | --- |\n| 10101 | Philipp | 1,0 | München |\n| 10102 | Magdalena | 1,0 | Garching |\n| 10103 | Erik | 1,0 | Garching |\n| 10104 | Josef | 1,0 | Garching |\n| 10105 | Alex | 1,0 | Garching |\n| 10106 | Maximilian | 1,0 | München |\n\nThe table is to be fragmented for a distributed database. The goal is to store the **names with the location** of the students locally, and the **grades** separately.",
+                "tasks": [
+                  {
+                    "id": "hw2-a",
+                    "prompt": "Fragment the relation vertically. Give the schema of the two resulting relations **ExamV1** and **ExamV2**, marking the primary key of each.",
+                    "check": {
+                      "mode": "open"
+                    },
+                    "hint": "Both fragments must keep the key, otherwise the join back is not lossless.",
+                    "solution": "$\\text{ExamV1}: \\{[\\underline{StudNr}, Grade]\\}$\n\n$\\text{ExamV2}: \\{[\\underline{StudNr}, Name, Location]\\}$\n\nStudNr is the primary key in both — it is the common candidate key that makes the reconstruction join lossless."
+                  },
+                  {
+                    "id": "hw2-b",
+                    "prompt": "Specify ExamV1 and ExamV2 in SQL-92 as CTEs (using **with**).",
+                    "check": {
+                      "mode": "open"
+                    },
+                    "solution": "    with ExamV1 as (SELECT StudNr, Grade FROM Persons),\n         ExamV2 as (SELECT StudNr, Name, Location FROM Persons)"
+                  },
+                  {
+                    "id": "hw2-c",
+                    "prompt": "The more suitable of the two relations is now fragmented horizontally. Which relation, and with which selection predicate?",
+                    "check": {
+                      "mode": "select",
+                      "options": [
+                        "σ Location = 'Garching' (ExamV2) and σ Location ≠ 'Garching' (ExamV2)",
+                        "σ Grade = 1,0 (ExamV1) and σ Grade ≠ 1,0 (ExamV1)",
+                        "σ StudNr ≤ 10103 (ExamV1) and σ StudNr > 10103 (ExamV1)",
+                        "σ Name < 'M' (ExamV2) and σ Name ≥ 'M' (ExamV2)"
+                      ],
+                      "answer": [
+                        "σ Location = 'Garching' (ExamV2) and σ Location ≠ 'Garching' (ExamV2)"
+                      ]
+                    },
+                    "hint": "The point of the exercise is locality: which attribute says where a student's data should live?",
+                    "solution": "ExamV2 is the suitable one, because it carries **Location** — the attribute that decides where a tuple should be stored. The predicate is on that attribute:\n\n$Location = \\text{'Garching'}$ or $Location = \\text{'München'}$\n\nUsing the complement for the second fragment ($Location \\neq \\text{'Garching'}$) keeps the fragmentation complete even if a third location appears later."
+                  },
+                  {
+                    "id": "hw2-d",
+                    "prompt": "Specify the two resulting relations **ExamH1** and **ExamH2** in SQL-92 as CTEs.",
+                    "check": {
+                      "mode": "open"
+                    },
+                    "solution": "    with ExamH1 as (SELECT * FROM ExamV2 WHERE Location = 'Garching'),\n         ExamH2 as (SELECT * FROM ExamV2 WHERE Location <> 'Garching')"
+                  },
+                  {
+                    "id": "hw2-e",
+                    "prompt": "Write a SQL query that composes the original relation back from the sub-relations.",
+                    "check": {
+                      "mode": "open"
+                    },
+                    "hint": "Two operators, in this order: union the horizontal fragments, then join the result to the other vertical fragment on the key.",
+                    "solution": "    select ExamV2.*, ExamV1.Grade\n    from   ExamV1,\n           (select * from ExamH1 union select * from ExamH2) as ExamV2\n    where  ExamV1.StudNr = ExamV2.StudNr\n\nUnion undoes the horizontal fragmentation, the join on StudNr undoes the vertical one — exactly the two reconstruction operators from the lecture, applied in reverse order of fragmentation."
+                  }
+                ]
+              },
+              {
+                "id": "hw3",
+                "title": "Why pairwise key candidates are enough",
+                "intro": "For the reconstructability of the original relation $R$ from vertical fragments $R_1, \\dots, R_n$, it is actually sufficient that fragments contain a key candidate **in pairs**. Illustrate why it is therefore **not** necessary that the intersection of *all* fragment schemas contains a key candidate — that is, why\n\n$$R_1 \\cap \\cdots \\cap R_n \\supseteq \\kappa$$\n\nneed not hold, where $\\kappa$ is a key candidate of $R$.",
+                "tasks": [
+                  {
+                    "id": "hw3-a",
+                    "prompt": "Give an illustrative example, preferably based on the professors relation.",
+                    "check": {
+                      "mode": "open",
+                      "palette": "algebra"
+                    },
+                    "hint": "Build a chain: fragment 1 and fragment 2 share one key, fragment 2 and fragment 3 share a different one. The reconstruction is then a chain of joins, and no attribute is common to all three.",
+                    "solution": "Take the professors relation and split it into three fragments that form a **chain** rather than a star (primary keys underlined):\n\n$\\text{RoomF}: \\{[\\underline{Room}, Department]\\}$\n\n$\\text{Professors}: \\{[\\underline{PersNr}, Name, Room]\\}$\n\n$\\text{ProfessorsR}: \\{[\\underline{PersNr}, Level]\\}$\n\nThe original relation is reconstructed as\n\n$\\text{ProfessorsF} = \\text{RoomF} \\bowtie_{Room = Room} \\big(\\text{Professors} \\bowtie_{PersNr = PersNr} \\text{ProfessorsR}\\big)$\n\ngiving back $\\{[\\underline{PersNr}, Name, Level, Room, Department]\\}$.\n\n**Why it works.** Professors and ProfessorsR share PersNr; Professors and RoomF share Room. Each join in the chain has a key candidate available *for that pair*, which is all a lossless join needs. But the intersection of all three schemas is **empty** — RoomF contains neither PersNr nor Name — so the condition $R_1 \\cap R_2 \\cap R_3 \\supseteq \\kappa$ is violated while reconstructability still holds."
+                  }
+                ]
+              },
+              {
+                "id": "hw4",
+                "title": "Write-all / read-any as a special case of quorum consensus",
+                "tasks": [
+                  {
+                    "id": "hw4-a",
+                    "prompt": "For which kinds of workloads is the write-all / read-any method suitable, and why?",
+                    "check": {
+                      "mode": "open"
+                    },
+                    "solution": "The method requires a very large effort for **writing** — every copy must be reached — but only minimal effort for **reading**, since any single copy suffices.\n\nIt is therefore particularly well suited to workloads in which considerably more data is read than written: analytical queries, reporting, read-heavy web serving. It is a poor fit whenever writes are frequent, or whenever a node may be unavailable, because a write fails unless every replica can be locked."
+                  },
+                  {
+                    "id": "hw4-b",
+                    "prompt": "How are the votes (weights) assigned to simulate write-all / read-any?",
+                    "check": {
+                      "mode": "select",
+                      "options": [
+                        "Every node gets weight 1",
+                        "One node gets all the weight, the others get 0",
+                        "Weights proportional to each node's capacity",
+                        "Only the node holding the primary copy gets a vote"
+                      ],
+                      "answer": [
+                        "Every node gets weight 1"
+                      ]
+                    },
+                    "solution": "$\\forall i : w_i = 1$\n\nEvery node gets exactly one vote, so with $n$ nodes the total weight is $W(A) = n$."
+                  },
+                  {
+                    "id": "hw4-c",
+                    "prompt": "How are Qw and Qr defined in that case?",
+                    "check": {
+                      "mode": "select",
+                      "options": [
+                        "Qw = W(A) and Qr = 1",
+                        "Qw = 1 and Qr = W(A)",
+                        "Qw = Qr = W(A) / 2",
+                        "Qw = W(A)/2 + 1 and Qr = W(A)/2"
+                      ],
+                      "answer": [
+                        "Qw = W(A) and Qr = 1"
+                      ]
+                    },
+                    "hint": "Write-all means the write must lock everything; read-any means one copy is enough.",
+                    "solution": "$Q_w = W(A)$ and $Q_r = 1$.\n\nBoth quorum conditions still hold, which is what makes this a special case rather than a different protocol: $Q_r + Q_w = 1 + W > W$, and $2 Q_w = 2W > W$. The protocol is simply the extreme point of the quorum dial where all the cost has been pushed onto writes."
+                  }
+                ]
+              },
+              {
+                "id": "hw5",
+                "title": "Enumerating read and write quorums",
+                "intro": "A data value 'A' is replicated over four nodes, each holding a complete copy. Quorum consensus is applied with these weights:\n\n| Computer | Copy | Weight |\n| --- | --- | --- |\n| R1 | A1 | 3 |\n| R2 | A2 | 1 |\n| R3 | A3 | 2 |\n| R4 | A4 | 2 |\n\nwith $Q_r(A) = 4$ and $Q_w(A) = 5$, so $W(A) = 8$.",
+                "tasks": [
+                  {
+                    "id": "hw5-a",
+                    "prompt": "Select **all** read options — every set of copies whose weights reach the read quorum.",
+                    "check": {
+                      "mode": "select",
+                      "options": [
+                        "A1",
+                        "A2",
+                        "A3",
+                        "A4",
+                        "A1, A2",
+                        "A1, A3",
+                        "A1, A4",
+                        "A2, A3",
+                        "A2, A4",
+                        "A3, A4",
+                        "A1, A2, A3",
+                        "A1, A2, A4",
+                        "A1, A3, A4",
+                        "A2, A3, A4",
+                        "A1, A2, A3, A4"
+                      ],
+                      "answer": [
+                        "A1, A2",
+                        "A1, A3",
+                        "A1, A4",
+                        "A3, A4",
+                        "A1, A2, A3",
+                        "A1, A2, A4",
+                        "A1, A3, A4",
+                        "A2, A3, A4",
+                        "A1, A2, A3, A4"
+                      ]
+                    },
+                    "hint": "A set qualifies when the sum of its weights is at least 4. Do not forget that {A3, A4} already reaches it without A1.",
+                    "solution": "Nine sets reach weight 4 or more:\n\n| Set | Weight |\n| --- | --- |\n| A1, A2 | 4 |\n| A1, A3 | 5 |\n| A1, A4 | 5 |\n| A3, A4 | 4 |\n| A1, A2, A3 | 6 |\n| A1, A2, A4 | 6 |\n| A1, A3, A4 | 7 |\n| A2, A3, A4 | 5 |\n| A1, A2, A3, A4 | 8 |\n\nEvery other non-empty set falls short: {A1} = 3, {A2} = 1, {A3} = {A4} = 2, {A2, A3} = {A2, A4} = 3."
+                  },
+                  {
+                    "id": "hw5-b",
+                    "prompt": "Select **all** write options — every set of copies whose weights reach the write quorum.",
+                    "check": {
+                      "mode": "select",
+                      "options": [
+                        "A1",
+                        "A2",
+                        "A3",
+                        "A4",
+                        "A1, A2",
+                        "A1, A3",
+                        "A1, A4",
+                        "A2, A3",
+                        "A2, A4",
+                        "A3, A4",
+                        "A1, A2, A3",
+                        "A1, A2, A4",
+                        "A1, A3, A4",
+                        "A2, A3, A4",
+                        "A1, A2, A3, A4"
+                      ],
+                      "answer": [
+                        "A1, A3",
+                        "A1, A4",
+                        "A1, A2, A3",
+                        "A1, A2, A4",
+                        "A1, A3, A4",
+                        "A2, A3, A4",
+                        "A1, A2, A3, A4"
+                      ]
+                    },
+                    "hint": "Same sets, but the bar is 5 instead of 4. Two of the read options drop out.",
+                    "solution": "Seven sets reach weight 5 or more:\n\n| Set | Weight |\n| --- | --- |\n| A1, A3 | 5 |\n| A1, A4 | 5 |\n| A1, A2, A3 | 6 |\n| A1, A2, A4 | 6 |\n| A1, A3, A4 | 7 |\n| A2, A3, A4 | 5 |\n| A1, A2, A3, A4 | 8 |\n\nCompared with the read options, {A1, A2} (weight 4) and {A3, A4} (weight 4) drop out."
+                  },
+                  {
+                    "id": "hw5-c",
+                    "prompt": "Show that while a transaction T1 holds a write quorum on A, no other transaction Tx can obtain a read quorum on A.",
+                    "check": {
+                      "mode": "open"
+                    },
+                    "solution": "To write, T1 must hold copies with a total weight of at least $Q_w = 5$ locked. All copies together have a total weight of $W = 8$.\n\nThat leaves at most $8 - 5 = 3$ of weight available to anyone else — which is **less than the read quorum of 4**. So no other transaction can assemble a read quorum while T1 is writing.\n\nThis is exactly the condition $Q_r + Q_w > W$ doing its work: $4 + 5 = 9 > 8$. Reads and writes are forced to overlap, so a reader can never miss the write in progress."
+                  }
+                ]
+              },
+              {
+                "id": "hw6",
+                "title": "Computing minimal quorums",
+                "intro": "A data value 'A' is replicated over four nodes, each holding a copy with a value and an ascending version number:\n\n| Node | Copy | wᵢ(A) | Value | Version |\n| --- | --- | --- | --- | --- |\n| R1 | A1 | 3 | 1100 | 2 |\n| R2 | A2 | 2 | 1100 | 2 |\n| R3 | A3 | 1 | 1000 | 1 |\n| R4 | A4 | 3 | 1000 | 1 |",
+                "tasks": [
+                  {
+                    "id": "hw6-a",
+                    "prompt": "What is the minimal $Q_w(A)$?",
+                    "check": {
+                      "mode": "text",
+                      "accept": [
+                        "5",
+                        "qw=5",
+                        "qw(a)=5"
+                      ],
+                      "placeholder": "e.g. 7"
+                    },
+                    "hint": "W(A) = 3 + 2 + 1 + 3. The write quorum must satisfy 2·Qw > W.",
+                    "solution": "$W(A) = 3 + 2 + 1 + 3 = 9$, and the condition is $2 Q_w > W$, so $Q_w > 4.5$ and therefore\n\n$$Q_w(A) = 5$$\n\nThis is consistent with the table: nodes R1 and R2 carry weight $3 + 2 = 5$ and they are exactly the two holding version 2, so they were the write quorum of the last write."
+                  },
+                  {
+                    "id": "hw6-b",
+                    "prompt": "What is the minimal $Q_r(A)$ for that write quorum?",
+                    "check": {
+                      "mode": "text",
+                      "accept": [
+                        "5",
+                        "qr=5",
+                        "qr(a)=5"
+                      ],
+                      "placeholder": "e.g. 7"
+                    },
+                    "hint": "Use Qr + Qw > W, and take the smallest integer that satisfies it.",
+                    "solution": "From $Q_r + Q_w > W$ we get $Q_r > 9 - 5 = 4$, so\n\n$$Q_r(A) = W - Q_w + 1 = 9 - 5 + 1 = 5$$\n\nAny set of copies with total weight 5 must include at least one of R1 or R2, so a reader always sees version 2."
+                  },
+                  {
+                    "id": "hw6-c",
+                    "prompt": "Sketch writing a new value, giving the new state as four tuples (node, value, version). Start from (1,1100,2), (2,1100,2), (3,1000,1), (4,1000,1).",
+                    "check": {
+                      "mode": "open"
+                    },
+                    "hint": "Pick any set of nodes whose weights sum to at least 5, bump the version above the highest one you saw, and leave the others untouched.",
+                    "solution": "Lock R1 and R2 (weight $3 + 2 = 5 \\ge Q_w$), read the highest version among them (2), and write value 1200 with version 3:\n\n$$(1, 1200, 3),\\ (2, 1200, 3),\\ (3, 1000, 1),\\ (4, 1000, 1)$$\n\nR3 and R4 stay stale at version 1, which is fine: any later read reaching weight 5 must touch R1 or R2 and will therefore pick up version 3. Other valid write sets would do just as well — for example R1 and R4 (weight 6), giving $(1, 1200, 3), (2, 1100, 2), (3, 1000, 1), (4, 1200, 3)$."
+                  },
+                  {
+                    "id": "hw6-d",
+                    "prompt": "A fifth node R5 holding copy A5 with weight 2 is added. What is the minimum write quorum $Q'_w(A)$ now?",
+                    "check": {
+                      "mode": "text",
+                      "accept": [
+                        "6",
+                        "qw=6",
+                        "q'w=6",
+                        "qw'(a)=6"
+                      ],
+                      "placeholder": "e.g. 7"
+                    },
+                    "hint": "Recompute the total weight first.",
+                    "solution": "The total weight becomes $W'(A) = 3 + 2 + 1 + 3 + 2 = 11$. From $2 Q'_w > W'$ we need $Q'_w > 5.5$, so\n\n$$Q'_w(A) = \\left\\lfloor \\frac{11}{2} \\right\\rfloor + 1 = 6$$"
+                  },
+                  {
+                    "id": "hw6-e",
+                    "prompt": "What is the minimum read quorum $Q'_r(A)$ for that write quorum?",
+                    "check": {
+                      "mode": "text",
+                      "accept": [
+                        "6",
+                        "qr=6",
+                        "q'r=6",
+                        "qr'(a)=6"
+                      ],
+                      "placeholder": "e.g. 7"
+                    },
+                    "solution": "$$Q'_r(A) = W'(A) - Q'_w(A) + 1 = 11 - 6 + 1 = 6$$\n\nWith an odd total weight the two quorums come out equal, which is the balanced point of the dial: reads and writes cost the same."
+                  }
+                ]
+              },
+              {
+                "id": "hw7",
+                "title": "Bloom filter join between two servers",
+                "intro": "Tables **students** and **points** share the key StudNr, and points is stored on a separate server. The query to execute:\n\n    SELECT Name, Bonus FROM Student s, Points p WHERE s.StudNr = p.StudNr;\n\nThe administrator uses a Bloom filter to preselect tuples, with the hash function $h(x) = x \\bmod 5$ applied to StudNr.\n\n**Students**\n\n| StudNr | Name | Hash |\n| --- | --- | --- |\n| 27 | Magda | ? |\n| 4 | Josef | ? |\n| 19 | Erik | ? |\n| 95 | Philipp | ? |\n\n**Points**\n\n| StudNr | Bonus | Hash |\n| --- | --- | --- |\n| 27 | ja | ? |\n| 16 | nein | ? |\n| 25 | nein | ? |\n| 95 | ja | ? |",
+                "tasks": [
+                  {
+                    "id": "hw7-a",
+                    "prompt": "Calculate the hash values for **students**, in table order (27, 4, 19, 95). Separate them with commas.",
+                    "check": {
+                      "mode": "text",
+                      "accept": [
+                        "2,4,4,0",
+                        "2440"
+                      ],
+                      "placeholder": "e.g. 1,2,3,4"
+                    },
+                    "solution": "$h(27) = 27 \\bmod 5 = 2$, $h(4) = 4$, $h(19) = 4$, $h(95) = 0$.\n\n| StudNr | Name | Hash |\n| --- | --- | --- |\n| 27 | Magda | 2 |\n| 4 | Josef | 4 |\n| 19 | Erik | 4 |\n| 95 | Philipp | 0 |\n\nNote that 4 and 19 collide on bucket 4 — that is normal and costs nothing here."
+                  },
+                  {
+                    "id": "hw7-b",
+                    "prompt": "Calculate the hash values for **points**, in table order (27, 16, 25, 95).",
+                    "check": {
+                      "mode": "text",
+                      "accept": [
+                        "2,1,0,0",
+                        "2100"
+                      ],
+                      "placeholder": "e.g. 1,2,3,4"
+                    },
+                    "solution": "$h(27) = 2$, $h(16) = 1$, $h(25) = 0$, $h(95) = 0$.\n\n| StudNr | Bonus | Hash |\n| --- | --- | --- |\n| 27 | ja | 2 |\n| 16 | nein | 1 |\n| 25 | nein | 0 |\n| 95 | ja | 0 |"
+                  },
+                  {
+                    "id": "hw7-c",
+                    "prompt": "Specify the bit vector transferred from students. Write it as a string of bits, position 0 first.",
+                    "check": {
+                      "mode": "text",
+                      "accept": [
+                        "10101",
+                        "1,0,1,0,1"
+                      ],
+                      "placeholder": "e.g. 01010"
+                    },
+                    "hint": "The hash has five possible outputs, so the vector is five bits long. Set a bit whenever the hash produced that value at least once.",
+                    "solution": "**Bit vector: 10101**\n\n$h(x)$ has five different outputs, so the vector is at minimum 5 bits long. A bit is set when the hash function produced that value at least once. The students hash to $\\{2, 4, 4, 0\\}$, so bits 0, 2 and 4 are set and bits 1 and 3 stay clear."
+                  },
+                  {
+                    "id": "hw7-d",
+                    "prompt": "Based on that bit vector, which tuples are transferred from points?",
+                    "check": {
+                      "mode": "select",
+                      "options": [
+                        "27",
+                        "16",
+                        "25",
+                        "95"
+                      ],
+                      "answer": [
+                        "27",
+                        "25",
+                        "95"
+                      ]
+                    },
+                    "solution": "**27, 25 and 95.**\n\n- 27 hashes to 2 — bit set, transferred (and it is a genuine match).\n- 16 hashes to 1 — bit clear, filtered out.\n- 25 hashes to 0 — bit set, transferred, but there is no student 25: a **false positive**.\n- 95 hashes to 0 — bit set, transferred (a genuine match)."
+                  },
+                  {
+                    "id": "hw7-e",
+                    "prompt": "Calculate the false positive rate.",
+                    "check": {
+                      "mode": "text",
+                      "accept": [
+                        "33%",
+                        "33",
+                        "1/3",
+                        "0.33",
+                        "33.3%",
+                        "33,3%",
+                        "0,33"
+                      ],
+                      "placeholder": "e.g. 50%"
+                    },
+                    "hint": "Of the tuples that passed the filter, how many turn out to have no join partner?",
+                    "solution": "Three tuples were transferred and one of them (25) has no join partner, so\n\n$$\\frac{1}{3} \\approx 33\\%$$\n\nThe false positive costs bandwidth only — the real join at the other side discards it, so the result stays exact."
+                  },
+                  {
+                    "id": "hw7-f",
+                    "prompt": "Each tuple is 8 bytes. How many bytes are transferred **without** the Bloom filter?",
+                    "check": {
+                      "mode": "text",
+                      "accept": [
+                        "32",
+                        "32bytes",
+                        "4*8=32",
+                        "4·8=32"
+                      ],
+                      "placeholder": "e.g. 24"
+                    },
+                    "solution": "All four tuples of points have to be shipped:\n\n$$4 \\cdot 8 = 32 \\text{ bytes}$$"
+                  },
+                  {
+                    "id": "hw7-g",
+                    "prompt": "And **with** the Bloom filter, which itself costs 1 byte?",
+                    "check": {
+                      "mode": "text",
+                      "accept": [
+                        "25",
+                        "25bytes",
+                        "3*8+1=25",
+                        "3·8+1=25"
+                      ],
+                      "placeholder": "e.g. 24"
+                    },
+                    "solution": "Only the three tuples that pass the filter are shipped, plus the filter itself:\n\n$$3 \\cdot 8 + 1 = 25 \\text{ bytes}$$\n\nA saving of 7 bytes on this toy example — but the ratio is what matters: the filter is a fixed cost while the tuples scale with the size of the relation."
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

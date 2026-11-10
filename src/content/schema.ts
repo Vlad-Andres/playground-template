@@ -4,6 +4,7 @@ const identifier = z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._-]*$/);
 const courseId = z.string().regex(/^[a-z0-9][a-z0-9-]*$/);
 const language = z.string().regex(/^[a-z]{2,3}(-[A-Za-z0-9]+)*$/);
 const positiveInt = z.number().int().positive();
+const nonNegativeInt = z.number().int().nonnegative();
 
 const sectionKind = z.enum([
   "objectives",
@@ -33,7 +34,7 @@ const sourceSchema = z
 const metaSchema = z
   .object({
     slug: identifier,
-    number: positiveInt,
+    number: nonNegativeInt,
     title: z.string(),
     subtitle: z.string(),
     summary: z.string(),
