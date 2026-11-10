@@ -15,7 +15,8 @@
     "test": "vitest run",
     "schema": "tsx scripts/content/schema-export.ts",
     "validate": "tsx scripts/content/validate.ts",
-    "content": "tsx scripts/content/build.ts"
+    "content": "tsx scripts/content/build.ts",
+    "generate:gemini": "tsx scripts/model/gemini-proof.ts"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.5.15",
