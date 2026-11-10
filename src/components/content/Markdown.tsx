@@ -6,20 +6,32 @@ import { RunnableCode } from "@/components/content/RunnableCode";
 import { cn } from "@/lib/cn";
 import { runLanguage } from "@/lib/runner/types";
 
+function safeHref(href: string | undefined): string | undefined {
+  if (!href) return undefined;
+  if (href.startsWith("#") || href.startsWith("/") || href.startsWith("./") || href.startsWith("../")) return href;
+  if (/^https?:\/\//i.test(href)) return href;
+  return undefined;
+}
+
 const components: Components = {
   p: ({ children }) => <p className="leading-relaxed text-muted">{children}</p>,
   strong: ({ children }) => <strong className="font-semibold text-ink">{children}</strong>,
   em: ({ children }) => <em className="italic">{children}</em>,
-  a: ({ children, href }) => (
-    <a
-      href={href}
-      className="font-medium text-brand underline decoration-brand/40 underline-offset-2 hover:decoration-brand"
-      target={href?.startsWith("http") ? "_blank" : undefined}
-      rel={href?.startsWith("http") ? "noreferrer" : undefined}
-    >
-      {children}
-    </a>
-  ),
+  a: ({ children, href }) => {
+    const safe = safeHref(href);
+    if (!safe) return <>{children}</>;
+    const external = /^https?:\/\//i.test(safe);
+    return (
+      <a
+        href={safe}
+        className="font-medium text-brand underline decoration-brand/40 underline-offset-2 hover:decoration-brand"
+        target={external ? "_blank" : undefined}
+        rel={external ? "noreferrer" : undefined}
+      >
+        {children}
+      </a>
+    );
+  },
   ul: ({ children }) => (
     <ul className="ml-1 grid gap-1.5 text-muted [&>li]:relative [&>li]:pl-5">{children}</ul>
   ),
