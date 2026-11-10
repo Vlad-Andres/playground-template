@@ -1,0 +1,48 @@
+{
+  "meta": {
+    "slug": "getting-started",
+    "number": 1,
+    "title": "Getting Started",
+    "subtitle": "A small starting point for your generated course",
+    "summary": "This lecture demonstrates the minimum content shape. Replace it with the first lecture generated from your course materials.",
+    "topics": ["Orientation"],
+    "difficulty": "intro",
+    "estimatedMinutes": 10,
+    "sources": [],
+    "objectives": ["Describe what this course is about.", "Identify the main ideas to practise next."],
+    "takeaways": ["Course content is data and can be regenerated without changing the rendering engine."]
+  },
+  "concepts": [],
+  "quiz": [],
+  "sections": [
+    {
+      "id": "welcome",
+      "title": "Welcome",
+      "kind": "objectives",
+      "blocks": [
+        {
+          "kind": "prose",
+          "md": "This starter lecture is intentionally small. An agent can replace it with the sections, blocks, widgets, and assessment features that fit the course materials."
+        },
+        {
+          "kind": "list",
+          "variant": "objectives",
+          "items": ["Describe what this course is about.", "Identify the main ideas to practise next."]
+        }
+      ]
+    },
+    {
+      "id": "next-steps",
+      "title": "Next steps",
+      "kind": "summary",
+      "blocks": [
+        {
+          "kind": "info",
+          "title": "Generate your course",
+          "variant": "note",
+          "md": "Add JSON files under `content/lectures/`, then run `npm run validate` to check them before building."
+        }
+      ]
+    }
+  ]
+}

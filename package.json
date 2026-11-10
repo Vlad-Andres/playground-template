@@ -5,8 +5,10 @@
   "scripts": {
     "predev": "node scripts/copy-pglite.mjs && npm run content",
     "dev": "next dev",
+    "dev:dis": "CONTENT_DIR=examples/dis next dev",
     "prebuild": "node scripts/copy-pglite.mjs && npm run content",
     "build": "next build",
+    "build:dis": "CONTENT_DIR=examples/dis next build",
     "postbuild": "node scripts/write-precache-manifest.mjs",
     "start": "next start",
     "lint": "eslint",

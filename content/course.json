@@ -1,0 +1,12 @@
+{
+  "id": "starter",
+  "title": "Learning Playground",
+  "shortTitle": "Learning",
+  "description": "A generated interactive learning playground.",
+  "language": "en",
+  "indexable": false,
+  "overviewBadge": "Your course",
+  "overviewTitle": "Learn by exploring the ideas that matter.",
+  "overviewMd": "Replace this starter content with a generated course. The site supports lectures, explanations, quizzes, exercises, figures, and optional interactive widgets.",
+  "footerText": "A personal learning playground. Progress is stored locally in your browser."
+}
