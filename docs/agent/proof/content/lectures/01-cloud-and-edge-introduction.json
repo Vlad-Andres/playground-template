@@ -1,0 +1,168 @@
+{
+  "meta": {
+    "slug": "cloud-and-edge-introduction",
+    "number": 1,
+    "title": "Cloud and Edge Computing: Introduction",
+    "subtitle": "Course essentials, the computing continuum, and position-paper guidance",
+    "summary": "The opening lecture introduces the course's technology, distributed-systems foundations, assessment, computing continuum, and position-paper assignment.",
+    "topics": ["Course essentials", "Cloud and edge systems", "Computing continuum", "Position paper"],
+    "difficulty": "intro",
+    "estimatedMinutes": 90,
+    "sources": [
+      {
+        "label": "Lecture 1 — Introduction",
+        "kind": "slides",
+        "detail": "Cloud and Edge Computing, pages 1–12, 56–66"
+      }
+    ],
+    "objectives": [
+      "Describe what the Cloud and Edge Computing course covers.",
+      "Distinguish cloud, edge, and fog positions in the computing continuum.",
+      "Summarize the position-paper requirements stated in the lecture."
+    ],
+    "takeaways": [
+      "The course combines cloud and edge technology with parallel and distributed-systems principles.",
+      "The position paper requires a focused position supported by recent research papers."
+    ]
+  },
+  "concepts": [
+    {
+      "id": "cloud-edge-continuum",
+      "term": "Cloud and edge computing continuum",
+      "short": "A range of computing locations from centralised cloud infrastructure to resources close to data producers and users.",
+      "detail": "The lecture presents cloud and edge systems as a continuum rather than as unrelated technologies. The placement affects latency, resource availability, and how applications are designed.",
+      "tags": ["page 56"]
+    },
+    {
+      "id": "position-paper",
+      "term": "Position paper",
+      "short": "A concise paper that argues a position on a course topic using recent research.",
+      "detail": "The lecture specifies a maximum of seven pages in IEEE double-column format, with a topic, a clear position, supporting literature, and the student's own diagrams, figures, or tables.",
+      "tags": ["pages 58–63"]
+    }
+  ],
+  "quiz": [
+    {
+      "id": "course-foundation",
+      "prompt": "Which foundation does the lecture identify for Cloud and Edge systems?",
+      "options": [
+        { "id": "distributed", "text": "Parallel and distributed system principles" },
+        { "id": "typography", "text": "Typography and visual design principles" },
+        { "id": "accounting", "text": "Accounting and finance principles" }
+      ],
+      "answerId": "distributed",
+      "explanation": "Page 5 describes parallel and distributed system principles as the foundation of Cloud and Edge systems."
+    },
+    {
+      "id": "paper-length",
+      "prompt": "What maximum length does the position-paper guidance state?",
+      "options": [
+        { "id": "seven", "text": "Seven pages" },
+        { "id": "seventy", "text": "Seventy pages" },
+        { "id": "one", "text": "One page" }
+      ],
+      "answerId": "seven",
+      "explanation": "Page 62 states a maximum of seven pages in IEEE double-column format."
+    }
+  ],
+  "sections": [
+    {
+      "id": "course-essentials",
+      "title": "Course essentials",
+      "kind": "objectives",
+      "blocks": [
+        {
+          "kind": "prose",
+          "md": "The lecture describes Cloud and Edge Computing as both a technology course and a study of the parallel and distributed-system principles that make Cloud and Edge applications work. It also introduces research questions around current methods, technologies, gaps, and possible innovations. (Source: slide 5.)"
+        },
+        {
+          "kind": "concepts",
+          "ids": ["cloud-edge-continuum", "position-paper"]
+        },
+        {
+          "kind": "list",
+          "variant": "objectives",
+          "items": [
+            "Describe what the course covers.",
+            "Distinguish the course's technology, systems, and research perspectives.",
+            "Recall the main assessment deliverable described in the lecture."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "computing-continuum",
+      "title": "The computing continuum",
+      "kind": "intuition",
+      "blocks": [
+        {
+          "kind": "prose",
+          "md": "The later part of the lecture introduces the computing continuum as a way to think about Cloud and Edge systems. The source places the topic in the context of future computer systems and networking research, then returns to the introduction to Cloud and Edge. (Source: slide 56.)"
+        },
+        {
+          "kind": "timeline",
+          "items": [
+            {
+              "label": "central",
+              "title": "Cloud",
+              "md": "Centralised infrastructure provides shared computing and storage resources."
+            },
+            {
+              "label": "near",
+              "title": "Edge",
+              "md": "Computing resources move closer to users or data producers, changing latency and resource trade-offs."
+            }
+          ]
+        },
+        {
+          "kind": "recall",
+          "cards": [
+            {
+              "prompt": "What changes when computation moves toward the edge?",
+              "answer": "The placement changes latency and resource trade-offs for applications."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "position-paper-guidance",
+      "title": "Position-paper guidance",
+      "kind": "examples",
+      "blocks": [
+        {
+          "kind": "prose",
+          "md": "The lecture asks students to choose a topic covered in the course, collect five to eight recent IEEE, ACM, or Elsevier papers, and develop a position. At least one paper should come from the papers listed in Brightspace. (Source: slides 58–63.)"
+        },
+        {
+          "kind": "table",
+          "headers": ["Requirement", "Source detail"],
+          "rows": [
+            ["Length", "Maximum 7 pages"],
+            ["Format", "IEEE double-column"],
+            ["Evidence", "5–8 recent papers"],
+            ["Original work", "Draw your own diagrams, figures, or tables"]
+          ],
+          "caption": "Position-paper requirements stated on slides 61–62."
+        },
+        {
+          "kind": "info",
+          "variant": "note",
+          "title": "Scope decision",
+          "md": "This proof does not add an exam page, expected-topic board, figure, or interactive widget: the selected source material does not provide evidence that these features are needed."
+        }
+      ]
+    },
+    {
+      "id": "check-understanding",
+      "title": "Check understanding",
+      "kind": "quiz",
+      "blocks": [
+        {
+          "kind": "prose",
+          "md": "Use the quiz to check the two concrete requirements captured from the lecture."
+        }
+      ]
+    }
+  ]
+}

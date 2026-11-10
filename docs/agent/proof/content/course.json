@@ -1,0 +1,12 @@
+{
+  "id": "cloud-edge-intro",
+  "title": "Cloud and Edge Computing",
+  "shortTitle": "Cloud & Edge",
+  "description": "A source-grounded introduction to Cloud and Edge Computing.",
+  "language": "en",
+  "indexable": false,
+  "overviewBadge": "Lecture 1",
+  "overviewTitle": "Cloud and Edge Computing: introduction",
+  "overviewMd": "This proof course was generated from a representative lecture PDF. It keeps the course essentials, computing continuum, and position-paper guidance that appear in the source.",
+  "footerText": "Generated from the supplied Cloud and Edge Computing lecture PDF."
+}
