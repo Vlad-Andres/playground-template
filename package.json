@@ -10,7 +10,8 @@
     "postbuild": "node scripts/write-precache-manifest.mjs",
     "start": "next start",
     "lint": "eslint",
-    "test": "vitest run"
+    "test": "vitest run",
+    "schema": "tsx scripts/content/schema-export.ts"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.5.15",

@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]*$"
+    },
+    "title": {
+      "type": "string"
+    },
+    "shortTitle": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "language": {
+      "type": "string",
+      "pattern": "^[a-z]{2,3}(-[A-Za-z0-9]+)*$"
+    },
+    "indexable": {
+      "type": "boolean"
+    },
+    "overviewMd": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "id",
+    "title",
+    "shortTitle",
+    "description",
+    "language",
+    "indexable"
+  ],
+  "additionalProperties": false
+}

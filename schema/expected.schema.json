@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "properties": {
+      "id": {
+        "type": "string",
+        "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$"
+      },
+      "lectures": {
+        "type": "string"
+      },
+      "title": {
+        "type": "string"
+      },
+      "links": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "slug": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$"
+            },
+            "label": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "slug",
+            "label"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "official": {
+        "type": "string"
+      },
+      "items": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$"
+            },
+            "title": {
+              "type": "string"
+            },
+            "md": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "title",
+            "md"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    "required": [
+      "id",
+      "lectures",
+      "title",
+      "links",
+      "official",
+      "items"
+    ],
+    "additionalProperties": false
+  }
+}
