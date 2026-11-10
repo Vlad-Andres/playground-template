@@ -1,11 +1,14 @@
 import fs from "node:fs";
 import path from "node:path";
 import { GoogleGenAI } from "@google/genai";
+import { lectureFileSchema } from "../../src/content/schema";
 
 const pdfPath =
   process.argv[2] ?? "materials/Lecture_01-Introduction-2026-2.pdf";
 const outputPath = process.argv[3] ?? path.resolve(".model-output/gemini-lecture.json");
 const model = process.env.GEMINI_MODEL ?? "gemini-3.8-flash";
+const maxPdfBytes = Number(process.env.GEMINI_MAX_PDF_BYTES ?? 25 * 1024 * 1024);
+const maxOutputBytes = Number(process.env.GEMINI_MAX_OUTPUT_BYTES ?? 250 * 1024);
 type UploadedFile = { name?: string; uri?: string; mimeType?: string };
 
 function loadApiKey(): string {
@@ -51,6 +54,10 @@ function responseSchema(): object {
 
 async function main(): Promise<void> {
   if (!fs.existsSync(pdfPath)) throw new Error(`PDF not found: ${pdfPath}`);
+  const pdfBytes = fs.statSync(pdfPath).size;
+  if (pdfBytes > maxPdfBytes) {
+    throw new Error(`PDF is too large (${pdfBytes} bytes); limit is ${maxPdfBytes} bytes.`);
+  }
   const ai = new GoogleGenAI({ apiKey: loadApiKey() });
   let uploaded: UploadedFile | undefined;
   try {
@@ -93,9 +100,16 @@ figures, widgets, raw HTML, executable code, or invented facts.`,
       },
     });
     if (!response.text) throw new Error("Gemini returned an empty response.");
-    JSON.parse(response.text);
+    if (Buffer.byteLength(response.text, "utf8") > maxOutputBytes) {
+      throw new Error(`Gemini output is too large; limit is ${maxOutputBytes} bytes.`);
+    }
+    const parsed: unknown = JSON.parse(response.text);
+    const validation = lectureFileSchema.safeParse(parsed);
+    if (!validation.success) {
+      throw new Error(`Gemini output failed lecture schema validation: ${validation.error.issues[0]?.message}`);
+    }
     fs.mkdirSync(path.dirname(outputPath), { recursive: true });
-    fs.writeFileSync(outputPath, `${response.text.trim()}\n`);
+    fs.writeFileSync(outputPath, `${JSON.stringify(validation.data, null, 2)}\n`);
     console.log(`Generated ${outputPath} with ${model}.`);
   } finally {
     if (uploaded?.name) {
