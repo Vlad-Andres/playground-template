@@ -2,6 +2,7 @@
 
 import { useCallback, useSyncExternalStore } from "react";
 import { createPersistentStore } from "@/lib/store";
+import { storageKey } from "@/lib/storageKey";
 
 /** Which items of the "Expected at the exam" page the student already knows. */
 interface ExpectedState {
@@ -11,7 +12,7 @@ interface ExpectedState {
 
 const fallback: ExpectedState = { known: [], hideKnown: false };
 
-const store = createPersistentStore<ExpectedState>("dis-playground:expected:v1", fallback, (raw) => {
+const store = createPersistentStore<ExpectedState>(storageKey("expected:v1"), fallback, (raw) => {
   if (!raw || typeof raw !== "object") return null;
   const source = raw as Partial<ExpectedState>;
   return {

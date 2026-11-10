@@ -1,4 +1,6 @@
-const STORAGE_KEY = "dis-playground:gemini-api-key";
+import { storageKey } from "@/lib/storageKey";
+
+const STORAGE_KEY = storageKey("gemini-api-key");
 
 export type KeyPersistence = "session" | "device";
 export type KeyStatus = "none" | KeyPersistence;

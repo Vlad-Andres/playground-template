@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { ExpectedBoard } from "@/components/expected/ExpectedBoard";
+import { expectedTopics } from "@/content/expected";
+import { notFound } from "next/navigation";
 
 export const metadata: Metadata = {
   title: "Expected at the exam",
@@ -7,5 +9,6 @@ export const metadata: Metadata = {
 };
 
 export default function ExpectedPage() {
+  if (expectedTopics.length === 0) notFound();
   return <ExpectedBoard />;
 }

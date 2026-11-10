@@ -1,4 +1,6 @@
-export const THEME_STORAGE_KEY = "dis-playground:theme";
+import { storageKey } from "@/lib/storageKey";
+
+export const THEME_STORAGE_KEY = storageKey("theme");
 
 export type ResolvedTheme = "light" | "dark";
 

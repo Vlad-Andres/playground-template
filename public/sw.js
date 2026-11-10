@@ -1,7 +1,7 @@
 const PRECACHE_MANIFEST = { version: "development", urls: [] };
-const CACHE_PREFIX = "dis-study-";
-const CACHE_NAME = `${CACHE_PREFIX}${PRECACHE_MANIFEST.version}`;
 const scopeUrl = new URL(self.registration.scope);
+const CACHE_PREFIX = `playground:${scopeUrl.pathname}:`;
+const CACHE_NAME = `${CACHE_PREFIX}${PRECACHE_MANIFEST.version}`;
 
 self.addEventListener("install", (event) => {
   event.waitUntil(

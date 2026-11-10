@@ -1,6 +1,7 @@
 import { BookOpen, Compass, ListChecks, PencilRuler } from "lucide-react";
 import { countExercises, type LectureIndexEntry } from "@/content/registry";
 import { Badge } from "@/components/ui/Badge";
+import { course } from "@/content/course";
 
 interface CourseOverviewProps {
   entries: LectureIndexEntry[];
@@ -30,15 +31,13 @@ export function CourseOverview({ entries }: CourseOverviewProps) {
     <section className="grid gap-6">
       <div className="grid max-w-3xl gap-4">
         <Badge tone="brand" className="w-fit">
-          Data Intensive Systems
+          {course.overviewBadge ?? course.title}
         </Badge>
         <h1 className="text-3xl font-semibold tracking-tight text-balance sm:text-4xl">
-          An interactive playground for the concepts behind data-intensive systems.
+          {course.overviewTitle ?? `An interactive learning playground for ${course.title.toLowerCase()}.`}
         </h1>
         <p className="text-lg text-muted text-pretty">
-          Each lecture is a guided path: the intuition first, then the technical detail, with
-          playgrounds where moving a slider is faster than reading a paragraph. Progress and quiz
-          scores are kept in your browser.
+          {course.overviewMd ?? course.description}
         </p>
       </div>
 

@@ -4,5 +4,9 @@
   "shortTitle": "DIS Study",
   "description": "An interactive companion for the Data Intensive Systems course: visual explanations, playgrounds and quizzes, one lecture at a time.",
   "language": "en",
-  "indexable": true
+  "indexable": true,
+  "overviewBadge": "Data Intensive Systems",
+  "overviewTitle": "An interactive playground for the concepts behind data-intensive systems.",
+  "overviewMd": "Each lecture is a guided path: the intuition first, then the technical detail, with playgrounds where moving a slider is faster than reading a paragraph. Progress and quiz scores are kept in your browser.",
+  "footerText": "A personal, interactive companion for the Data Intensive Systems course. Content is built from the course material and the assigned book chapters; progress is stored locally in your browser."
 }

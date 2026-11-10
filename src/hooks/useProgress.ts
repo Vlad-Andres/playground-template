@@ -9,9 +9,10 @@ import {
   type LectureProgress,
   type ProgressState,
 } from "@/lib/progress";
+import { storageKey } from "@/lib/storageKey";
 
 const store = createPersistentStore<ProgressState>(
-  "dis-playground:progress:v1",
+  storageKey("progress:v1"),
   {},
   reviveProgress,
 );

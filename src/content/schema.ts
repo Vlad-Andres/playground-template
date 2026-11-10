@@ -217,7 +217,10 @@ export const courseSchema = z
     description: z.string(),
     language,
     indexable: z.boolean(),
+    overviewBadge: z.string().optional(),
+    overviewTitle: z.string().optional(),
     overviewMd: z.string().optional(),
+    footerText: z.string().optional(),
   })
   .strict();
 

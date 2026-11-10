@@ -9,9 +9,10 @@ import {
   type SelfMark,
   type TaskState,
 } from "@/lib/exercises";
+import { storageKey } from "@/lib/storageKey";
 
 const store = createPersistentStore<ExerciseState>(
-  "dis-playground:exercises:v1",
+  storageKey("exercises:v1"),
   {},
   reviveExerciseState,
 );

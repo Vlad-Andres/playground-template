@@ -11,6 +11,9 @@ import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { DIFFICULT_PATH, EXAM_PATH, EXPECTED_PATH, lecturePath } from "@/lib/format";
 import { useDifficult } from "@/hooks/useDifficult";
 import { cn } from "@/lib/cn";
+import { course } from "@/content/course";
+import { examTraining } from "@/content/exam";
+import { expectedTopics } from "@/content/expected";
 
 interface SiteHeaderProps {
   metas: LectureMeta[];
@@ -25,6 +28,8 @@ export function SiteHeader({ metas, records }: SiteHeaderProps) {
   const lecturesRef = useRef<HTMLDivElement>(null);
   const { state: difficult } = useDifficult();
   const difficultCount = Object.keys(difficult.items).length;
+  const hasExam = examTraining !== null;
+  const hasExpected = expectedTopics.length > 0;
 
   const closeMenus = useCallback(() => {
     setMenuOpen(false);
@@ -55,13 +60,13 @@ export function SiteHeader({ metas, records }: SiteHeaderProps) {
       <div className="mx-auto flex h-16 w-full max-w-6xl items-center gap-3 px-4 sm:px-6">
         <Link href="/" onClick={closeMenus} className="flex items-center gap-2.5 font-semibold">
           <span className="grid size-8 place-items-center rounded-lg bg-brand text-sm text-brand-ink">
-            DIS
+            {course.shortTitle.slice(0, 3).toUpperCase()}
           </span>
           <span className="hidden sm:inline">Study Playground</span>
         </Link>
 
         <nav className="ml-4 hidden items-center gap-1 md:flex">
-          <Link
+          {hasExam ? <Link
             href="/"
             onClick={closeMenus}
             className={cn(
@@ -70,7 +75,7 @@ export function SiteHeader({ metas, records }: SiteHeaderProps) {
             )}
           >
             Overview
-          </Link>
+          </Link> : null}
 
           <div className="relative" ref={lecturesRef}>
             <button
@@ -109,7 +114,7 @@ export function SiteHeader({ metas, records }: SiteHeaderProps) {
             ) : null}
           </div>
 
-          <Link
+          {hasExam ? <Link
             href={EXAM_PATH}
             onClick={closeMenus}
             className={cn(
@@ -119,9 +124,9 @@ export function SiteHeader({ metas, records }: SiteHeaderProps) {
           >
             <GraduationCap size={15} aria-hidden />
             Exam training
-          </Link>
+          </Link> : null}
 
-          <Link
+          {hasExpected ? <Link
             href={EXPECTED_PATH}
             onClick={closeMenus}
             className={cn(
@@ -131,7 +136,7 @@ export function SiteHeader({ metas, records }: SiteHeaderProps) {
           >
             <Target size={15} aria-hidden />
             Expected
-          </Link>
+          </Link> : null}
 
           <Link
             href={DIFFICULT_PATH}
@@ -185,20 +190,20 @@ export function SiteHeader({ metas, records }: SiteHeaderProps) {
           >
             Overview
           </Link>
-          <Link
+          {hasExam ? <Link
             href={EXAM_PATH}
             onClick={closeMenus}
             className="block rounded-lg px-3 py-2 text-sm font-medium hover:bg-sunken"
           >
             Exam training
-          </Link>
-          <Link
+          </Link> : null}
+          {hasExpected ? <Link
             href={EXPECTED_PATH}
             onClick={closeMenus}
             className="block rounded-lg px-3 py-2 text-sm font-medium hover:bg-sunken"
           >
             Expected at the exam
-          </Link>
+          </Link> : null}
           <Link
             href={DIFFICULT_PATH}
             onClick={closeMenus}

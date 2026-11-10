@@ -1,6 +1,7 @@
 import { ASSISTANT_MODELS, DEFAULT_ASSISTANT_MODEL, type AssistantModelId } from "@/lib/assistant/gemini";
+import { storageKey } from "@/lib/storageKey";
 
-const STORAGE_KEY = "dis-playground:gemini-model";
+const STORAGE_KEY = storageKey("gemini-model");
 
 const listeners = new Set<() => void>();
 

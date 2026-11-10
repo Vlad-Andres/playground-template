@@ -11,9 +11,10 @@ import {
   type DifficultState,
   type Rating,
 } from "@/lib/difficult";
+import { storageKey } from "@/lib/storageKey";
 
 const store = createPersistentStore<DifficultState>(
-  "dis-playground:difficult:v1",
+  storageKey("difficult:v1"),
   emptyDifficultState,
   reviveDifficult,
 );

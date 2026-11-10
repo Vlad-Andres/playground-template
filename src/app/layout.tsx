@@ -8,17 +8,18 @@ import { lectureIndex, lectureMetas } from "@/content/registry";
 import { buildSearchRecords } from "@/lib/search";
 import { CONTENT_SECURITY_POLICY } from "@/lib/security";
 import { THEME_BOOTSTRAP_SCRIPT } from "@/lib/theme";
+import { course } from "@/content/course";
 
 export const metadata: Metadata = {
   title: {
-    default: "DIS Study Playground",
-    template: "%s · DIS Study Playground",
+    default: course.title,
+    template: `%s · ${course.title}`,
   },
-  description:
-    "An interactive companion for the Data Intensive Systems course: visual explanations, playgrounds and quizzes, one lecture at a time.",
+  description: course.description,
+  ...(course.indexable ? {} : { robots: { index: false, follow: false } }),
   appleWebApp: {
     capable: true,
-    title: "DIS Study",
+    title: course.shortTitle,
   },
 };
 
@@ -26,7 +27,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   const records = buildSearchRecords(lectureIndex);
 
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang={course.language} suppressHydrationWarning>
       <head>
         {process.env.NODE_ENV === "production" ? (
           <meta httpEquiv="Content-Security-Policy" content={CONTENT_SECURITY_POLICY} />

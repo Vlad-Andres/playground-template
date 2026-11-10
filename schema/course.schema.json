@@ -22,7 +22,16 @@
     "indexable": {
       "type": "boolean"
     },
+    "overviewBadge": {
+      "type": "string"
+    },
+    "overviewTitle": {
+      "type": "string"
+    },
     "overviewMd": {
+      "type": "string"
+    },
+    "footerText": {
       "type": "string"
     }
   },

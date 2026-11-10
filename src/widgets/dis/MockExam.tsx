@@ -34,7 +34,7 @@ const POOL: PoolQuestion[] = [
       question,
     })),
   ),
-  ...examTraining.quiz.map((question) => ({
+  ...(examTraining?.quiz ?? []).map((question) => ({
     key: `exam:${question.id}`,
     source: MIXED_SOURCE,
     sourceLabel: "Cross-lecture",

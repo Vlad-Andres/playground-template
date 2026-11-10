@@ -23,6 +23,7 @@ function toReviewLecture(lecture: Lecture, href: string): ReviewLecture {
 }
 
 export function GET() {
+  if (!examTraining) return Response.json({ lectures: allLectures().map((lecture) => toReviewLecture(lecture, lecturePath(lecture.meta.slug))) });
   const data: ReviewData = {
     lectures: [
       ...allLectures().map((lecture) => toReviewLecture(lecture, lecturePath(lecture.meta.slug))),
