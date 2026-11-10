@@ -1,0 +1,148 @@
+import type { QuizQuestion } from "@/content/types";
+
+export const lecture09Quiz: QuizQuestion[] = [
+  {
+    id: "q-failures",
+    prompt: "A server lasts about 1000 days. How many failures per day should a cluster of 1000 such servers expect?",
+    options: [
+      { id: "a", text: "None — 1000 days is almost three years." },
+      { id: "b", text: "About one per day." },
+      { id: "c", text: "About one per year." },
+      { id: "d", text: "About 1000 per day." },
+    ],
+    answerId: "b",
+    explanation: "Each server fails with probability about 1/1000 per day, so 1000 servers give about one failure per day. Failure is the norm, so fault tolerance must be built into the file system.",
+  },
+  {
+    id: "q-nfs",
+    prompt: "What is a key property of NFS?",
+    options: [
+      { id: "a", text: "Files are split into 64 MB chunks over many servers." },
+      { id: "b", text: "The server is stateless and clients mount remote directories; it is simple but not very fault tolerant or scalable." },
+      { id: "c", text: "It stores three replicas of every file." },
+      { id: "d", text: "It uses a NameNode and DataNodes." },
+    ],
+    answerId: "b",
+    explanation: "NFS (Sun, 1985) mounts a remote directory into the local tree. A stateless server is easy to recover, but one server per export is neither fault tolerant nor scalable.",
+  },
+  {
+    id: "q-raid5",
+    prompt: "Which RAID level distributes parity over all disks?",
+    options: [
+      { id: "a", text: "RAID 0" },
+      { id: "b", text: "RAID 1" },
+      { id: "c", text: "RAID 4" },
+      { id: "d", text: "RAID 5" },
+    ],
+    answerId: "d",
+    explanation: "RAID 4 keeps parity on one dedicated disk, which becomes a write bottleneck; RAID 5 spreads the parity blocks over all disks. RAID 0 only stripes and RAID 1 mirrors.",
+  },
+  {
+    id: "q-master-data",
+    prompt: "A GFS client reads a file. What does it get from the master?",
+    options: [
+      { id: "a", text: "The file data itself." },
+      { id: "b", text: "Only the chunk handle and the locations of the replicas; it then reads the data from a chunkserver." },
+      { id: "c", text: "Nothing — clients never contact the master." },
+      { id: "d", text: "A lease on the file." },
+    ],
+    answerId: "b",
+    explanation: "The client turns (file name, byte offset) into a chunk index, asks the master for the handle and replica locations, caches them and reads from the closest chunkserver. Data never flows through the master.",
+  },
+  {
+    id: "q-chunk-size",
+    prompt: "Which is NOT a reason GFS uses large 64 MB chunks?",
+    options: [
+      { id: "a", text: "Fewer client–master interactions." },
+      { id: "b", text: "Less metadata on the master — under 64 bytes per chunk." },
+      { id: "c", text: "Persistent TCP connections to a chunkserver for many operations." },
+      { id: "d", text: "Small files are spread over many chunkservers and never become hot spots." },
+    ],
+    answerId: "d",
+    explanation: "The opposite: a small file of one chunk lives on only a few chunkservers, which can become hot spots when many clients read it. GFS raised the replication factor for such files.",
+  },
+  {
+    id: "q-write",
+    prompt: "In a GFS write, what does the primary replica do?",
+    options: [
+      { id: "a", text: "It sends the data to the master." },
+      { id: "b", text: "Holding the lease, it assigns serial numbers to the mutations and the secondaries apply them in that order." },
+      { id: "c", text: "It stores the only copy of the chunk." },
+      { id: "d", text: "It garbage-collects deleted files." },
+    ],
+    answerId: "b",
+    explanation: "The client first pushes the data to all replicas; then it sends the write request to the primary, which picks the order, applies it and forwards it to the secondaries. They reply to the primary, which replies to the client.",
+  },
+  {
+    id: "q-record-append",
+    prompt: "A 10 MB record append targets the last chunk of a file, which has 4 MB of space left. What happens?",
+    options: [
+      { id: "a", text: "The record is split over two chunks." },
+      { id: "b", text: "The primary pads the chunk to 64 MB, tells the secondaries to do the same, and the client retries on the next chunk." },
+      { id: "c", text: "The append fails permanently." },
+      { id: "d", text: "The chunk grows to 70 MB." },
+    ],
+    answerId: "b",
+    explanation: "Record append is atomic: the record is written as one continuous sequence of bytes. If it does not fit, the chunk is padded and the operation retried on a fresh chunk. Records are limited to a quarter of the chunk size.",
+  },
+  {
+    id: "q-consistency",
+    prompt: "Several clients write concurrently to the same GFS file region and all succeed. What state is the region in?",
+    options: [
+      { id: "a", text: "Defined" },
+      { id: "b", text: "Consistent but undefined" },
+      { id: "c", text: "Inconsistent" },
+      { id: "d", text: "Deleted" },
+    ],
+    answerId: "b",
+    explanation: "All replicas apply the mutations in the same order, so every client sees the same bytes (consistent), but they may be mingled fragments of several writes, not what any one wrote (undefined).",
+  },
+  {
+    id: "q-stale",
+    prompt: "How does the GFS master detect a stale replica on a chunkserver that was down during a mutation?",
+    options: [
+      { id: "a", text: "By comparing checksums with the client." },
+      { id: "b", text: "By the chunk version number, which the master increases when it grants a new lease." },
+      { id: "c", text: "By the file's modification time." },
+      { id: "d", text: "It cannot detect it." },
+    ],
+    answerId: "b",
+    explanation: "The replica that missed the mutation keeps an old version number. The master sees it when the chunkserver restarts and reports its chunks, and garbage-collects the stale replica.",
+  },
+  {
+    id: "q-editlog",
+    prompt: "What is the role of the HDFS Secondary NameNode?",
+    options: [
+      { id: "a", text: "It takes over automatically when the NameNode fails." },
+      { id: "b", text: "It periodically merges the EditLog into the FsImage (checkpoints, every hour) so the log stays small." },
+      { id: "c", text: "It stores the data blocks." },
+      { id: "d", text: "It serves read requests." },
+    ],
+    answerId: "b",
+    explanation: "Despite its name it is not a hot standby: the NameNode is a single point of failure and failover needs a separate high-availability setup (an active and a standby NameNode with ZooKeeper).",
+  },
+  {
+    id: "q-rack",
+    prompt: "With replication factor 3, where does Borthakur's rack-aware policy place a block's replicas?",
+    options: [
+      { id: "a", text: "All three on the writer's node." },
+      { id: "b", text: "Three different nodes on one rack." },
+      { id: "c", text: "Two different nodes on one rack and one node on a different rack." },
+      { id: "d", text: "Three different racks, always." },
+    ],
+    answerId: "c",
+    explanation: "One rack failure cannot lose the block, and only one replica crosses racks during the write. Three racks would be more even for reads but would make every write cross two rack switches.",
+  },
+  {
+    id: "q-datanode-dead",
+    prompt: "A DataNode stops sending Heartbeats. What does the NameNode do?",
+    options: [
+      { id: "a", text: "Waits for an administrator." },
+      { id: "b", text: "Marks it dead, stops sending it I/O, and re-replicates the blocks whose replica count dropped below the replication factor." },
+      { id: "c", text: "Deletes the files stored on it." },
+      { id: "d", text: "Enters SafeMode permanently." },
+    ],
+    answerId: "b",
+    explanation: "Re-replication is automatic. It is also triggered by corrupted replicas, failed disks or an increased replication factor.",
+  },
+];

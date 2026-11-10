@@ -1,0 +1,88 @@
+import type { Concept } from "@/content/types";
+
+export const lecture09Concepts: Concept[] = [
+  {
+    id: "dfs",
+    term: "Distributed file system",
+    short: "A file system whose files are stored across many machines but accessed through one namespace.",
+    detail: "Requirements: fault tolerance, consistency, security, efficiency, scalability, read/write/update operations and hardware independence. Reading 200 TB (10 billion pages of 20 KB) from one disk at 50 MB/s takes about 46 days; over 1000 machines, a little over an hour.",
+    tags: ["dfs"],
+  },
+  {
+    id: "nfs",
+    term: "NFS",
+    short: "Sun's Network File System (1985): a client mounts a remote directory and uses it like a local one.",
+    detail: "The server is stateless, so every request carries all the information it needs; clients cache and read ahead. Simple and widespread, but not very fault tolerant or scalable.",
+    tags: ["dfs"],
+  },
+  {
+    id: "raid",
+    term: "RAID",
+    short: "Redundant Array of Independent Disks: several disks of one machine act as one for speed (striping) and/or redundancy (mirroring, parity).",
+    detail: "RAID 0 stripes without redundancy, RAID 1 mirrors, RAID 2–4 stripe with error-correcting or parity disks, RAID 5 distributes the parity over all disks.",
+    tags: ["dfs"],
+  },
+  {
+    id: "gfs-master",
+    term: "GFS master",
+    short: "The single master keeps all metadata — namespace, file-to-chunk mapping, chunk locations — in memory.",
+    detail: "Clients ask the master only for metadata and then talk to chunkservers directly, so data never flows through the master. Namespace and mapping are persisted in a replicated operation log; chunk locations are not persisted but polled from the chunkservers.",
+    tags: ["gfs"],
+  },
+  {
+    id: "chunk",
+    term: "Chunk",
+    short: "A fixed 64 MB piece of a GFS file, identified by a 64-bit chunk handle and stored as a Linux file on chunkservers, three replicas by default.",
+    detail: "Large chunks mean fewer master interactions, persistent TCP connections and under 64 bytes of master metadata per chunk. The drawback: a small file of one chunk can become a hot spot.",
+    tags: ["gfs"],
+  },
+  {
+    id: "lease",
+    term: "Lease and primary",
+    short: "The master grants one replica a 60-second lease; this primary chooses a serial order for all mutations of the chunk.",
+    detail: "The lease can be extended through heartbeat messages. All replicas apply mutations in the primary's order, which keeps them identical while taking the master out of the data path.",
+    tags: ["gfs"],
+  },
+  {
+    id: "record-append",
+    term: "Atomic record append",
+    short: "The client gives only the data; GFS appends it atomically at least once at an offset it chooses and returns that offset.",
+    detail: "If the record does not fit in the last chunk, the primary pads the chunk and the client retries on the next one. Records are at most a quarter of a chunk. Failed attempts can leave duplicates and padding, which readers skip using checksums and record ids.",
+    tags: ["gfs"],
+  },
+  {
+    id: "consistency-model",
+    term: "Consistent and defined regions",
+    short: "Consistent: all clients see the same data on every replica. Defined: consistent, and showing exactly what one mutation wrote.",
+    detail: "A serial successful write leaves a region defined; concurrent successful writes leave it consistent but undefined; a failed mutation leaves it inconsistent. Record append leaves defined regions interspersed with inconsistent ones.",
+    tags: ["gfs"],
+  },
+  {
+    id: "namenode",
+    term: "NameNode and DataNodes",
+    short: "HDFS's master/slave architecture: one NameNode manages the namespace and the block mapping; DataNodes store the blocks.",
+    detail: "The NameNode executes open, close and rename, decides where blocks go and never initiates RPCs — it answers DataNodes and clients. DataNodes serve reads and writes and create, delete and replicate blocks on the NameNode's instruction.",
+    tags: ["hdfs"],
+  },
+  {
+    id: "editlog-fsimage",
+    term: "EditLog and FsImage",
+    short: "The EditLog records every metadata change; the FsImage stores the whole namespace and block mapping.",
+    detail: "At a checkpoint the EditLog is applied to the FsImage, a new FsImage is written and the log is truncated. The Secondary NameNode does this periodically (every hour) on a separate machine.",
+    tags: ["hdfs"],
+  },
+  {
+    id: "rack-awareness",
+    term: "Rack awareness",
+    short: "Knowing which rack each DataNode is on and placing replicas so that not all are on the same rack or the same node.",
+    detail: "Default for replication factor 3 in Borthakur's design: two replicas on two nodes of one rack and the third on a different rack. This cuts inter-rack write traffic while still surviving the loss of a whole rack.",
+    tags: ["hdfs"],
+  },
+  {
+    id: "heartbeat",
+    term: "Heartbeat and Blockreport",
+    short: "Every DataNode periodically sends a Heartbeat (I am alive) and a Blockreport (the list of all its blocks) to the NameNode.",
+    detail: "A DataNode without recent Heartbeats is marked dead; blocks whose replica count drops below the replication factor are re-replicated from the surviving copies.",
+    tags: ["hdfs"],
+  },
+];

@@ -1,0 +1,456 @@
+import type { Block, SectionBlocks } from "@/content/types";
+import { lecture02Meta, lecture02Outline } from "./meta";
+import { ClusteringThreshold } from "./interactive/ClusteringThreshold";
+import { DistanceLab } from "./interactive/DistanceLab";
+import { PairCostCalculator } from "./interactive/PairCostCalculator";
+import { StringSimilarityLab } from "./interactive/StringSimilarityLab";
+
+const objectives: Block[] = [
+  {
+    kind: "prose",
+    md: "*Finding Similar Items at Scale* runs over three lectures with one body of study material, built on chapter 3 of *Mining of Massive Datasets* (§3.1.1–§3.4, §3.5 and §3.8.1–§3.8.3). This first part is about entity resolution: what the problem is, why it is unavoidable, at which levels it occurs, and which similarity and distance measures decide it — with their formulas and the situations they suit.",
+  },
+  { kind: "list", variant: "objectives", items: lecture02Meta.objectives },
+];
+
+const bigPicture: Block[] = [
+  {
+    kind: "prose",
+    md: "How many names and descriptions are used for the same real-world entity? Start with a single city. *London* is written as Londres, Londra, Londyn, Lontoo, Lunnainn, ロンドン, Лондон, 伦敦 and a hundred other strings. It is also described as *the capital of the UK*, *the host city of the IV and XIV Olympic Games*, *the city of the Westminster Abbey*, *the city of the London Eye*, *the city described by Charles Dickens in his novels* — and identified by URIs on GeoNames, Wikipedia and DBpedia. One entity, unbounded descriptions.\n\nNow run it the other way: how many entities have the same name? A gazetteer lists London KY, London OH, London AR, London TX, London MO, London MI, London in Conecuh County AL and dozens more — and a phone book lists *Jack London* in Montgomery AL at two addresses with the same phone number, another in Van Buren AR, another in La Jolla CA. One string, many entities.",
+  },
+  {
+    kind: "info",
+    variant: "insight",
+    title: "The definition, in one line",
+    md: "**Entity resolution** is deciding whether two data structures correspond to the same real-world entity. Everything else in these three lectures is about making that decision well — and cheaply enough to be useful at scale.",
+  },
+  {
+    kind: "table",
+    headers: ["Reason", "What it covers"],
+    rows: [
+      ["Text variations", "Misspellings, acronyms, transformations, abbreviations, etc."],
+      [
+        "Local knowledge",
+        "Each source uses different formats — a person from a publication is not described like a person from an email — and there is no global coordination for identifier assignment.",
+      ],
+    ],
+    caption: "Reasons for various descriptions of the same entity.",
+  },
+  {
+    kind: "steps",
+    title: "The required process",
+    intro: "The typical entity-resolution methodology has three steps, whatever technique implements them.",
+    steps: [
+      { title: "Identify", md: "Find the data describing the same real-world objects." },
+      { title: "Decide how to merge", md: "Choose how the matching descriptions are combined into one." },
+      { title: "Update the data collection", md: "Replace the duplicates by the merged result." },
+    ],
+  },
+  {
+    kind: "prose",
+    md: "Because the problem appears everywhere, it has many names: record linkage, entity linkage, deduplication, duplicate detection, merge/purge, entity matching, reference reconciliation, object identification, data cleaning, fuzzy matching. When you meet any of them in a paper or a tool, it is this problem.",
+  },
+  { kind: "concepts", ids: ["entity-resolution", "why-hard"] },
+  {
+    kind: "recall",
+    cards: [
+      { prompt: "Define entity resolution.", answer: "Deciding whether two data structures correspond to the same real-world entity." },
+      { prompt: "What are the two reasons descriptions of one entity diverge?", answer: "Text variations (misspellings, acronyms, transformations, abbreviations) and local knowledge (each source has its own format; no global identifier coordination)." },
+      { prompt: "What are the three steps of the typical methodology?", answer: "Identify the data describing the same real-world objects, decide how to merge it, update the data collection." },
+    ],
+  },
+];
+
+const levels: Block[] = [
+  {
+    kind: "prose",
+    md: "Solutions to entity resolution follow various directions. They fall into **four categories**, which also tell you at which **level** two descriptions are being compared:",
+  },
+  {
+    kind: "table",
+    headers: ["Category", "Level of comparison", "Example"],
+    rows: [
+      ["1. Atomic similarity methods", "Single values — one string against another", "“John D. Smith” vs. “J. D. Smith”; journal names and their abbreviations"],
+      ["2. Similarity methods for sets", "Sets of values attached to each description", "The co-authors of two publications, the words of two documents"],
+      ["3. Facilitating inner-relationships", "The relationships between records", "Two author records are likelier the same person when they link to the same co-authors and venues"],
+      ["4. Methods in uncertain data", "Values that are themselves uncertain or probabilistic", "Matching must reason with probabilities rather than exact values"],
+    ],
+  },
+  {
+    kind: "prose",
+    md: "In practice the data structures being compared are usually **records**, and records combine all of these levels. Take two customer records:\n\n- *Jonathan Smith*, age 43, born `17/05/1983`, `12 Baker St.`, London `NW1 6XE`, `United Kingdom`, phone `07700 900123`, `jsmith@gmail.com`, Senior Software Developer at *Acme Corporation*, income 78,500, 3 children, customer id `UK-88219`.\n- *John Smith*, age 42, born `1983-05-17`, `12 Baker Street`, London `NW1 6XE`, `UK`, phone `+44 7700 900123`, `john.smith@gmail.com`, Software Engineer at *Acme Ltd.*, income 72,000, married, 2 children, customer id `C104582`.\n\nAlmost every field differs — yet the date of birth, address, postcode and phone are the same values in different **formats**, which is local knowledge at work. A second pair shows the harder case of **sparse** records with different attributes: one has a phone number and an occupation, the other an email and an employer, and only name, age, city and postcode can be compared directly.",
+  },
+  {
+    kind: "info",
+    variant: "insight",
+    title: "Records are compared field by field",
+    md: "A record matcher applies an atomic similarity to each comparable field — Jaro for first names, edit distance for addresses, exact match for postcodes — and combines the field scores into one decision. The other levels add evidence the fields alone cannot: shared sets of values and shared relationships.",
+  },
+  { kind: "concepts", ids: ["er-levels"] },
+  {
+    kind: "recall",
+    cards: [
+      { prompt: "Name the four categories of entity-resolution solutions.", answer: "Atomic similarity methods, similarity methods for sets, facilitating inner-relationships, methods in uncertain data." },
+      { prompt: "Why are “17/05/1983” and “1983-05-17” a problem, and which reason for diverging descriptions is it?", answer: "The same value in different formats defeats exact comparison — local knowledge (each source uses its own format)." },
+      { prompt: "What makes the second pair of Smith records harder than the first?", answer: "They are sparse and have different attributes, so only a few fields (name, age, city, postcode) can be compared directly." },
+    ],
+  },
+];
+
+const stringSimilarity: Block[] = [
+  {
+    kind: "prose",
+    md: "The first family compares field values directly. Two classic targets: publication authors, where *John D. Smith* must match *J. D. Smith*, and journal names, where *Transactions on Knowledge and Data Engineering* must match *Trans. Knowl. Data Eng.*\n\n**Edit distance** is the number of operations needed to convert the first string into the second. In the Levenshtein distance [Lev66], delete, insert and update a character each cost 1. Turning *ekaterini* into *katerina* costs 2: remove the leading *e* and update the final *i* into *a*.",
+  },
+  {
+    kind: "info",
+    variant: "pitfall",
+    title: "Edit distance punishes abbreviation",
+    md: "Shortening *knowledge and data* to *knowl. data* costs one edit per deleted character. **Gap distance** [Nav01] overcomes this limitation with two extra operations — **open gap**, and **extend gap** at a small cost — so the total becomes $1 + o + 8e$: one insert for the dot, one gap opening, eight cheap extensions.",
+  },
+  {
+    kind: "prose",
+    md: "For short strings such as first and last names, **Jaro similarity** works better. It counts the characters $C$ that the two strings have in common and the transpositions $T$ — half the number of positions $k$ where both strings have a common character but $s_1[k] \\ne s_2[k]$.",
+  },
+  {
+    kind: "formula",
+    tex: "Jaro(s_1, s_2) = \\frac{1}{3}\\left(\\frac{C}{|s_1|} + \\frac{C}{|s_2|} + \\frac{C - T}{C}\\right)",
+    caption: "For DEIS versus DESI: C = 4, T = 2/2 = 1, giving (4/4 + 4/4 + 3/4)/3 = 0.9167.",
+  },
+  {
+    kind: "prose",
+    md: "**Jaro-Winkler similarity** extends Jaro by giving a matching **prefix** higher weight, which increases its applicability to names — people rarely misspell the first letters of a name.",
+  },
+  {
+    kind: "interactive",
+    title: "String similarity lab",
+    description:
+      "Compare the measures on the same pair of strings, and watch the dynamic-programming table that produces the edit distance.",
+    component: StringSimilarityLab,
+  },
+  {
+    kind: "info",
+    variant: "note",
+    title: "Two definitions of edit distance",
+    md: "The Levenshtein edit distance allows insert, delete **and** update. The book (§3.5.5) uses insert and delete only, which makes $d(x,y) = |x| + |y| - 2|LCS(x,y)|$ with LCS the longest common subsequence. For *abcde* and *acfdeg* the LCS is *acde*, so the distance is $5 + 6 - 8 = 3$. Both versions are distance measures; know which one a question means.",
+  },
+  { kind: "concepts", ids: ["edit-distance", "gap-distance", "jaro"] },
+  {
+    kind: "practice",
+    id: "l2-strings",
+    tasks: [
+      {
+        id: "lcs-distance",
+        prompt: "Using the book's insert/delete edit distance, what is $d(x, y)$ for $x = abcde$ and $y = acfdeg$?",
+        check: { mode: "text", accept: ["3"], placeholder: "distance" },
+        solution: "The longest common subsequence is *acde* (length 4), so $d = 5 + 6 - 2 \\cdot 4 = $ **3**: delete *b*, insert *f* after *c*, insert *g* at the end.",
+      },
+      {
+        id: "jaro-martha",
+        prompt: "Compute the Jaro similarity of MARTHA and MARHTA, to three decimals.",
+        check: { mode: "text", accept: ["0.944", ".944", "0.9444"], placeholder: "0.xxx" },
+        hint: "All six characters are common; *T* and *H* are swapped.",
+        solution: "$C = 6$; the mismatched positions are those of T and H, two of them, so $T = 2/2 = 1$. $Jaro = \\frac{1}{3}(6/6 + 6/6 + 5/6) = $ **0.944**.",
+      },
+    ],
+  },
+];
+
+const setSimilarity: Block[] = [
+  {
+    kind: "prose",
+    md: "Atomic similarity fails when the strings are **identical** but the entities are not. DBLP lists dozens of publications by *Ling Chen* — and they belong to several different researchers. The name cannot separate them; the **sets** around each publication can. Papers co-authored with Sourav S. Bhowmick match each other; papers with Henry Y. H. Chuang form another group; papers with Yunjun Gao, Chun Li and Gencai Chen another. Comparing sets of co-authors (and venues) is the second family of solutions.",
+  },
+  {
+    kind: "prose",
+    md: "The natural measure for sets is **Jaccard similarity**: the size of their intersection divided by the size of their union.",
+  },
+  {
+    kind: "formula",
+    tex: "SIM(C_1, C_2) = \\frac{|C_1 \\cap C_2|}{|C_1 \\cup C_2|} \\qquad d(C_1, C_2) = 1 - SIM(C_1, C_2)",
+    caption: "Jaccard similarity and Jaccard distance (MMDS §3.1.1). Two sets with 3 elements in their intersection and 8 in their union have similarity 3/8.",
+  },
+  { kind: "concepts", ids: ["jaccard"] },
+  {
+    kind: "practice",
+    id: "l2-jaccard",
+    tasks: [
+      {
+        id: "jaccard-123",
+        prompt: "What is the Jaccard similarity of {1, 2, 3, 4} and {2, 3, 5, 7}?",
+        check: { mode: "text", accept: ["1/3", "0.333", "0.33", "2/6"], placeholder: "fraction" },
+        solution: "Intersection {2, 3} has 2 elements, union {1, 2, 3, 4, 5, 7} has 6: **1/3**.",
+      },
+      {
+        id: "jaccard-coauthors",
+        prompt: "Paper A has co-authors {Bhowmick, Nejdl}, paper B has {Bhowmick, Li}. What is the Jaccard **distance** between the co-author sets?",
+        check: { mode: "text", accept: ["2/3", "0.667", "0.67"], placeholder: "fraction" },
+        solution: "Similarity = 1/3 (one shared co-author out of three distinct ones), so the distance is $1 - 1/3 = $ **2/3**.",
+      },
+    ],
+  },
+];
+
+const distances: Block[] = [
+  {
+    kind: "prose",
+    md: "Every similarity above can be turned into a **distance**, and the rest of the course relies on distances obeying a few rules. $d$ is a **distance measure** if it is a function from pairs of points to real numbers such that:",
+  },
+  {
+    kind: "formula",
+    tex: "d(x,y) \\ge 0 \\qquad d(x,y) = 0 \\iff x = y \\qquad d(x,y) = d(y,x) \\qquad d(x,y) \\le d(x,z) + d(z,y)",
+    caption: "Non-negativity, identity, symmetry, and the triangle inequality: no detour through z is shorter than the direct route.",
+  },
+  {
+    kind: "prose",
+    md: "A **Euclidean space** has some number of real-valued dimensions and “dense” points: there is a notion of the **average** of two points, and a Euclidean distance is based on the **locations** of points in the space. Any other space is **non-Euclidean**: its distance measures are based on properties of the points, not on their location — there is no average of two sets or of two strings.",
+  },
+  {
+    kind: "formula",
+    tex: "L_r(x, y) = \\Big(\\sum_{i=1}^{n} |x_i - y_i|^r\\Big)^{1/r} \\qquad L_\\infty(x, y) = \\max_i |x_i - y_i|",
+    caption: "The Lᵣ norm: take the r-th power of the differences, sum, take the r-th root. L∞ is the limit as r goes to infinity.",
+  },
+  {
+    kind: "table",
+    headers: ["Euclidean distance", "Definition", "a = (5, 5), b = (9, 8)"],
+    rows: [
+      ["L₂ norm", "Square root of the sum of the squared differences in each dimension — the most common notion of distance", "√(4² + 3²) = 5"],
+      ["L₁ norm (Manhattan)", "Sum of the absolute differences in each dimension — the distance if you had to travel along the coordinates only", "4 + 3 = 7"],
+      ["L∞ norm", "The maximum of the differences in any dimension", "max(4, 3) = 4"],
+    ],
+    caption: "Examples of Euclidean distances for a = (5, 5) and b = (9, 8).",
+  },
+  {
+    kind: "table",
+    headers: ["Non-Euclidean distance", "For", "Definition", "Example"],
+    rows: [
+      ["Jaccard distance", "Sets", "1 − Jaccard similarity", "10111 vs 10011 → 1 − 3/4 = 1/4"],
+      ["Cosine distance", "Vectors", "The angle between the vectors, arccos(x·y / ‖x‖‖y‖), from 0° to 180°", "[1, 2, −1] vs [2, 1, 1] → cos = 3/6 → 60°"],
+      ["Edit distance", "Strings", "Number of inserts and deletes to change one string into the other", "abcde vs acfdeg → 3"],
+      ["Hamming distance", "Bit vectors", "Number of positions in which they differ", "10101 vs 11110 → 3"],
+    ],
+    caption: "Non-Euclidean distances. Cosine distance also works in Euclidean spaces, but there it ignores the length of the vectors.",
+  },
+  {
+    kind: "interactive",
+    title: "Distance explorer",
+    description: "Type two vectors and compare every measure at once. Two-dimensional vectors are drawn with their L₂ line and L₁ route.",
+    component: DistanceLab,
+  },
+  {
+    kind: "steps",
+    title: "Why each measure really is a distance (MMDS §3.5)",
+    steps: [
+      { title: "Lᵣ norms", md: "Absolute values make them non-negative and symmetric, they are zero only when every coordinate agrees, and the triangle inequality holds — for $L_2$ it is the familiar fact that one side of a triangle is never longer than the other two." },
+      { title: "Jaccard distance", md: "$1 - SIM$ is between 0 and 1, zero only for identical sets ($x \\cup x = x \\cap x$), and symmetric. The triangle inequality follows from minhashing (Part 2): $d(x,y)$ is the probability that a random minhash function gives $h(x) \\ne h(y)$, and whenever that happens, $h(x) \\ne h(z)$ or $h(z) \\ne h(y)$ must hold — so $d(x,y) \\le d(x,z) + d(z,y)$." },
+      { title: "Cosine distance", md: "Angles lie between 0° and 180°, two vectors have angle 0 only if they point the same way (treat multiples of a vector as the same point), and rotating from $x$ to $z$ to $y$ is never shorter than rotating from $x$ to $y$ directly." },
+      { title: "Edit distance", md: "Only identical strings need zero edits, every edit sequence can be reversed (symmetry), and turning $x$ into $z$ then $z$ into $y$ is one valid way to turn $x$ into $y$, so the direct cost is no higher." },
+      { title: "Hamming distance", md: "It counts differing components, so it is non-negative, symmetric and zero only for identical vectors; any component where $x$ and $y$ differ must differ between $x$ and $z$ or between $z$ and $y$." },
+    ],
+  },
+  {
+    kind: "table",
+    headers: ["Situation", "Measure that performs well"],
+    rows: [
+      ["Typos and small changes in longer strings (addresses, titles)", "Edit distance"],
+      ["Abbreviated strings (journal names, initials)", "Gap distance"],
+      ["Short strings such as first and last names", "Jaro, Jaro-Winkler"],
+      ["Sets of values: co-authors, shingles, products bought", "Jaccard similarity / distance"],
+      ["Vectors where direction matters more than magnitude (e.g. word-count vectors of documents)", "Cosine distance"],
+      ["Boolean vectors of equal length", "Hamming distance"],
+      ["Points with real-valued coordinates", "L₂, or L₁ when movement is along axes, L∞ when the worst dimension matters"],
+    ],
+    caption: "Which measure to choose.",
+  },
+  { kind: "concepts", ids: ["distance-measure", "euclidean-norms", "non-euclidean"] },
+  {
+    kind: "practice",
+    id: "l2-distances",
+    tasks: [
+      {
+        id: "hamming",
+        prompt: "What is the Hamming distance between 10101 and 11110?",
+        check: { mode: "text", accept: ["3"], placeholder: "distance" },
+        solution: "They differ in the second, fourth and fifth positions: **3**.",
+      },
+      {
+        id: "l1-l2",
+        prompt: "For x = (1, 2, 3) and y = (4, 6, 3), give the L₁ distance.",
+        check: { mode: "text", accept: ["7"], placeholder: "L1" },
+        solution: "Differences 3, 4 and 0: $L_1 = 3 + 4 + 0 = $ **7**. (And $L_2 = \\sqrt{9 + 16} = 5$, $L_\\infty = 4$.)",
+      },
+      {
+        id: "measure-choice",
+        prompt: "Which of these are non-Euclidean distance measures? Select all that apply.",
+        check: { mode: "select", options: ["L1", "L2", "Jaccard", "Edit", "Hamming", "L∞"], answer: ["Edit", "Hamming", "Jaccard"] },
+        solution: "**Jaccard**, **edit** and **Hamming** distance are defined on sets, strings and bit vectors, which have no locations to average. The Lᵣ norms are the Euclidean distances. (Cosine distance is sometimes listed among both.)",
+      },
+    ],
+  },
+];
+
+const deduplication: Block[] = [
+  {
+    kind: "prose",
+    md: "**Entity linkage and deduplication** identifies the different representations of the same real-world entity and merges them into **one unified record** — four inconsistently formatted part records (O-Ring Gasket, 27-00091, in four layouts) become one. Applied to a relation with duplicates it is a three-step pipeline:",
+  },
+  {
+    kind: "timeline",
+    items: [
+      { label: "Step 1", title: "Compute pairwise similarity", md: "Score pairs of records: P3–P4 at 1.0, P1–P2 at 0.9, P2–P5 at 0.5, P1–P5 at 0.3; P6 is similar to nobody." },
+      { label: "Step 2", title: "Cluster similar records", md: "Group records whose similarity clears a threshold: {P1, P2, P5}, {P3, P4}, {P6}." },
+      { label: "Step 3", title: "Merge clusters", md: "Produce one record per cluster — the clean relation C1 (Green, 51519), C2 (Peter, 30528), C3 (Chuck, 51519)." },
+    ],
+  },
+  {
+    kind: "table",
+    headers: ["ID", "name", "ZIP", "Income"],
+    rows: [
+      ["P1", "Green", "51519", "30k"],
+      ["P2", "Green", "51518", "32k"],
+      ["P3", "Peter", "30528", "40k"],
+      ["P4", "Peter", "30528", "40k"],
+      ["P5", "Gree", "51519", "55k"],
+      ["P6", "Chuck", "51519", "30k"],
+    ],
+    caption: "A relation with duplicates (example by Ihab Ilyas). The clean relation has three records: Green 51519 39k, Peter 30528 40k, Chuck 51519 30k.",
+  },
+  {
+    kind: "interactive",
+    title: "Threshold, clusters and the clean relation",
+    description:
+      "Six records, seven scored pairs. Move the threshold and watch clusters form by transitive closure — and the merged relation change with them.",
+    component: ClusteringThreshold,
+  },
+  {
+    kind: "info",
+    variant: "warning",
+    title: "Clustering is transitive",
+    md: "If $P_1$ matches $P_2$ and $P_2$ matches $P_5$, all three end up in one entity — even if $P_1$ and $P_5$ were never compared, or compared badly. A threshold that looks safe pair by pair can chain two different entities together.",
+  },
+  { kind: "concepts", ids: ["clustering-merge"] },
+  {
+    kind: "recall",
+    cards: [
+      { prompt: "What are the three steps of deduplication?", answer: "Compute pairwise similarity, cluster similar records, merge clusters into unified records." },
+      { prompt: "In the example, why does P5 (Gree, 51519, 55k) join the Green cluster?", answer: "Its similarity to P1 (and P2) clears the threshold — *Gree* is one edit from *Green* and the ZIP matches — and clustering closes matches transitively." },
+    ],
+  },
+];
+
+const cost: Block[] = [
+  {
+    kind: "prose",
+    md: "What does entity linkage cost? Every pair of records must, in principle, be scored — and the number of pairs grows quadratically.",
+  },
+  {
+    kind: "interactive",
+    title: "The quadratic wall",
+    description: "Before any clever technique, see what brute force costs. Move the sliders and watch the wall arrive.",
+    component: PairCostCalculator,
+  },
+  {
+    kind: "prose",
+    md: "**A common metaphor.** Many problems can be expressed as finding “similar” sets — finding **near-neighbours in a high-dimensional space**:\n\n- pages with similar words, for duplicate detection and classification by topic;\n- customers who purchased similar products, and products with similar customer sets;\n- images with similar features, users who visited similar websites;\n- the dual problem: movies with similar sets of fans;\n- and entity resolution itself.\n\n**Similar documents** are the running example. Given a body of documents such as the Web, find pairs with a lot of text in common: mirror sites or approximate mirrors (don't show both in a search), plagiarism including large quotations, and similar news articles at many news sites (cluster articles by the same story).",
+  },
+  {
+    kind: "info",
+    variant: "insight",
+    title: "Blocking and hashing",
+    md: "The way out is the idea behind every hash index: hash each item into a **bucket** and only compare items that land in the same bucket. Done naively — hashing on an exact field value — this is **blocking**, and it misses matches that disagree on the hashed field. Parts 2 and 3 build hash functions that put *similar* items into the same bucket on purpose.",
+  },
+  {
+    kind: "info",
+    variant: "note",
+    title: "Problem for the next lecture",
+    md: "**Given** high-dimensional data points $x_1, x_2, \\ldots, x_N$ — an image, for example, is a long vector of pixel colours — **and** a distance function $d(x_i, x_j)$, **find** all pairs of data points within some distance threshold $d(x_i, x_j) \\le s$. The naïve solution takes $O(N^2)$ time, where $N$ is the number of data points.",
+  },
+  {
+    kind: "recall",
+    cards: [
+      { prompt: "How many pairs do N records have, and how long does N = 10⁶ take at 10⁶ comparisons per second?", answer: "N(N−1)/2 ≈ 5 × 10¹¹ pairs — about 5 days at 10⁵ seconds per day; 10⁷ records take more than a year." },
+      { prompt: "Name three applications of finding similar sets.", answer: "E.g. near-duplicate or mirror pages, plagiarism, clustering news by story, customers with similar purchases, movies with similar fans, entity resolution." },
+      { prompt: "State the problem for the next lecture.", answer: "Given N high-dimensional points and a distance function, find all pairs within a distance threshold — without the naïve O(N²) comparison of all pairs." },
+    ],
+  },
+];
+
+const mistakes: Block[] = [
+  {
+    kind: "info",
+    variant: "pitfall",
+    title: "Confusing similarity with distance",
+    md: "Jaccard **similarity** is intersection over union; Jaccard **distance** is one minus that. Read whether a question asks for $SIM$ or $d$ before answering.",
+  },
+  {
+    kind: "info",
+    variant: "pitfall",
+    title: "Mixing up the two edit distances",
+    md: "With updates allowed (Levenshtein), changing one character costs 1. With inserts and deletes only (the book), it costs 2. Check which definition is in play.",
+  },
+  {
+    kind: "info",
+    variant: "pitfall",
+    title: "Using a string measure on the wrong strings",
+    md: "Plain edit distance makes an abbreviation look far from its full form; Jaro rewards short names but means little on long addresses. Match the measure to the field.",
+  },
+  {
+    kind: "info",
+    variant: "pitfall",
+    title: "Thinking a large L₂ means a large cosine distance",
+    md: "Cosine distance ignores vector length: [1, 1] and [10, 10] are 0° apart but far apart in $L_2$. Choose cosine when direction is what matters.",
+  },
+  {
+    kind: "info",
+    variant: "pitfall",
+    title: "Forgetting that clustering is transitive",
+    md: "A threshold that looks safe pairwise can merge two clearly different entities through a chain of intermediate records. Always look at the clusters the threshold produces, not just at the pairs it accepts.",
+  },
+];
+
+const quiz: Block[] = [
+  {
+    kind: "prose",
+    md: "Twelve questions covering entity resolution, its measures and its cost. Read every explanation — the formulas in them are exactly what the exam asks you to apply.",
+  },
+];
+
+const summary: Block[] = [
+  { kind: "list", variant: "takeaways", items: lecture02Meta.takeaways },
+  {
+    kind: "table",
+    headers: ["Measure", "Formula", "Use it for"],
+    rows: [
+      ["Edit distance (Levenshtein)", "# inserts, deletes, updates", "Strings with typos"],
+      ["Edit distance (book)", "|x| + |y| − 2·|LCS(x, y)|", "Strings, inserts and deletes only"],
+      ["Gap distance", "1 + o + 8e for knowledge and data → knowl. data", "Abbreviations"],
+      ["Jaro similarity", "⅓(C/|s₁| + C/|s₂| + (C−T)/C)", "Short strings, names"],
+      ["Jaccard similarity", "|C₁ ∩ C₂| / |C₁ ∪ C₂|", "Sets"],
+      ["Lᵣ distance", "(Σ |xᵢ − yᵢ|ʳ)^(1/r); L∞ = max |xᵢ − yᵢ|", "Points in a Euclidean space"],
+      ["Cosine distance", "arccos(x·y / ‖x‖‖y‖)", "Vectors, direction only"],
+      ["Hamming distance", "# positions that differ", "Bit vectors"],
+      ["Pairs to compare", "N(N−1)/2", "The reason Parts 2 and 3 exist"],
+    ],
+    caption: "Everything worth memorising from Part 1.",
+  },
+  {
+    kind: "info",
+    variant: "insight",
+    title: "The one sentence version",
+    md: "Entity resolution decides whether two descriptions are the same entity by comparing values, sets, relationships or uncertain data with a suitable distance measure — and doing that for every pair is exactly what does not scale.",
+  },
+];
+
+export const lecture02Blocks: SectionBlocks<typeof lecture02Outline> = {
+  objectives,
+  "big-picture": bigPicture,
+  levels,
+  "string-similarity": stringSimilarity,
+  "set-similarity": setSimilarity,
+  distances,
+  deduplication,
+  cost,
+  mistakes,
+  quiz,
+  summary,
+};

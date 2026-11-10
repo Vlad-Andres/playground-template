@@ -1,0 +1,148 @@
+import type { QuizQuestion } from "@/content/types";
+
+export const lecture12Quiz: QuizQuestion[] = [
+  {
+    id: "q-what",
+    prompt: "What does a vector database store and how does it retrieve it?",
+    options: [
+      { id: "a", text: "Scalar values in tables, retrieved by exact match on keys." },
+      { id: "b", text: "Multidimensional points, retrieved by proximity or resemblance to a query vector." },
+      { id: "c", text: "Nodes and relationships, retrieved by traversals." },
+      { id: "d", text: "Documents, retrieved by full-text keywords only." },
+    ],
+    answerId: "b",
+    explanation: "Vector databases store vectors (a few to several thousand dimensions) and find those closest to a query — semantic relevance instead of exact matches.",
+  },
+  {
+    id: "q-embedding",
+    prompt: "What is an embedding?",
+    options: [
+      { id: "a", text: "A compressed file format for images." },
+      { id: "b", text: "A vector produced by a neural network from an item such as an image, text or audio, so that similar items get nearby vectors." },
+      { id: "c", text: "A foreign key that embeds one table in another." },
+      { id: "d", text: "A hash of the item used for exact lookups." },
+    ],
+    answerId: "b",
+    explanation: "An embedding is like a short summary that keeps the main points of the item, in a form where distance means dissimilarity.",
+  },
+  {
+    id: "q-challenge",
+    prompt: "Which of these is NOT one of the challenges that set vector databases apart from relational and NoSQL databases?",
+    options: [
+      { id: "a", text: "Similarity is vague compared to an exact match." },
+      { id: "b", text: "Similarity is more expensive to compute than an exact match." },
+      { id: "c", text: "Vectors cannot be stored on disk." },
+      { id: "d", text: "Vectors have no properties (like the attributes of tuples or nodes) to index on." },
+    ],
+    answerId: "c",
+    explanation: "Vectors can be stored on disk — they are just large and may span several pages. The other challenges: vague and expensive similarity, no indexable properties, and co-existence with other data.",
+  },
+  {
+    id: "q-btree",
+    prompt: "Why can't a B+ tree index on the vector values answer nearest-neighbour queries?",
+    options: [
+      { id: "a", text: "B+ trees only work in memory." },
+      { id: "b", text: "Vectors have no natural sort order, so closeness in key order says nothing about closeness in space." },
+      { id: "c", text: "B+ trees cannot store numbers." },
+      { id: "d", text: "B+ trees are always slower than a full scan." },
+    ],
+    answerId: "b",
+    explanation: "A B+ tree needs a sortable key. Vectors lack such an ordering (and categories), so vector indexes partition the space instead: hashing, trees of splits, or navigable graphs.",
+  },
+  {
+    id: "q-ck",
+    prompt: "In a (c, k)-search query, which setting gives the exact k-nearest-neighbour query?",
+    options: [
+      { id: "a", text: "c = 1: no result may be farther than the true nearest neighbours." },
+      { id: "b", text: "c = 2 and k = 1." },
+      { id: "c", text: "k = 0." },
+      { id: "d", text: "Any c, as long as k is large." },
+    ],
+    answerId: "a",
+    explanation: "c is the allowed slack: every result may be at most c times worse than the best. c = 1 allows none — exact k-NN; c > 1 is approximate (ANN). (Texts that measure slack from 0 write c = 0 for the exact case.)",
+  },
+  {
+    id: "q-range",
+    prompt: "How does a range query differ from a k-NN query?",
+    options: [
+      { id: "a", text: "It returns all vectors within a similarity threshold instead of a fixed number k." },
+      { id: "b", text: "It returns vectors sorted by id." },
+      { id: "c", text: "It only works with Hamming distance." },
+      { id: "d", text: "It returns exactly one vector." },
+    ],
+    answerId: "a",
+    explanation: "Range: { x | d(x, q) ≤ r }. Useful when you want everything similar enough — e.g. all cell images of a similar cell type — not just the top k.",
+  },
+  {
+    id: "q-hybrid",
+    prompt: "“Find the 10 products most similar to this photo that cost less than €100.” What kind of query is this?",
+    options: [
+      { id: "a", text: "A multi-vector query." },
+      { id: "b", text: "A batched query." },
+      { id: "c", text: "A hybrid (predicated) query: vector similarity plus a predicate on structured attributes." },
+      { id: "d", text: "A range query." },
+    ],
+    answerId: "c",
+    explanation: "Each result must be among the most similar and satisfy price < 100. Systems pre-filter, post-filter or filter during the index scan.",
+  },
+  {
+    id: "q-postfilter",
+    prompt: "A hybrid query is executed by post-filtering: search the k = 10 nearest vectors, then drop those that fail the predicate. What can go wrong?",
+    options: [
+      { id: "a", text: "It may return more than 10 results." },
+      { id: "b", text: "It may return fewer than 10 results, when many of the nearest vectors fail the predicate." },
+      { id: "c", text: "It ignores the similarity score." },
+      { id: "d", text: "Nothing — it is always equivalent to pre-filtering." },
+    ],
+    answerId: "b",
+    explanation: "Post-filtering removes results after the search, so with a selective predicate fewer than k remain. Some e-commerce systems accept this; pre-filtering avoids it at the cost of filtering first.",
+  },
+  {
+    id: "q-multivector",
+    prompt: "A face is stored as five vectors, one per camera angle. How is a query compared against such an entity?",
+    options: [
+      { id: "a", text: "Only the first vector is used." },
+      { id: "b", text: "With an aggregate (combined) score, e.g. the mean or a weighted sum of the five similarity scores." },
+      { id: "c", text: "The five vectors are concatenated into a string and hashed." },
+      { id: "d", text: "It cannot be done in a vector database." },
+    ],
+    answerId: "b",
+    explanation: "Multi-vector queries rely on aggregate scores that combine several scores into one comparable number.",
+  },
+  {
+    id: "q-lsh",
+    prompt: "How does locality-sensitive hashing serve as a (table-based) vector index?",
+    options: [
+      { id: "a", text: "It sorts vectors by their first dimension." },
+      { id: "b", text: "Random hash functions put similar vectors into the same bucket with high probability; a query is hashed and only colliding vectors become candidates." },
+      { id: "c", text: "It compresses vectors to one bit each and compares them exactly." },
+      { id: "d", text: "It connects each vector to its nearest neighbours." },
+    ],
+    answerId: "b",
+    explanation: "Each vector is hashed into L tables, each hash a concatenation of K functions from a locality-sensitive family — the same idea as the bands and rows of Lecture 6.",
+  },
+  {
+    id: "q-graph-index",
+    prompt: "Which statement describes a graph-based vector index such as a navigable small-world graph (HNSW)?",
+    options: [
+      { id: "a", text: "Vectors are nodes connected to similar vectors; a search walks greedily along edges towards the query, visiting about O(log N) nodes." },
+      { id: "b", text: "It is a Neo4j database of vectors." },
+      { id: "c", text: "It stores vectors in a B+ tree ordered by length." },
+      { id: "d", text: "It hashes every vector into one bucket." },
+    ],
+    answerId: "a",
+    explanation: "KNN graphs connect each vector to its k most similar ones; MSNs and small-world graphs choose edges that make the graph easy to navigate. Fast in practice, but data-dependent and hard to update.",
+  },
+  {
+    id: "q-systems",
+    prompt: "Which pairing is correct?",
+    options: [
+      { id: "a", text: "pgvector — a native, distributed vector database for billions of vectors." },
+      { id: "b", text: "Milvus — an extension of PostgreSQL for small-scale use." },
+      { id: "c", text: "pgvector — an extension of PostgreSQL, suited to smaller scale; Milvus — open source, distributed, high-speed similarity search over millions of vectors." },
+      { id: "d", text: "Chroma — a relational database." },
+    ],
+    answerId: "c",
+    explanation: "The slides classify Chroma as mostly-vector native, Milvus as mostly-mixed native, Cassandra as NoSQL extended and PostgreSQL (pgvector) as relational extended.",
+  },
+];
