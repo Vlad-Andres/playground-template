@@ -1,6 +1,6 @@
 import type { Block, SectionBlocks } from "@/content/types";
 import { lecture10Meta, lecture10Outline } from "./meta";
-import { ReplicaQuorumLab } from "./interactive/ReplicaQuorumLab";
+import { ReplicaQuorumLab } from "@/widgets/dis/ReplicaQuorumLab";
 
 const objectives: Block[] = [
   {

@@ -1,7 +1,7 @@
 import type { Block, SectionBlocks } from "@/content/types";
 import { lecture05Meta, lecture05Outline } from "./meta";
-import { MinhashLab } from "./interactive/MinhashLab";
-import { ShinglingExplorer } from "./interactive/ShinglingExplorer";
+import { MinhashLab } from "@/widgets/dis/MinhashLab";
+import { ShinglingExplorer } from "@/widgets/dis/ShinglingExplorer";
 
 const objectives: Block[] = [
   {

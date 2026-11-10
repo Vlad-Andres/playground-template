@@ -1,6 +1,6 @@
 import type { Block, SectionBlocks } from "@/content/types";
 import { lecture07Meta, lecture07Outline } from "./meta";
-import { MapReduceLab } from "./interactive/MapReduceLab";
+import { MapReduceLab } from "@/widgets/dis/MapReduceLab";
 
 const objectives: Block[] = [
   {

@@ -1,9 +1,9 @@
 import type { Block, SectionBlocks } from "@/content/types";
 import { lecture02Meta, lecture02Outline } from "./meta";
-import { ClusteringThreshold } from "./interactive/ClusteringThreshold";
-import { DistanceLab } from "./interactive/DistanceLab";
-import { PairCostCalculator } from "./interactive/PairCostCalculator";
-import { StringSimilarityLab } from "./interactive/StringSimilarityLab";
+import { ClusteringThreshold } from "@/widgets/dis/ClusteringThreshold";
+import { DistanceLab } from "@/widgets/dis/DistanceLab";
+import { PairCostCalculator } from "@/widgets/dis/PairCostCalculator";
+import { StringSimilarityLab } from "@/widgets/dis/StringSimilarityLab";
 
 const objectives: Block[] = [
   {

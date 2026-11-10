@@ -1,6 +1,6 @@
 import type { Block, SectionBlocks } from "@/content/types";
 import { lecture08Meta, lecture08Outline } from "./meta";
-import { LazyEvaluationLab } from "./interactive/LazyEvaluationLab";
+import { LazyEvaluationLab } from "@/widgets/dis/LazyEvaluationLab";
 
 const objectives: Block[] = [
   {

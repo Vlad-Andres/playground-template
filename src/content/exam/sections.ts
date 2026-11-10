@@ -1,6 +1,6 @@
 import type { Block, SectionBlocks } from "@/content/types";
 import { examMeta, examOutline } from "./meta";
-import { MockExam } from "./interactive/MockExam";
+import { MockExam } from "@/widgets/dis/MockExam";
 
 const objectives: Block[] = [
   {

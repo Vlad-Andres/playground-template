@@ -108,6 +108,7 @@ export type Block =
   | { kind: "steps"; title: string; intro?: string; steps: WorkedStep[] }
   | { kind: "timeline"; items: TimelineItem[] }
   | { kind: "interactive"; title: string; description?: string; component: ComponentType }
+  | { kind: "widget"; type: string; title: string; description?: string; props?: Record<string, unknown> }
   | { kind: "list"; variant: "objectives" | "takeaways"; items: string[] }
   | { kind: "exercises"; sheet: ExerciseSheet }
   | { kind: "recall"; cards: RecallCard[] }

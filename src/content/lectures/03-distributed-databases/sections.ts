@@ -1,12 +1,12 @@
 import type { Block, SectionBlocks } from "@/content/types";
 import { sheet01 } from "./exercises";
 import { lecture03Meta, lecture03Outline } from "./meta";
-import { FragmentationLab } from "./interactive/FragmentationLab";
-import { GreenplumExplorer } from "./interactive/GreenplumExplorer";
-import { JoinStrategyExplorer } from "./interactive/JoinStrategyExplorer";
-import { QuorumLab } from "./interactive/QuorumLab";
-import { SemiJoinBloomLab } from "./interactive/SemiJoinBloomLab";
-import { TwoPhaseCommitSimulator } from "./interactive/TwoPhaseCommitSimulator";
+import { FragmentationLab } from "@/widgets/dis/FragmentationLab";
+import { GreenplumExplorer } from "@/widgets/dis/GreenplumExplorer";
+import { JoinStrategyExplorer } from "@/widgets/dis/JoinStrategyExplorer";
+import { QuorumLab } from "@/widgets/dis/QuorumLab";
+import { SemiJoinBloomLab } from "@/widgets/dis/SemiJoinBloomLab";
+import { TwoPhaseCommitSimulator } from "@/widgets/dis/TwoPhaseCommitSimulator";
 
 const objectives: Block[] = [
   {

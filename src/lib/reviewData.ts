@@ -4,6 +4,7 @@ import type { Block, Concept, QuizQuestion } from "@/content/types";
 export type ReviewBlock =
   | Exclude<Block, { kind: "interactive" } | { kind: "exercises" }>
   | { kind: "interactive"; title: string; description?: string }
+  | { kind: "widget"; type: string; title: string; description?: string }
   | { kind: "exercises"; title: string };
 
 export interface ReviewSection {
@@ -30,6 +31,7 @@ export const REVIEW_DATA_PATH = "/review-data.json";
 
 export function toReviewBlock(block: Block): ReviewBlock {
   if (block.kind === "interactive") return { kind: "interactive", title: block.title, description: block.description };
+  if (block.kind === "widget") return { kind: "widget", type: block.type, title: block.title, description: block.description };
   if (block.kind === "exercises") return { kind: "exercises", title: block.sheet.title };
   return block;
 }
@@ -66,6 +68,8 @@ export function blockText(block: ReviewBlock, concepts: Concept[]): string {
     case "practice":
       return block.tasks.map((task) => task.prompt).join("\n");
     case "interactive":
+      return `${block.title}. ${block.description ?? ""}`;
+    case "widget":
       return `${block.title}. ${block.description ?? ""}`;
     case "exercises":
       return block.title;

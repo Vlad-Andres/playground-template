@@ -1,6 +1,6 @@
 import type { Block, SectionBlocks } from "@/content/types";
 import { lecture12Meta, lecture12Outline } from "./meta";
-import { VectorSearchLab } from "./interactive/VectorSearchLab";
+import { VectorSearchLab } from "@/widgets/dis/VectorSearchLab";
 
 const objectives: Block[] = [
   {

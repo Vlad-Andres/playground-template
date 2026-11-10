@@ -1,8 +1,8 @@
 import type { Block, SectionBlocks } from "@/content/types";
 import { lecture01Meta, lecture01Outline } from "./meta";
-import { BPlusTreeLab } from "./interactive/BPlusTreeLab";
-import { ExtendibleHashingLab } from "./interactive/ExtendibleHashingLab";
-import { HashSpreadLab } from "./interactive/HashSpreadLab";
+import { BPlusTreeLab } from "@/widgets/dis/BPlusTreeLab";
+import { ExtendibleHashingLab } from "@/widgets/dis/ExtendibleHashingLab";
+import { HashSpreadLab } from "@/widgets/dis/HashSpreadLab";
 
 const objectives: Block[] = [
   {

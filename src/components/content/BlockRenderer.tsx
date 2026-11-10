@@ -13,6 +13,7 @@ import { MemoryCards } from "@/components/content/MemoryCards";
 import { PracticeSet } from "@/components/content/PracticeSet";
 import { Timeline } from "@/components/content/Timeline";
 import { WorkedExample } from "@/components/content/WorkedExample";
+import { WidgetHost } from "@/widgets/WidgetHost";
 
 interface BlockRendererProps {
   block: Block;
@@ -85,5 +86,8 @@ export function BlockRenderer({ block, concepts }: BlockRendererProps) {
         </InteractivePanel>
       );
     }
+
+    case "widget":
+      return <WidgetHost type={block.type} title={block.title} description={block.description} props={block.props} />;
   }
 }

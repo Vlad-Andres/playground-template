@@ -1,6 +1,6 @@
 import type { Block, SectionBlocks } from "@/content/types";
 import { lecture04Meta, lecture04Outline } from "./meta";
-import { ClusteringLab } from "./interactive/ClusteringLab";
+import { ClusteringLab } from "@/widgets/dis/ClusteringLab";
 
 const objectives: Block[] = [
   {

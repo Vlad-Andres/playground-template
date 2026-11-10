@@ -1,7 +1,7 @@
 import type { Block, SectionBlocks } from "@/content/types";
 import { lecture06Meta, lecture06Outline } from "./meta";
-import { BandTuner } from "./interactive/BandTuner";
-import { ErPipeline } from "./interactive/ErPipeline";
+import { BandTuner } from "@/widgets/dis/BandTuner";
+import { ErPipeline } from "@/widgets/dis/ErPipeline";
 
 const objectives: Block[] = [
   {

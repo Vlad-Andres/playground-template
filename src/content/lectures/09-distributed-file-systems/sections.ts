@@ -1,6 +1,6 @@
 import type { Block, SectionBlocks } from "@/content/types";
 import { lecture09Meta, lecture09Outline } from "./meta";
-import { ReplicaPlacementLab } from "./interactive/ReplicaPlacementLab";
+import { ReplicaPlacementLab } from "@/widgets/dis/ReplicaPlacementLab";
 
 const objectives: Block[] = [
   {

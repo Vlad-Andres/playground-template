@@ -1,7 +1,7 @@
 import type { Block, SectionBlocks } from "@/content/types";
 import { lecture11Meta, lecture11Outline } from "./meta";
-import { CypherShakespeareLab } from "./interactive/CypherShakespeareLab";
-import { RdfStorageLab } from "./interactive/RdfStorageLab";
+import { CypherShakespeareLab } from "@/widgets/dis/CypherShakespeareLab";
+import { RdfStorageLab } from "@/widgets/dis/RdfStorageLab";
 
 const objectives: Block[] = [
   {
