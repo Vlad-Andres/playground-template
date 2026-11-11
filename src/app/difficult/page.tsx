@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 import { DifficultHub } from "@/components/difficult/DifficultHub";
+import { features } from "@/content/course";
 
 export const metadata: Metadata = {
   title: "Difficult parts",
@@ -7,5 +9,6 @@ export const metadata: Metadata = {
 };
 
 export default function DifficultPage() {
+  if (!features.difficult) notFound();
   return <DifficultHub />;
 }

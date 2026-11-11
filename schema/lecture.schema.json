@@ -221,6 +221,30 @@
                       "type": "string",
                       "const": "prose"
                     },
+                    "source": {
+                      "minItems": 1,
+                      "maxItems": 5,
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "file": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "page": {
+                            "type": "integer",
+                            "exclusiveMinimum": 0,
+                            "maximum": 9007199254740991
+                          }
+                        },
+                        "required": [
+                          "file",
+                          "page"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
                     "md": {
                       "type": "string"
                     }
@@ -237,6 +261,30 @@
                     "kind": {
                       "type": "string",
                       "const": "info"
+                    },
+                    "source": {
+                      "minItems": 1,
+                      "maxItems": 5,
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "file": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "page": {
+                            "type": "integer",
+                            "exclusiveMinimum": 0,
+                            "maximum": 9007199254740991
+                          }
+                        },
+                        "required": [
+                          "file",
+                          "page"
+                        ],
+                        "additionalProperties": false
+                      }
                     },
                     "variant": {
                       "type": "string",
@@ -269,6 +317,30 @@
                       "type": "string",
                       "const": "concepts"
                     },
+                    "source": {
+                      "minItems": 1,
+                      "maxItems": 5,
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "file": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "page": {
+                            "type": "integer",
+                            "exclusiveMinimum": 0,
+                            "maximum": 9007199254740991
+                          }
+                        },
+                        "required": [
+                          "file",
+                          "page"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
                     "ids": {
                       "type": "array",
                       "items": {
@@ -290,6 +362,30 @@
                       "type": "string",
                       "const": "formula"
                     },
+                    "source": {
+                      "minItems": 1,
+                      "maxItems": 5,
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "file": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "page": {
+                            "type": "integer",
+                            "exclusiveMinimum": 0,
+                            "maximum": 9007199254740991
+                          }
+                        },
+                        "required": [
+                          "file",
+                          "page"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
                     "tex": {
                       "type": "string"
                     },
@@ -309,6 +405,30 @@
                     "kind": {
                       "type": "string",
                       "const": "code"
+                    },
+                    "source": {
+                      "minItems": 1,
+                      "maxItems": 5,
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "file": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "page": {
+                            "type": "integer",
+                            "exclusiveMinimum": 0,
+                            "maximum": 9007199254740991
+                          }
+                        },
+                        "required": [
+                          "file",
+                          "page"
+                        ],
+                        "additionalProperties": false
+                      }
                     },
                     "lang": {
                       "type": "string"
@@ -357,6 +477,30 @@
                       "type": "string",
                       "const": "table"
                     },
+                    "source": {
+                      "minItems": 1,
+                      "maxItems": 5,
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "file": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "page": {
+                            "type": "integer",
+                            "exclusiveMinimum": 0,
+                            "maximum": 9007199254740991
+                          }
+                        },
+                        "required": [
+                          "file",
+                          "page"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
                     "headers": {
                       "type": "array",
                       "items": {
@@ -389,6 +533,30 @@
                     "kind": {
                       "type": "string",
                       "const": "figure"
+                    },
+                    "source": {
+                      "minItems": 1,
+                      "maxItems": 5,
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "file": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "page": {
+                            "type": "integer",
+                            "exclusiveMinimum": 0,
+                            "maximum": 9007199254740991
+                          }
+                        },
+                        "required": [
+                          "file",
+                          "page"
+                        ],
+                        "additionalProperties": false
+                      }
                     },
                     "src": {
                       "type": "string"
@@ -425,6 +593,30 @@
                     "kind": {
                       "type": "string",
                       "const": "steps"
+                    },
+                    "source": {
+                      "minItems": 1,
+                      "maxItems": 5,
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "file": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "page": {
+                            "type": "integer",
+                            "exclusiveMinimum": 0,
+                            "maximum": 9007199254740991
+                          }
+                        },
+                        "required": [
+                          "file",
+                          "page"
+                        ],
+                        "additionalProperties": false
+                      }
                     },
                     "title": {
                       "type": "string"
@@ -466,6 +658,30 @@
                       "type": "string",
                       "const": "timeline"
                     },
+                    "source": {
+                      "minItems": 1,
+                      "maxItems": 5,
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "file": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "page": {
+                            "type": "integer",
+                            "exclusiveMinimum": 0,
+                            "maximum": 9007199254740991
+                          }
+                        },
+                        "required": [
+                          "file",
+                          "page"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
                     "items": {
                       "type": "array",
                       "items": {
@@ -503,6 +719,30 @@
                       "type": "string",
                       "const": "list"
                     },
+                    "source": {
+                      "minItems": 1,
+                      "maxItems": 5,
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "file": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "page": {
+                            "type": "integer",
+                            "exclusiveMinimum": 0,
+                            "maximum": 9007199254740991
+                          }
+                        },
+                        "required": [
+                          "file",
+                          "page"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
                     "variant": {
                       "type": "string",
                       "enum": [
@@ -530,6 +770,30 @@
                     "kind": {
                       "type": "string",
                       "const": "exercises"
+                    },
+                    "source": {
+                      "minItems": 1,
+                      "maxItems": 5,
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "file": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "page": {
+                            "type": "integer",
+                            "exclusiveMinimum": 0,
+                            "maximum": 9007199254740991
+                          }
+                        },
+                        "required": [
+                          "file",
+                          "page"
+                        ],
+                        "additionalProperties": false
+                      }
                     },
                     "sheet": {
                       "type": "object",
@@ -696,6 +960,30 @@
                       "type": "string",
                       "const": "recall"
                     },
+                    "source": {
+                      "minItems": 1,
+                      "maxItems": 5,
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "file": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "page": {
+                            "type": "integer",
+                            "exclusiveMinimum": 0,
+                            "maximum": 9007199254740991
+                          }
+                        },
+                        "required": [
+                          "file",
+                          "page"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
                     "cards": {
                       "type": "array",
                       "items": {
@@ -728,6 +1016,30 @@
                     "kind": {
                       "type": "string",
                       "const": "practice"
+                    },
+                    "source": {
+                      "minItems": 1,
+                      "maxItems": 5,
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "file": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "page": {
+                            "type": "integer",
+                            "exclusiveMinimum": 0,
+                            "maximum": 9007199254740991
+                          }
+                        },
+                        "required": [
+                          "file",
+                          "page"
+                        ],
+                        "additionalProperties": false
+                      }
                     },
                     "id": {
                       "type": "string",
@@ -848,6 +1160,30 @@
                     "kind": {
                       "type": "string",
                       "const": "widget"
+                    },
+                    "source": {
+                      "minItems": 1,
+                      "maxItems": 5,
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "file": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "page": {
+                            "type": "integer",
+                            "exclusiveMinimum": 0,
+                            "maximum": 9007199254740991
+                          }
+                        },
+                        "required": [
+                          "file",
+                          "page"
+                        ],
+                        "additionalProperties": false
+                      }
                     },
                     "type": {
                       "type": "string",

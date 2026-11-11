@@ -121,22 +121,27 @@ const timelineItemSchema = z
   .strict();
 const recallCardSchema = z.object({ prompt: z.string(), answer: z.string() }).strict();
 
-const proseBlockSchema = z.object({ kind: z.literal("prose"), md: z.string() }).strict();
+const blockSourceSchema = z
+  .array(z.object({ file: z.string().min(1), page: positiveInt }).strict())
+  .min(1)
+  .max(5);
+
+const proseBlockSchema = z.object({ kind: z.literal("prose"), source: blockSourceSchema.optional(), md: z.string() }).strict();
 const infoBlockSchema = z
   .object({
-    kind: z.literal("info"),
+    kind: z.literal("info"), source: blockSourceSchema.optional(),
     variant: z.enum(["note", "insight", "warning", "pitfall"]),
     title: z.string(),
     md: z.string(),
   })
   .strict();
-const conceptsBlockSchema = z.object({ kind: z.literal("concepts"), ids: z.array(identifier) }).strict();
+const conceptsBlockSchema = z.object({ kind: z.literal("concepts"), source: blockSourceSchema.optional(), ids: z.array(identifier) }).strict();
 const formulaBlockSchema = z
-  .object({ kind: z.literal("formula"), tex: z.string(), caption: z.string().optional() })
+  .object({ kind: z.literal("formula"), source: blockSourceSchema.optional(), tex: z.string(), caption: z.string().optional() })
   .strict();
 const codeBlockSchema = z
   .object({
-    kind: z.literal("code"),
+    kind: z.literal("code"), source: blockSourceSchema.optional(),
     lang: z.string(),
     code: z.string(),
     caption: z.string().optional(),
@@ -145,7 +150,7 @@ const codeBlockSchema = z
   .strict();
 const tableBlockSchema = z
   .object({
-    kind: z.literal("table"),
+    kind: z.literal("table"), source: blockSourceSchema.optional(),
     headers: z.array(z.string()),
     rows: z.array(z.array(z.string())),
     caption: z.string().optional(),
@@ -153,7 +158,7 @@ const tableBlockSchema = z
   .strict();
 const figureBlockSchema = z
   .object({
-    kind: z.literal("figure"),
+    kind: z.literal("figure"), source: blockSourceSchema.optional(),
     src: z.string(),
     alt: z.string(),
     width: positiveInt,
@@ -163,24 +168,24 @@ const figureBlockSchema = z
   .strict();
 const stepsBlockSchema = z
   .object({
-    kind: z.literal("steps"),
+    kind: z.literal("steps"), source: blockSourceSchema.optional(),
     title: z.string(),
     intro: z.string().optional(),
     steps: z.array(workedStepSchema),
   })
   .strict();
-const timelineBlockSchema = z.object({ kind: z.literal("timeline"), items: z.array(timelineItemSchema) }).strict();
+const timelineBlockSchema = z.object({ kind: z.literal("timeline"), source: blockSourceSchema.optional(), items: z.array(timelineItemSchema) }).strict();
 const listBlockSchema = z
-  .object({ kind: z.literal("list"), variant: z.enum(["objectives", "takeaways"]), items: z.array(z.string()) })
+  .object({ kind: z.literal("list"), source: blockSourceSchema.optional(), variant: z.enum(["objectives", "takeaways"]), items: z.array(z.string()) })
   .strict();
-const exercisesBlockSchema = z.object({ kind: z.literal("exercises"), sheet: exerciseSheetSchema }).strict();
-const recallBlockSchema = z.object({ kind: z.literal("recall"), cards: z.array(recallCardSchema) }).strict();
+const exercisesBlockSchema = z.object({ kind: z.literal("exercises"), source: blockSourceSchema.optional(), sheet: exerciseSheetSchema }).strict();
+const recallBlockSchema = z.object({ kind: z.literal("recall"), source: blockSourceSchema.optional(), cards: z.array(recallCardSchema) }).strict();
 const practiceBlockSchema = z
-  .object({ kind: z.literal("practice"), id: identifier, tasks: z.array(exerciseTaskSchema) })
+  .object({ kind: z.literal("practice"), source: blockSourceSchema.optional(), id: identifier, tasks: z.array(exerciseTaskSchema) })
   .strict();
 const widgetBlockSchema = z
   .object({
-    kind: z.literal("widget"),
+    kind: z.literal("widget"), source: blockSourceSchema.optional(),
     type: identifier,
     title: z.string(),
     description: z.string().optional(),
@@ -221,6 +226,20 @@ export const courseSchema = z
     overviewTitle: z.string().optional(),
     overviewMd: z.string().optional(),
     footerText: z.string().optional(),
+    level: z.enum(["school", "university", "professional"]).optional(),
+    domains: z.array(z.enum(["core", "math", "cs", "memorise", "humanities"])).optional(),
+    examDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+    theme: z
+      .object({
+        accent: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
+        corners: z.enum(["soft", "sharp"]).optional(),
+      })
+      .strict()
+      .optional(),
+    features: z
+      .object({ assistant: z.boolean().optional(), difficult: z.boolean().optional(), search: z.boolean().optional() })
+      .strict()
+      .optional(),
   })
   .strict();
 
@@ -270,3 +289,6 @@ export type RunConfig = z.infer<typeof runConfigSchema>;
 export type WorkedStep = z.infer<typeof workedStepSchema>;
 export type TimelineItem = z.infer<typeof timelineItemSchema>;
 export type RecallCard = z.infer<typeof recallCardSchema>;
+export type BlockSource = z.infer<typeof blockSourceSchema>;
+export type CourseTheme = NonNullable<Course["theme"]>;
+export type CourseFeatures = NonNullable<Course["features"]>;

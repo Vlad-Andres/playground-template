@@ -11,7 +11,7 @@ import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { DIFFICULT_PATH, EXAM_PATH, EXPECTED_PATH, lecturePath } from "@/lib/format";
 import { useDifficult } from "@/hooks/useDifficult";
 import { cn } from "@/lib/cn";
-import { course } from "@/content/course";
+import { course, features } from "@/content/course";
 import { examTraining } from "@/content/exam";
 import { expectedTopics } from "@/content/expected";
 
@@ -38,7 +38,7 @@ export function SiteHeader({ metas, records }: SiteHeaderProps) {
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key.toLowerCase() === "k" && (event.metaKey || event.ctrlKey)) {
+      if (features.search && event.key.toLowerCase() === "k" && (event.metaKey || event.ctrlKey)) {
         event.preventDefault();
         setSearchOpen(true);
       }
@@ -138,34 +138,38 @@ export function SiteHeader({ metas, records }: SiteHeaderProps) {
             Expected
           </Link> : null}
 
-          <Link
-            href={DIFFICULT_PATH}
-            onClick={closeMenus}
-            className={cn(
-              "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors hover:bg-sunken",
-              pathname.startsWith("/difficult") ? "text-brand" : "text-muted",
-            )}
-          >
-            <Flag size={15} aria-hidden />
-            Difficult
-            {difficultCount > 0 ? (
-              <span className="rounded-full bg-warning-soft px-1.5 text-xs font-semibold text-warning tabular-nums">{difficultCount}</span>
-            ) : null}
-          </Link>
+          {features.difficult ? (
+            <Link
+              href={DIFFICULT_PATH}
+              onClick={closeMenus}
+              className={cn(
+                "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors hover:bg-sunken",
+                pathname.startsWith("/difficult") ? "text-brand" : "text-muted",
+              )}
+            >
+              <Flag size={15} aria-hidden />
+              Difficult
+              {difficultCount > 0 ? (
+                <span className="rounded-full bg-warning-soft px-1.5 text-xs font-semibold text-warning tabular-nums">{difficultCount}</span>
+              ) : null}
+            </Link>
+          ) : null}
         </nav>
 
         <div className="ml-auto flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setSearchOpen(true)}
-            className="flex items-center gap-2 rounded-lg border border-line bg-surface px-2.5 py-2 text-sm text-faint transition-colors hover:border-brand/40 hover:text-brand sm:px-3"
-          >
-            <Search size={16} aria-hidden />
-            <span className="hidden lg:inline">Search</span>
-            <kbd className="hidden rounded border border-line bg-sunken px-1.5 py-0.5 font-sans text-[10px] lg:inline">
-              ⌘K
-            </kbd>
-          </button>
+          {features.search ? (
+            <button
+              type="button"
+              onClick={() => setSearchOpen(true)}
+              className="flex items-center gap-2 rounded-lg border border-line bg-surface px-2.5 py-2 text-sm text-faint transition-colors hover:border-brand/40 hover:text-brand sm:px-3"
+            >
+              <Search size={16} aria-hidden />
+              <span className="hidden lg:inline">Search</span>
+              <kbd className="hidden rounded border border-line bg-sunken px-1.5 py-0.5 font-sans text-[10px] lg:inline">
+                ⌘K
+              </kbd>
+            </button>
+          ) : null}
 
           <ThemeToggle />
 
@@ -204,13 +208,15 @@ export function SiteHeader({ metas, records }: SiteHeaderProps) {
           >
             Expected at the exam
           </Link> : null}
-          <Link
-            href={DIFFICULT_PATH}
-            onClick={closeMenus}
-            className="block rounded-lg px-3 py-2 text-sm font-medium hover:bg-sunken"
-          >
-            Difficult parts{difficultCount > 0 ? ` (${difficultCount})` : ""}
-          </Link>
+          {features.difficult ? (
+            <Link
+              href={DIFFICULT_PATH}
+              onClick={closeMenus}
+              className="block rounded-lg px-3 py-2 text-sm font-medium hover:bg-sunken"
+            >
+              Difficult parts{difficultCount > 0 ? ` (${difficultCount})` : ""}
+            </Link>
+          ) : null}
           <p className="px-3 pb-1 pt-3 text-xs font-semibold tracking-wide text-faint uppercase">
             Lectures
           </p>
@@ -227,7 +233,7 @@ export function SiteHeader({ metas, records }: SiteHeaderProps) {
         </nav>
       ) : null}
 
-      {searchOpen ? (
+      {features.search && searchOpen ? (
         <SearchDialog records={records} onClose={() => setSearchOpen(false)} />
       ) : null}
     </header>

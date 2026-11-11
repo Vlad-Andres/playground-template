@@ -9,6 +9,7 @@ import { buildSearchRecords } from "@/lib/search";
 import { CONTENT_SECURITY_POLICY } from "@/lib/security";
 import { THEME_BOOTSTRAP_SCRIPT } from "@/lib/theme";
 import { course } from "@/content/course";
+import { themeCss } from "@/lib/theme-css";
 
 export const metadata: Metadata = {
   title: {
@@ -25,6 +26,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   const records = buildSearchRecords(lectureIndex);
+  const courseThemeCss = themeCss(course.theme);
 
   return (
     <html lang={course.language} suppressHydrationWarning>
@@ -33,6 +35,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <meta httpEquiv="Content-Security-Policy" content={CONTENT_SECURITY_POLICY} />
         ) : null}
         <script dangerouslySetInnerHTML={{ __html: THEME_BOOTSTRAP_SCRIPT }} />
+        {courseThemeCss ? <style dangerouslySetInnerHTML={{ __html: courseThemeCss }} /> : null}
       </head>
       <body className="flex min-h-screen flex-col">
         <a

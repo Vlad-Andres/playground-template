@@ -2,6 +2,8 @@ import Link from "next/link";
 import { ArrowRight, Gamepad2, GraduationCap, Layers, Sparkles, Target } from "lucide-react";
 import { ContinueStudying } from "@/components/home/ContinueStudying";
 import { CourseOverview } from "@/components/home/CourseOverview";
+import { ExamCountdown } from "@/components/home/ExamCountdown";
+import { course } from "@/content/course";
 import { LectureCard } from "@/components/home/LectureCard";
 import { ProgressSummary } from "@/components/home/ProgressSummary";
 import { Card } from "@/components/ui/Card";
@@ -29,6 +31,7 @@ const PRINCIPLES = [
 export default function HomePage() {
   return (
     <div className="mx-auto grid w-full max-w-6xl gap-12 px-4 py-10 sm:px-6 sm:py-14">
+      <ExamCountdown examDate={course.examDate} />
       <CourseOverview entries={lectureIndex} />
 
       <div className="grid gap-5 lg:grid-cols-[1.4fr_1fr]">

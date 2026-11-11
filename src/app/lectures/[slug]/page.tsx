@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { LectureAssistant } from "@/components/assistant/LectureAssistant";
+import { features } from "@/content/course";
 import { LectureHeader } from "@/components/lecture/LectureHeader";
 import { LectureNav } from "@/components/lecture/LectureNav";
 import { LectureSectionView } from "@/components/lecture/LectureSectionView";
@@ -54,12 +55,14 @@ export default async function LecturePage({ params }: LecturePageProps) {
 
       <LectureNav previous={previous} next={next} />
 
-      <LectureAssistant
-        slug={lecture.meta.slug}
-        label={`Lecture ${lecture.meta.number} · ${lecture.meta.title}`}
-        context={lectureToContext(lecture)}
-        sectionTitles={sectionTitles}
-      />
+      {features.assistant ? (
+        <LectureAssistant
+          slug={lecture.meta.slug}
+          label={`Lecture ${lecture.meta.number} · ${lecture.meta.title}`}
+          context={lectureToContext(lecture)}
+          sectionTitles={sectionTitles}
+        />
+      ) : null}
     </div>
   );
 }
