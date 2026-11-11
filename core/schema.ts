@@ -292,3 +292,14 @@ export type RecallCard = z.infer<typeof recallCardSchema>;
 export type BlockSource = z.infer<typeof blockSourceSchema>;
 export type CourseTheme = NonNullable<Course["theme"]>;
 export type CourseFeatures = NonNullable<Course["features"]>;
+
+// Parts used by the generator to validate model output item by item.
+export {
+  conceptSchema,
+  courseId as courseIdSchema,
+  identifier as identifierSchema,
+  lectureSectionSchema,
+  metaSchema as lectureMetaSchema,
+  quizQuestionSchema,
+  sectionKind as sectionKindSchema,
+};

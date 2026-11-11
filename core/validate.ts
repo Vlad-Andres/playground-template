@@ -54,14 +54,19 @@ function widgetProblems(file: string, blockPath: string, block: Extract<Block, {
       },
     ];
   }
-  if (block.props && !entry.props.safeParse(block.props).success) {
+  const parsed = block.props ? entry.props.safeParse(block.props) : null;
+  if (parsed && !parsed.success) {
+    const details = parsed.error.issues
+      .slice(0, 5)
+      .map((issue) => `${issuePath(issue) || "props"}: ${issue.message}`)
+      .join("; ");
     return [
       {
         code: "E105",
         severity: "error",
         file,
         path: at("props"),
-        message: `Props do not match the "${block.type}" widget schema.`,
+        message: `Props do not match the "${block.type}" widget schema (${details}).`,
         fix: `Remove unsupported props or change them to match the "${block.type}" widget schema.`,
       },
     ];
@@ -69,11 +74,40 @@ function widgetProblems(file: string, blockPath: string, block: Extract<Block, {
   return [];
 }
 
-/** Schema (E003) and widget (E104/E105) checks for one block. Paths are relative to the block; file is "". */
+function selectAnswerProblems(block: Block): Problem[] {
+  const tasks =
+    block.kind === "practice"
+      ? block.tasks.map((task, index) => ({ task, path: `tasks[${index}]` }))
+      : block.kind === "exercises"
+        ? block.sheet.exercises.flatMap((exercise, exerciseIndex) =>
+            exercise.tasks.map((task, taskIndex) => ({ task, path: `sheet.exercises[${exerciseIndex}].tasks[${taskIndex}]` })),
+          )
+        : [];
+  return tasks.flatMap(({ task, path }) => {
+    if (task.check.mode !== "select") return [];
+    const options = task.check.options;
+    return task.check.answer
+      .map((answer, answerIndex) => ({ answer, answerIndex }))
+      .filter(({ answer }) => !options.includes(answer))
+      .map(({ answer, answerIndex }) => ({
+        code: "E108",
+        severity: "error" as const,
+        file: "",
+        path: `${path}.check.answer[${answerIndex}]`,
+        message: `Answer "${answer}" is not one of the check options.`,
+        fix: "Set every answer to one of the check options.",
+      }));
+  });
+}
+
+/**
+ * Checks for one block: schema (E003), widget type and props (E104/E105) and select answers (E108).
+ * Paths are relative to the block; file is "".
+ */
 export function validateBlock(block: unknown): Problem[] {
   const result = blockSchema.safeParse(block);
   if (!result.success) return schemaProblems("", result.error.issues);
-  return result.data.kind === "widget" ? widgetProblems("", "", result.data) : [];
+  return result.data.kind === "widget" ? widgetProblems("", "", result.data) : selectAnswerProblems(result.data);
 }
 
 function duplicateProblem(file: string, valuePath: string, value: string, kind: string): Problem {
