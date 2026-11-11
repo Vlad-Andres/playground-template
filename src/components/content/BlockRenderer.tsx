@@ -14,6 +14,7 @@ import { PracticeSet } from "@site/components/content/PracticeSet";
 import { Timeline } from "@site/components/content/Timeline";
 import { WorkedExample } from "@site/components/content/WorkedExample";
 import { WidgetHost } from "@site/widgets/WidgetHost";
+import { CustomFrame } from "@site/components/content/CustomFrame";
 import { sourceLabel } from "@site/lib/course-info";
 
 interface BlockRendererProps {
@@ -91,5 +92,15 @@ function BlockContent({ block, concepts }: BlockRendererProps) {
 
     case "widget":
       return <WidgetHost type={block.type} title={block.title} description={block.description} props={block.props} />;
+
+    case "custom":
+      return (
+        <CustomFrame
+          title={block.title}
+          description={block.description}
+          html={block.html}
+          height={block.height}
+        />
+      );
   }
 }

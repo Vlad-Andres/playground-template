@@ -6,6 +6,8 @@ export const CONTENT_SECURITY_POLICY = [
   "img-src 'self' data: blob:",
   "font-src 'self' data:",
   "connect-src 'self' https://generativelanguage.googleapis.com",
+  // Custom components are inline `srcdoc` documents; they never navigate the page.
+  "frame-src 'self' blob: data:",
   "object-src 'none'",
   "base-uri 'self'",
   "form-action 'none'",
