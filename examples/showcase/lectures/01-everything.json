@@ -536,6 +536,20 @@
               "page": 9
             }
           ]
+        },
+        {
+          "kind": "custom",
+          "id": "braking-counter",
+          "title": "Count your braking tests",
+          "description": "Press the button each time you test a speed; the counter keeps the total.",
+          "html": "<button id=\"count\">0 tests</button>\n<script>\nconst button = document.getElementById('count');\nlet count = 0;\nbutton.addEventListener('click', () => { count += 1; button.textContent = `${count} tests`; });\n</script>",
+          "height": 220,
+          "source": [
+            {
+              "file": "energy-notes.pdf",
+              "page": 7
+            }
+          ]
         }
       ]
     },

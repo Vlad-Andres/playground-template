@@ -79,6 +79,7 @@ export function ReviewBlockView({ block, concepts, href }: ReviewBlockViewProps)
       return <PracticeSet id={block.id} tasks={block.tasks} />;
     case "widget":
     case "exercises":
+    case "custom":
       return (
         <Link
           href={href}
@@ -88,8 +89,12 @@ export function ReviewBlockView({ block, concepts, href }: ReviewBlockViewProps)
           <span className="grid gap-0.5">
             <span className="font-semibold text-ink">{block.title}</span>
             <span className="text-muted">
-              {block.kind === "widget" ? (block.description ?? "Interactive playground") : "Exercise sheet"} — open it in
-              the lecture to try it.
+              {block.kind === "widget"
+                ? (block.description ?? "Interactive playground")
+                : block.kind === "custom"
+                  ? block.description
+                  : "Exercise sheet"}{" "}
+              — open it in the lecture to try it.
             </span>
           </span>
         </Link>

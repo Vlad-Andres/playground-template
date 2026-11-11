@@ -65,6 +65,8 @@ function block(item: Block, concepts: Concept[]): string {
       return item.items.map((entry) => `- **${entry.label} — ${entry.title}**: ${entry.md}`).join("\n");
     case "widget":
       return `[Interactive widget on the page: "${item.title}"${item.description ? ` — ${item.description}` : ""}]`;
+    case "custom":
+      return `[Custom interactive component on the page: "${item.title}" — ${item.description}]`;
     case "list":
       return item.items.map((entry) => `- ${entry}`).join("\n");
     case "exercises":

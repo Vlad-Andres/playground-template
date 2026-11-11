@@ -11,5 +11,6 @@ describe("blockExamples", () => {
     expect(entry.use.length).toBeGreaterThan(10);
     expect(entry.avoid.length).toBeGreaterThan(10);
   });
-  it("covers all 14 block kinds", () => expect(Object.keys(blockExamples)).toHaveLength(14));
+  it("covers every block kind", () =>
+    expect(Object.keys(blockExamples)).toHaveLength(blockSchema.options.length));
 });

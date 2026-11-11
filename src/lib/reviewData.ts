@@ -65,6 +65,8 @@ export function blockText(block: ReviewBlock, concepts: Concept[]): string {
       return block.tasks.map((task) => task.prompt).join("\n");
     case "widget":
       return `${block.title}. ${block.description ?? ""}`;
+    case "custom":
+      return `${block.title}. ${block.description}`;
     case "exercises":
       return block.title;
   }

@@ -21,6 +21,7 @@ All blocks are strict JSON objects with a `kind`. The canonical schemas are in `
 | [`recall`](recall.md) | Flashcards for active recall: a prompt and its answer. |
 | [`practice`](practice.md) | A few practice tasks with checks: `select` (choose from options), `text` (accepted answers) or `open` (self-checked against the solution). |
 | [`widget`](widget.md) | An interactive widget from the widget catalogue; `props` must match that widget's schema. |
+| [`custom`](custom.md) | A self-contained HTML/CSS/JS exercise the widget catalogue does not cover, rendered in a sandboxed frame. |
 
 Prefer the smallest block that preserves the source's teaching purpose. Never use a widget as a
 decoration and never put executable course logic in JSON.
