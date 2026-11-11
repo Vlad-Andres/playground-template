@@ -37,7 +37,7 @@ export function goodLecture(number = 1, slug = `lecture-${number}`): LectureFile
     meta: {
       slug,
       number,
-      title: `Lecture ${number}`,
+      title: `Model title ${number}`,
       subtitle: "Energy",
       summary: "Energy basics.",
       topics: ["energy"],

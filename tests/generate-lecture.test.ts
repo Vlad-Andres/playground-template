@@ -21,12 +21,13 @@ function scripted(handlers: Partial<Record<keyof typeof TASK, (request: ModelReq
 const src = [{ file: "slides.pdf", page: 1 }];
 
 describe("writeLecture", () => {
-  it("accepts an all-valid reply without a repair call and forces number and slug from the plan", async () => {
+  it("accepts an all-valid reply without a repair call and forces number, slug and title from the plan", async () => {
     const { model, calls } = scripted({ lecture: () => JSON.stringify(goodLecture(7, "wrong-slug")) });
     const { lecture, dropped } = await writeLecture(plan, 0, materials, brief, model);
     expect(calls.map((call) => call.task)).toEqual(["lecture"]);
     expect(lecture.meta.number).toBe(1);
     expect(lecture.meta.slug).toBe("kinetic");
+    expect(lecture.meta.title).toBe("Lecture 1");
     expect(dropped).toEqual([]);
   });
 
