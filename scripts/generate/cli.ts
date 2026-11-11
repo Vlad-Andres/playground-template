@@ -13,7 +13,7 @@ import type { LectureFile } from "../../core/schema";
 import { writeContent } from "../content/import";
 import { geminiClient, openAiCompatibleClient } from "./clients";
 import { readMaterials } from "./extract-pdf";
-import { cannedModel } from "./fake";
+import { cannedModel } from "../../core/generate/fake";
 
 export interface CliOptions {
   materials: string;

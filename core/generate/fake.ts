@@ -1,5 +1,5 @@
-import { fakeModel, type ModelClient } from "../../core/generate/model";
-import { TASK } from "../../core/generate/prompts";
+import { fakeModel, type ModelClient } from "./model";
+import { TASK } from "./prompts";
 
 /** Pages named in a prompt, e.g. "=== slides.pdf — page 3 ===". */
 function pagesIn(text: string): { file: string; page: number }[] {
