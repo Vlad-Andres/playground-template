@@ -1,5 +1,5 @@
-import type { Concept, LectureMeta } from "@/content/types";
-import { lecturePath } from "@/lib/format";
+import type { Concept, LectureMeta } from "@site/content/types";
+import { lecturePath } from "@site/lib/format";
 
 export type SearchRecordType = "lecture" | "section" | "concept" | "objective";
 

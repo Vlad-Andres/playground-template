@@ -1,9 +1,9 @@
 "use client";
 
 import { Flag } from "lucide-react";
-import { useDifficult } from "@/hooks/useDifficult";
-import { itemKey } from "@/lib/difficult";
-import { cn } from "@/lib/cn";
+import { useDifficult } from "@site/hooks/useDifficult";
+import { itemKey } from "@site/lib/difficult";
+import { cn } from "@site/lib/cn";
 
 interface DifficultSectionToggleProps {
   lectureSlug: string;

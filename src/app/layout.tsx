@@ -1,15 +1,15 @@
 import type { Metadata } from "next";
 import "katex/dist/katex.min.css";
 import "./globals.css";
-import { SiteFooter } from "@/components/layout/SiteFooter";
-import { ServiceWorkerRegistration } from "@/components/layout/ServiceWorkerRegistration";
-import { SiteHeader } from "@/components/layout/SiteHeader";
-import { lectureIndex, lectureMetas } from "@/content/registry";
-import { buildSearchRecords } from "@/lib/search";
-import { CONTENT_SECURITY_POLICY } from "@/lib/security";
-import { THEME_BOOTSTRAP_SCRIPT } from "@/lib/theme";
-import { course } from "@/content/course";
-import { themeCss } from "@/lib/theme-css";
+import { SiteFooter } from "@site/components/layout/SiteFooter";
+import { ServiceWorkerRegistration } from "@site/components/layout/ServiceWorkerRegistration";
+import { SiteHeader } from "@site/components/layout/SiteHeader";
+import { lectureIndex, lectureMetas } from "@site/content/registry";
+import { buildSearchRecords } from "@site/lib/search";
+import { CONTENT_SECURITY_POLICY } from "@site/lib/security";
+import { THEME_BOOTSTRAP_SCRIPT } from "@site/lib/theme";
+import { course } from "@site/content/course";
+import { themeCss } from "@site/lib/theme-css";
 
 export const metadata: Metadata = {
   title: {

@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { RotateCcw } from "lucide-react";
-import { Stat } from "@/components/ui/Stat";
-import { cn } from "@/lib/cn";
+import { Stat } from "@site/components/ui/Stat";
+import { cn } from "@site/lib/cn";
 
 const LINES = ["coffee panda", "happy panda", "happiest panda party"];
 

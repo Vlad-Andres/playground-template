@@ -1,4 +1,4 @@
-import { storageKey } from "@/lib/storageKey";
+import { storageKey } from "@site/lib/storageKey";
 
 const STORAGE_KEY = storageKey("gemini-api-key");
 

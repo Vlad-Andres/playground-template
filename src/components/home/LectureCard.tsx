@@ -2,13 +2,13 @@
 
 import Link from "next/link";
 import { ArrowRight, BookOpen, Clock, ListChecks, PencilRuler } from "lucide-react";
-import type { LectureMeta } from "@/content/types";
-import { Badge, type BadgeTone } from "@/components/ui/Badge";
-import { Card } from "@/components/ui/Card";
-import { ProgressRing } from "@/components/ui/ProgressRing";
-import { useProgress } from "@/hooks/useProgress";
-import { lectureStats } from "@/lib/progress";
-import { formatMinutes, lecturePath } from "@/lib/format";
+import type { LectureMeta } from "@site/content/types";
+import { Badge, type BadgeTone } from "@site/components/ui/Badge";
+import { Card } from "@site/components/ui/Card";
+import { ProgressRing } from "@site/components/ui/ProgressRing";
+import { useProgress } from "@site/hooks/useProgress";
+import { lectureStats } from "@site/lib/progress";
+import { formatMinutes, lecturePath } from "@site/lib/format";
 
 const DIFFICULTY_TONE: Record<LectureMeta["difficulty"], BadgeTone> = {
   intro: "positive",

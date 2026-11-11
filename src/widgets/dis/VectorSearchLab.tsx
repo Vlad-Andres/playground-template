@@ -1,10 +1,10 @@
 "use client";
 
 import { useMemo, useRef, useState, type MouseEvent } from "react";
-import { DataTable } from "@/components/content/DataTable";
-import { RangeField } from "@/components/ui/RangeField";
-import { Stat } from "@/components/ui/Stat";
-import { cn } from "@/lib/cn";
+import { DataTable } from "@site/components/content/DataTable";
+import { RangeField } from "@site/components/ui/RangeField";
+import { Stat } from "@site/components/ui/Stat";
+import { cn } from "@site/lib/cn";
 
 type Genre = "Rock" | "Jazz" | "Pop";
 type MetricId = "l2" | "l1" | "cosine" | "dot";

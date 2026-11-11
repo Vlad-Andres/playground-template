@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { Check, RotateCcw, X } from "lucide-react";
 import type { CategorizeProps } from "@core/widgets";
-import { cn } from "@/lib/cn";
+import { cn } from "@site/lib/cn";
 import { seededShuffle } from "./shuffle";
 import { buttonClass, correctClass, primaryButtonClass, promptClass, wrongClass } from "./ui";
 

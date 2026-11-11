@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import type { ComponentType } from "react";
-import { InteractivePanel } from "@/components/content/InteractivePanel";
+import { InteractivePanel } from "@site/components/content/InteractivePanel";
 import { isWidgetType, type WidgetType } from "./types";
 
 // Each component receives the props validated against its catalogue schema at build time.

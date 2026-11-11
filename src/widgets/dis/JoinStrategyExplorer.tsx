@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { cn } from "@/lib/cn";
+import { cn } from "@site/lib/cn";
 
 type Strategy = "co-located" | "distributed" | "broadcast";
 

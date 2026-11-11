@@ -1,4 +1,4 @@
-import type { Block, Concept, QuizQuestion } from "@/content/types";
+import type { Block, Concept, QuizQuestion } from "@site/content/types";
 
 /** A content block as JSON: interactive components and exercise sheets become references. */
 export type ReviewBlock =

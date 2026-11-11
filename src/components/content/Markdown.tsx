@@ -2,9 +2,9 @@ import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
-import { RunnableCode } from "@/components/content/RunnableCode";
-import { cn } from "@/lib/cn";
-import { runLanguage } from "@/lib/runner/types";
+import { RunnableCode } from "@site/components/content/RunnableCode";
+import { cn } from "@site/lib/cn";
+import { runLanguage } from "@site/lib/runner/types";
 
 /** `//host` and `/\host` are protocol-relative: the browser resolves them to another origin. */
 function isProtocolRelative(value: string): boolean {

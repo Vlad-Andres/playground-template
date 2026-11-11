@@ -3,17 +3,17 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Flag, Flame, Gamepad2, Layers, ListTodo, Sparkles, Trophy } from "lucide-react";
-import { LectureAssistant } from "@/components/assistant/LectureAssistant";
-import { DifficultItemCard } from "@/components/difficult/DifficultItemCard";
-import { MatchGame } from "@/components/difficult/MatchGame";
-import { ReviewSession } from "@/components/difficult/ReviewSession";
-import { plainText, resolveItem, type ResolvedItem } from "@/components/difficult/kit";
-import { ProgressBar } from "@/components/ui/ProgressBar";
-import { ProgressRing } from "@/components/ui/ProgressRing";
-import { useDifficult } from "@/hooks/useDifficult";
-import { DAILY_GOAL, MAX_BOX, levelFor, liveStreak, reviewsDoneToday } from "@/lib/difficult";
-import { REVIEW_DATA_PATH, type ReviewData } from "@/lib/reviewData";
-import { cn } from "@/lib/cn";
+import { LectureAssistant } from "@site/components/assistant/LectureAssistant";
+import { DifficultItemCard } from "@site/components/difficult/DifficultItemCard";
+import { MatchGame } from "@site/components/difficult/MatchGame";
+import { ReviewSession } from "@site/components/difficult/ReviewSession";
+import { plainText, resolveItem, type ResolvedItem } from "@site/components/difficult/kit";
+import { ProgressBar } from "@site/components/ui/ProgressBar";
+import { ProgressRing } from "@site/components/ui/ProgressRing";
+import { useDifficult } from "@site/hooks/useDifficult";
+import { DAILY_GOAL, MAX_BOX, levelFor, liveStreak, reviewsDoneToday } from "@site/lib/difficult";
+import { REVIEW_DATA_PATH, type ReviewData } from "@site/lib/reviewData";
+import { cn } from "@site/lib/cn";
 
 type Tab = "focus" | "review" | "match";
 

@@ -1,15 +1,15 @@
 "use client";
 
 import { useCallback, useSyncExternalStore } from "react";
-import { createPersistentStore } from "@/lib/store";
+import { createPersistentStore } from "@site/lib/store";
 import {
   emptyTaskState,
   reviveExerciseState,
   type ExerciseState,
   type SelfMark,
   type TaskState,
-} from "@/lib/exercises";
-import { storageKey } from "@/lib/storageKey";
+} from "@site/lib/exercises";
+import { storageKey } from "@site/lib/storageKey";
 
 const store = createPersistentStore<ExerciseState>(
   storageKey("exercises:v1"),

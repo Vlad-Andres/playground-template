@@ -2,8 +2,8 @@
 
 import { useMemo, useState } from "react";
 import { RotateCcw } from "lucide-react";
-import { Stat } from "@/components/ui/Stat";
-import { cn } from "@/lib/cn";
+import { Stat } from "@site/components/ui/Stat";
+import { cn } from "@site/lib/cn";
 
 const RACK_COUNT = 3;
 const NODES_PER_RACK = 4;

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { ArrowRight, Boxes, Database, Fingerprint, GitMerge, Layers, Scale } from "lucide-react";
-import { cn } from "@/lib/cn";
+import { cn } from "@site/lib/cn";
 
 const STAGES = [
   {

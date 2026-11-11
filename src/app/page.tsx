@@ -1,14 +1,14 @@
 import Link from "next/link";
 import { ArrowRight, Gamepad2, GraduationCap, Layers, Sparkles, Target } from "lucide-react";
-import { ContinueStudying } from "@/components/home/ContinueStudying";
-import { CourseOverview } from "@/components/home/CourseOverview";
-import { ExamCountdown } from "@/components/home/ExamCountdown";
-import { course } from "@/content/course";
-import { LectureCard } from "@/components/home/LectureCard";
-import { ProgressSummary } from "@/components/home/ProgressSummary";
-import { Card } from "@/components/ui/Card";
-import { countExercises, lectureIndex, lectureMetas } from "@/content/registry";
-import { EXAM_PATH, EXPECTED_PATH } from "@/lib/format";
+import { ContinueStudying } from "@site/components/home/ContinueStudying";
+import { CourseOverview } from "@site/components/home/CourseOverview";
+import { ExamCountdown } from "@site/components/home/ExamCountdown";
+import { course } from "@site/content/course";
+import { LectureCard } from "@site/components/home/LectureCard";
+import { ProgressSummary } from "@site/components/home/ProgressSummary";
+import { Card } from "@site/components/ui/Card";
+import { countExercises, lectureIndex, lectureMetas } from "@site/content/registry";
+import { EXAM_PATH, EXPECTED_PATH } from "@site/lib/format";
 
 const PRINCIPLES = [
   {

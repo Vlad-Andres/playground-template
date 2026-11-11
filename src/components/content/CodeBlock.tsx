@@ -1,7 +1,7 @@
 import { codeToHtml } from "shiki";
-import { RunnableCode } from "@/components/content/RunnableCode";
-import type { RunConfig } from "@/content/types";
-import { runLanguage } from "@/lib/runner/types";
+import { RunnableCode } from "@site/components/content/RunnableCode";
+import type { RunConfig } from "@site/content/types";
+import { runLanguage } from "@site/lib/runner/types";
 
 interface CodeBlockProps {
   code: string;

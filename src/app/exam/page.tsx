@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
-import { LectureAssistant } from "@/components/assistant/LectureAssistant";
-import { LectureHeader } from "@/components/lecture/LectureHeader";
-import { LectureSectionView } from "@/components/lecture/LectureSectionView";
-import { LectureToc } from "@/components/lecture/LectureToc";
-import { examTraining } from "@/content/exam";
-import { lectureToContext } from "@/lib/assistant/lectureContext";
+import { LectureAssistant } from "@site/components/assistant/LectureAssistant";
+import { LectureHeader } from "@site/components/lecture/LectureHeader";
+import { LectureSectionView } from "@site/components/lecture/LectureSectionView";
+import { LectureToc } from "@site/components/lecture/LectureToc";
+import { examTraining } from "@site/content/exam";
+import { lectureToContext } from "@site/lib/assistant/lectureContext";
 import { notFound } from "next/navigation";
 
 export const metadata: Metadata = { title: "Exam Training" };

@@ -4,16 +4,16 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ChevronDown, Flag, GraduationCap, Menu, Search, Target, X } from "lucide-react";
-import type { LectureMeta } from "@/content/types";
-import type { SearchRecord } from "@/lib/search";
-import { SearchDialog } from "@/components/layout/SearchDialog";
-import { ThemeToggle } from "@/components/layout/ThemeToggle";
-import { DIFFICULT_PATH, EXAM_PATH, EXPECTED_PATH, lecturePath } from "@/lib/format";
-import { useDifficult } from "@/hooks/useDifficult";
-import { cn } from "@/lib/cn";
-import { course, features } from "@/content/course";
-import { examTraining } from "@/content/exam";
-import { expectedTopics } from "@/content/expected";
+import type { LectureMeta } from "@site/content/types";
+import type { SearchRecord } from "@site/lib/search";
+import { SearchDialog } from "@site/components/layout/SearchDialog";
+import { ThemeToggle } from "@site/components/layout/ThemeToggle";
+import { DIFFICULT_PATH, EXAM_PATH, EXPECTED_PATH, lecturePath } from "@site/lib/format";
+import { useDifficult } from "@site/hooks/useDifficult";
+import { cn } from "@site/lib/cn";
+import { course, features } from "@site/content/course";
+import { examTraining } from "@site/content/exam";
+import { expectedTopics } from "@site/content/expected";
 
 interface SiteHeaderProps {
   metas: LectureMeta[];

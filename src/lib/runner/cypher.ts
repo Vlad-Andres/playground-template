@@ -4,7 +4,7 @@
  * CREATE, MERGE, SET, DELETE, DETACH DELETE, UNWIND, variable-length paths, path variables and
  * shortestPath) over an in-memory property graph. It is not Neo4j: no indexes, no planner.
  */
-import type { RunOutput, RunResult } from "@/lib/runner/types";
+import type { RunOutput, RunResult } from "@site/lib/runner/types";
 
 /* ───────────────────────────── Graph ───────────────────────────── */
 

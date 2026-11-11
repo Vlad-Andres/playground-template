@@ -2,8 +2,8 @@
 
 import { useMemo, useState } from "react";
 import { Check, X } from "lucide-react";
-import { Stat } from "@/components/ui/Stat";
-import { cn } from "@/lib/cn";
+import { Stat } from "@site/components/ui/Stat";
+import { cn } from "@site/lib/cn";
 
 const ATTRIBUTES = ["PersNr", "Name", "Level", "Room", "Department", "salary", "taxclass"] as const;
 type Attribute = (typeof ATTRIBUTES)[number];

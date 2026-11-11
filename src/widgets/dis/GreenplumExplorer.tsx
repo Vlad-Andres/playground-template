@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Stat } from "@/components/ui/Stat";
-import { cn } from "@/lib/cn";
+import { Stat } from "@site/components/ui/Stat";
+import { cn } from "@site/lib/cn";
 
 interface SaleRow {
   transId: number;

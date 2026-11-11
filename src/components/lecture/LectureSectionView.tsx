@@ -1,10 +1,10 @@
-import type { Block, Lecture, LectureSection, SectionKind } from "@/content/types";
-import { BlockRenderer } from "@/components/content/BlockRenderer";
-import { QuizCard } from "@/components/content/QuizCard";
-import { SectionCompleteToggle } from "@/components/lecture/SectionCompleteToggle";
-import { DifficultBlock } from "@/components/difficult/DifficultBlock";
-import { features } from "@/content/course";
-import { DifficultSectionToggle } from "@/components/difficult/DifficultSectionToggle";
+import type { Block, Lecture, LectureSection, SectionKind } from "@site/content/types";
+import { BlockRenderer } from "@site/components/content/BlockRenderer";
+import { QuizCard } from "@site/components/content/QuizCard";
+import { SectionCompleteToggle } from "@site/components/lecture/SectionCompleteToggle";
+import { DifficultBlock } from "@site/components/difficult/DifficultBlock";
+import { features } from "@site/content/course";
+import { DifficultSectionToggle } from "@site/components/difficult/DifficultSectionToggle";
 
 const KIND_LABEL: Record<SectionKind, string> = {
   objectives: "Objectives",

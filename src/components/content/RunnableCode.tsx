@@ -2,9 +2,9 @@
 
 import { useState, type KeyboardEvent } from "react";
 import { AlertTriangle, CheckCircle2, Database, Loader2, Pencil, Play, RotateCcw } from "lucide-react";
-import { ENGINE_LABEL, GRAPH_CONTENTS, GREMLIN_CONTENTS, SQL_TABLES } from "@/lib/runner/datasets";
-import type { RunLanguage, RunOutput, RunResult } from "@/lib/runner/types";
-import { cn } from "@/lib/cn";
+import { ENGINE_LABEL, GRAPH_CONTENTS, GREMLIN_CONTENTS, SQL_TABLES } from "@site/lib/runner/datasets";
+import type { RunLanguage, RunOutput, RunResult } from "@site/lib/runner/types";
+import { cn } from "@site/lib/cn";
 
 const MAX_ROWS = 50;
 
@@ -26,14 +26,14 @@ let sqlStarted = false;
 
 async function execute(lang: RunLanguage, code: string): Promise<RunResult> {
   if (lang === "sql") {
-    const { runSql } = await import("@/lib/runner/sql");
+    const { runSql } = await import("@site/lib/runner/sql");
     return runSql(code);
   }
   if (lang === "cypher") {
-    const [{ executeCypher }, { courseGraph }] = await Promise.all([import("@/lib/runner/cypher"), import("@/lib/runner/courseGraph")]);
+    const [{ executeCypher }, { courseGraph }] = await Promise.all([import("@site/lib/runner/cypher"), import("@site/lib/runner/courseGraph")]);
     return executeCypher(courseGraph(), code);
   }
-  const { runGremlin } = await import("@/lib/runner/gremlin");
+  const { runGremlin } = await import("@site/lib/runner/gremlin");
   return runGremlin(code);
 }
 

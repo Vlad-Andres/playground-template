@@ -1,9 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { TextField } from "@/components/ui/TextField";
-import { Stat } from "@/components/ui/Stat";
-import { cn } from "@/lib/cn";
+import { TextField } from "@site/components/ui/TextField";
+import { Stat } from "@site/components/ui/Stat";
+import { cn } from "@site/lib/cn";
 
 const PRESETS = [
   { label: "Author names", a: "John D. Smith", b: "J. D. Smith" },

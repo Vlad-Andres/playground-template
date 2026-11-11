@@ -1,7 +1,7 @@
 import { BookOpen, Compass, ListChecks, PencilRuler } from "lucide-react";
-import { countExercises, type LectureIndexEntry } from "@/content/registry";
-import { Badge } from "@/components/ui/Badge";
-import { course } from "@/content/course";
+import { countExercises, type LectureIndexEntry } from "@site/content/registry";
+import { Badge } from "@site/components/ui/Badge";
+import { course } from "@site/content/course";
 
 interface CourseOverviewProps {
   entries: LectureIndexEntry[];

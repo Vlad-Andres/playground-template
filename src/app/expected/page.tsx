@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import { ExpectedBoard } from "@/components/expected/ExpectedBoard";
-import { expectedTopics } from "@/content/expected";
+import { ExpectedBoard } from "@site/components/expected/ExpectedBoard";
+import { expectedTopics } from "@site/content/expected";
 import { notFound } from "next/navigation";
 
 export const metadata: Metadata = {

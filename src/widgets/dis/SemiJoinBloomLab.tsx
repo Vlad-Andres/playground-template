@@ -1,9 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { RangeField } from "@/components/ui/RangeField";
-import { Stat } from "@/components/ui/Stat";
-import { cn } from "@/lib/cn";
+import { RangeField } from "@site/components/ui/RangeField";
+import { Stat } from "@site/components/ui/Stat";
+import { cn } from "@site/lib/cn";
 
 type Strategy = "naive" | "semijoin" | "bloom";
 

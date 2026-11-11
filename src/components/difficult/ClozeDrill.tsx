@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { Check, Eye, RotateCcw } from "lucide-react";
-import type { ClozePart } from "@/components/difficult/kit";
-import { cn } from "@/lib/cn";
+import type { ClozePart } from "@site/components/difficult/kit";
+import { cn } from "@site/lib/cn";
 
 const normalise = (value: string) => value.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
 

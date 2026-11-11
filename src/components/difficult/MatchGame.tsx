@@ -2,11 +2,11 @@
 
 import { useEffect, useState, type MouseEvent } from "react";
 import { Play, Timer, Trophy } from "lucide-react";
-import type { Concept } from "@/content/types";
-import { shuffle } from "@/components/difficult/kit";
-import { Card } from "@/components/ui/Card";
-import { useDifficult } from "@/hooks/useDifficult";
-import { cn } from "@/lib/cn";
+import type { Concept } from "@site/content/types";
+import { shuffle } from "@site/components/difficult/kit";
+import { Card } from "@site/components/ui/Card";
+import { useDifficult } from "@site/hooks/useDifficult";
+import { cn } from "@site/lib/cn";
 
 const PAIRS = 6;
 const PENALTY_MS = 1000;

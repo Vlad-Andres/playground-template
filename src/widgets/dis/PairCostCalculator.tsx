@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { RangeField } from "@/components/ui/RangeField";
-import { Stat } from "@/components/ui/Stat";
+import { RangeField } from "@site/components/ui/RangeField";
+import { Stat } from "@site/components/ui/Stat";
 
 const RECORD_EXPONENTS = [3, 4, 5, 6, 7, 8, 9];
 

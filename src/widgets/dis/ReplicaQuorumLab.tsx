@@ -1,6 +1,6 @@
 "use client";
 
-import { QuorumLab } from "@/widgets/dis/QuorumLab";
+import { QuorumLab } from "@site/widgets/dis/QuorumLab";
 
 const REPLICAS = [
   { id: "N1", weight: 1, value: 1000, version: 1 },

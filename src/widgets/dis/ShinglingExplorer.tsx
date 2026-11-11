@@ -1,10 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { RangeField } from "@/components/ui/RangeField";
-import { Stat } from "@/components/ui/Stat";
-import { TextField } from "@/components/ui/TextField";
-import { cn } from "@/lib/cn";
+import { RangeField } from "@site/components/ui/RangeField";
+import { Stat } from "@site/components/ui/Stat";
+import { TextField } from "@site/components/ui/TextField";
+import { cn } from "@site/lib/cn";
 
 type TokenMode = "characters" | "words";
 

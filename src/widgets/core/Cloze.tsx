@@ -3,7 +3,7 @@
 import { Fragment, useMemo, useState } from "react";
 import { Check, RotateCcw } from "lucide-react";
 import type { ClozeProps } from "@core/widgets";
-import { cn } from "@/lib/cn";
+import { cn } from "@site/lib/cn";
 import { buttonClass, primaryButtonClass } from "./ui";
 
 type Part = { text: string } | { gap: number; answer: string };

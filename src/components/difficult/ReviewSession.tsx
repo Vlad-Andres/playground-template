@@ -2,14 +2,14 @@
 
 import { useState } from "react";
 import { PartyPopper, Sparkles } from "lucide-react";
-import { MasteryDots } from "@/components/difficult/DifficultItemCard";
-import { ReviewBlockView } from "@/components/difficult/ReviewBlockView";
-import { clozeSentences, extractTerms, formatDue, type ResolvedItem } from "@/components/difficult/kit";
-import { Card } from "@/components/ui/Card";
-import { ProgressBar } from "@/components/ui/ProgressBar";
-import { useDifficult } from "@/hooks/useDifficult";
-import { RATING_XP, schedule, type Rating } from "@/lib/difficult";
-import { cn } from "@/lib/cn";
+import { MasteryDots } from "@site/components/difficult/DifficultItemCard";
+import { ReviewBlockView } from "@site/components/difficult/ReviewBlockView";
+import { clozeSentences, extractTerms, formatDue, type ResolvedItem } from "@site/components/difficult/kit";
+import { Card } from "@site/components/ui/Card";
+import { ProgressBar } from "@site/components/ui/ProgressBar";
+import { useDifficult } from "@site/hooks/useDifficult";
+import { RATING_XP, schedule, type Rating } from "@site/lib/difficult";
+import { cn } from "@site/lib/cn";
 
 const RATINGS: { id: Rating; label: string; className: string }[] = [
   { id: "again", label: "Again", className: "border-danger/40 bg-danger-soft text-danger" },

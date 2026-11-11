@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { Check, ChevronDown, List } from "lucide-react";
-import type { LectureMeta } from "@/content/types";
-import { ProgressBar } from "@/components/ui/ProgressBar";
-import { useProgress } from "@/hooks/useProgress";
-import { lectureStats } from "@/lib/progress";
-import { cn } from "@/lib/cn";
+import type { LectureMeta } from "@site/content/types";
+import { ProgressBar } from "@site/components/ui/ProgressBar";
+import { useProgress } from "@site/hooks/useProgress";
+import { lectureStats } from "@site/lib/progress";
+import { cn } from "@site/lib/cn";
 
 export function LectureToc({ meta, progressLabel }: { meta: LectureMeta; progressLabel?: string }) {
   const { progress } = useProgress();

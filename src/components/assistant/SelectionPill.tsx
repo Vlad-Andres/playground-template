@@ -1,8 +1,8 @@
 "use client";
 
 import { Sparkles } from "lucide-react";
-import type { SelectionAnchor } from "@/hooks/useTextSelection";
-import { cn } from "@/lib/cn";
+import type { SelectionAnchor } from "@site/hooks/useTextSelection";
+import { cn } from "@site/lib/cn";
 
 const PILL_WIDTH = 132;
 const GAP = 10;

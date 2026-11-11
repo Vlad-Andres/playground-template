@@ -2,21 +2,21 @@
 
 import Link from "next/link";
 import { MousePointerClick } from "lucide-react";
-import type { Concept } from "@/content/types";
-import { ConceptCard } from "@/components/content/ConceptCard";
-import { DataTable } from "@/components/content/DataTable";
-import { FigureImage } from "@/components/content/FigureImage";
-import { Formula } from "@/components/content/Formula";
-import { HighlightList } from "@/components/content/HighlightList";
-import { InfoBox } from "@/components/content/InfoBox";
-import { Markdown } from "@/components/content/Markdown";
-import { MemoryCards } from "@/components/content/MemoryCards";
-import { PracticeSet } from "@/components/content/PracticeSet";
-import { Timeline } from "@/components/content/Timeline";
-import { WorkedExample } from "@/components/content/WorkedExample";
-import type { ReviewBlock } from "@/lib/reviewData";
-import { RunnableCode } from "@/components/content/RunnableCode";
-import { runLanguage } from "@/lib/runner/types";
+import type { Concept } from "@site/content/types";
+import { ConceptCard } from "@site/components/content/ConceptCard";
+import { DataTable } from "@site/components/content/DataTable";
+import { FigureImage } from "@site/components/content/FigureImage";
+import { Formula } from "@site/components/content/Formula";
+import { HighlightList } from "@site/components/content/HighlightList";
+import { InfoBox } from "@site/components/content/InfoBox";
+import { Markdown } from "@site/components/content/Markdown";
+import { MemoryCards } from "@site/components/content/MemoryCards";
+import { PracticeSet } from "@site/components/content/PracticeSet";
+import { Timeline } from "@site/components/content/Timeline";
+import { WorkedExample } from "@site/components/content/WorkedExample";
+import type { ReviewBlock } from "@site/lib/reviewData";
+import { RunnableCode } from "@site/components/content/RunnableCode";
+import { runLanguage } from "@site/lib/runner/types";
 
 interface ReviewBlockViewProps {
   block: ReviewBlock;

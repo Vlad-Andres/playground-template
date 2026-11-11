@@ -1,6 +1,6 @@
-import type { Concept, QuizQuestion, RecallCard } from "@/content/types";
-import type { DifficultItem } from "@/lib/difficult";
-import { blockText, type ReviewBlock, type ReviewData, type ReviewLecture } from "@/lib/reviewData";
+import type { Concept, QuizQuestion, RecallCard } from "@site/content/types";
+import type { DifficultItem } from "@site/lib/difficult";
+import { blockText, type ReviewBlock, type ReviewData, type ReviewLecture } from "@site/lib/reviewData";
 
 export interface ResolvedItem {
   item: DifficultItem;

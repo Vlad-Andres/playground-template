@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Network } from "lucide-react";
-import { cn } from "@/lib/cn";
+import { cn } from "@site/lib/cn";
 
 interface ConceptMapProps {
   center: string;

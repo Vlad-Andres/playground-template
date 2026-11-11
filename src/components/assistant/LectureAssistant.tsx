@@ -2,12 +2,12 @@
 
 import { useCallback, useState } from "react";
 import { Sparkles } from "lucide-react";
-import { ChatPanel } from "@/components/assistant/ChatPanel";
-import { SelectionPill } from "@/components/assistant/SelectionPill";
-import { useAssistantChat } from "@/hooks/useAssistantChat";
-import { useApiKeyStatus } from "@/hooks/useApiKeyStatus";
-import { useTextSelection } from "@/hooks/useTextSelection";
-import type { AssistantSelection } from "@/lib/assistant/prompt";
+import { ChatPanel } from "@site/components/assistant/ChatPanel";
+import { SelectionPill } from "@site/components/assistant/SelectionPill";
+import { useAssistantChat } from "@site/hooks/useAssistantChat";
+import { useApiKeyStatus } from "@site/hooks/useApiKeyStatus";
+import { useTextSelection } from "@site/hooks/useTextSelection";
+import type { AssistantSelection } from "@site/lib/assistant/prompt";
 
 interface LectureAssistantProps {
   slug: string;

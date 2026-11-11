@@ -1,14 +1,14 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { LectureAssistant } from "@/components/assistant/LectureAssistant";
-import { features } from "@/content/course";
-import { LectureHeader } from "@/components/lecture/LectureHeader";
-import { LectureNav } from "@/components/lecture/LectureNav";
-import { LectureSectionView } from "@/components/lecture/LectureSectionView";
-import { LectureToc } from "@/components/lecture/LectureToc";
-import { allLectures, getLecture } from "@/content/lectures";
-import { neighbourLectures } from "@/content/registry";
-import { lectureToContext } from "@/lib/assistant/lectureContext";
+import { LectureAssistant } from "@site/components/assistant/LectureAssistant";
+import { features } from "@site/content/course";
+import { LectureHeader } from "@site/components/lecture/LectureHeader";
+import { LectureNav } from "@site/components/lecture/LectureNav";
+import { LectureSectionView } from "@site/components/lecture/LectureSectionView";
+import { LectureToc } from "@site/components/lecture/LectureToc";
+import { allLectures, getLecture } from "@site/content/lectures";
+import { neighbourLectures } from "@site/content/registry";
+import { lectureToContext } from "@site/lib/assistant/lectureContext";
 
 interface LecturePageProps {
   params: Promise<{ slug: string }>;

@@ -2,9 +2,9 @@
 
 import type { ReactNode } from "react";
 import { Flag } from "lucide-react";
-import { useDifficult } from "@/hooks/useDifficult";
-import { blockAnchor, itemKey } from "@/lib/difficult";
-import { cn } from "@/lib/cn";
+import { useDifficult } from "@site/hooks/useDifficult";
+import { blockAnchor, itemKey } from "@site/lib/difficult";
+import { cn } from "@site/lib/cn";
 
 interface DifficultBlockProps {
   lectureSlug: string;

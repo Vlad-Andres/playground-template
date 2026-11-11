@@ -2,11 +2,11 @@
 
 import { useRef } from "react";
 import { Check, Eye, Lightbulb, X } from "lucide-react";
-import type { ExerciseTask } from "@/content/types";
-import { Markdown } from "@/components/content/Markdown";
-import { useExerciseState } from "@/hooks/useExerciseState";
-import { emptyTaskState, gradeTask, taskKey, type SelfMark } from "@/lib/exercises";
-import { cn } from "@/lib/cn";
+import type { ExerciseTask } from "@site/content/types";
+import { Markdown } from "@site/components/content/Markdown";
+import { useExerciseState } from "@site/hooks/useExerciseState";
+import { emptyTaskState, gradeTask, taskKey, type SelfMark } from "@site/lib/exercises";
+import { cn } from "@site/lib/cn";
 
 const ALGEBRA_SYMBOLS = [
   { symbol: "Π", label: "projection" },

@@ -1,12 +1,12 @@
 "use client";
 
 import { Award, Flame, RotateCcw, Trophy } from "lucide-react";
-import type { LectureMeta } from "@/content/types";
-import { Card } from "@/components/ui/Card";
-import { ProgressBar } from "@/components/ui/ProgressBar";
-import { useProgress } from "@/hooks/useProgress";
-import { courseStats } from "@/lib/progress";
-import { formatPercent } from "@/lib/format";
+import type { LectureMeta } from "@site/content/types";
+import { Card } from "@site/components/ui/Card";
+import { ProgressBar } from "@site/components/ui/ProgressBar";
+import { useProgress } from "@site/hooks/useProgress";
+import { courseStats } from "@site/lib/progress";
+import { formatPercent } from "@site/lib/format";
 
 interface ProgressSummaryProps {
   metas: LectureMeta[];

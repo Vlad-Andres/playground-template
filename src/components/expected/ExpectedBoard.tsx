@@ -2,13 +2,13 @@
 
 import Link from "next/link";
 import { ArrowUpRight, Check, ChevronDown, EyeOff, RotateCcw, Target } from "lucide-react";
-import { Markdown } from "@/components/content/Markdown";
-import { Badge } from "@/components/ui/Badge";
-import { ProgressBar } from "@/components/ui/ProgressBar";
-import { expectedItemCount, expectedKey, expectedTopics, type ExpectedTopic } from "@/content/expected";
-import { useExpected } from "@/hooks/useExpected";
-import { lecturePath } from "@/lib/format";
-import { cn } from "@/lib/cn";
+import { Markdown } from "@site/components/content/Markdown";
+import { Badge } from "@site/components/ui/Badge";
+import { ProgressBar } from "@site/components/ui/ProgressBar";
+import { expectedItemCount, expectedKey, expectedTopics, type ExpectedTopic } from "@site/content/expected";
+import { useExpected } from "@site/hooks/useExpected";
+import { lecturePath } from "@site/lib/format";
+import { cn } from "@site/lib/cn";
 
 function TopicSection({ topic }: { topic: ExpectedTopic }) {
   const { state, setKnown } = useExpected();

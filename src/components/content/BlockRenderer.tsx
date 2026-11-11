@@ -1,20 +1,20 @@
-import type { Block, Concept } from "@/content/types";
-import { CodeBlock } from "@/components/content/CodeBlock";
-import { ConceptCard } from "@/components/content/ConceptCard";
-import { DataTable } from "@/components/content/DataTable";
-import { ExerciseSheetView } from "@/components/content/ExerciseSheetView";
-import { FigureImage } from "@/components/content/FigureImage";
-import { Formula } from "@/components/content/Formula";
-import { HighlightList } from "@/components/content/HighlightList";
-import { InfoBox } from "@/components/content/InfoBox";
-import { InteractivePanel } from "@/components/content/InteractivePanel";
-import { Markdown } from "@/components/content/Markdown";
-import { MemoryCards } from "@/components/content/MemoryCards";
-import { PracticeSet } from "@/components/content/PracticeSet";
-import { Timeline } from "@/components/content/Timeline";
-import { WorkedExample } from "@/components/content/WorkedExample";
-import { WidgetHost } from "@/widgets/WidgetHost";
-import { sourceLabel } from "@/lib/course-info";
+import type { Block, Concept } from "@site/content/types";
+import { CodeBlock } from "@site/components/content/CodeBlock";
+import { ConceptCard } from "@site/components/content/ConceptCard";
+import { DataTable } from "@site/components/content/DataTable";
+import { ExerciseSheetView } from "@site/components/content/ExerciseSheetView";
+import { FigureImage } from "@site/components/content/FigureImage";
+import { Formula } from "@site/components/content/Formula";
+import { HighlightList } from "@site/components/content/HighlightList";
+import { InfoBox } from "@site/components/content/InfoBox";
+import { InteractivePanel } from "@site/components/content/InteractivePanel";
+import { Markdown } from "@site/components/content/Markdown";
+import { MemoryCards } from "@site/components/content/MemoryCards";
+import { PracticeSet } from "@site/components/content/PracticeSet";
+import { Timeline } from "@site/components/content/Timeline";
+import { WorkedExample } from "@site/components/content/WorkedExample";
+import { WidgetHost } from "@site/widgets/WidgetHost";
+import { sourceLabel } from "@site/lib/course-info";
 
 interface BlockRendererProps {
   block: Block;

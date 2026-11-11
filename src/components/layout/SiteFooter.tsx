@@ -1,4 +1,4 @@
-import { course } from "@/content/course";
+import { course } from "@site/content/course";
 
 export function SiteFooter() {
   return (

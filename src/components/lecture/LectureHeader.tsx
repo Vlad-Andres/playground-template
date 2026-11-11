@@ -1,7 +1,7 @@
 import { BookMarked, Clock, FileText, StickyNote } from "lucide-react";
-import type { LectureMeta, LectureSource } from "@/content/types";
-import { Badge } from "@/components/ui/Badge";
-import { formatMinutes } from "@/lib/format";
+import type { LectureMeta, LectureSource } from "@site/content/types";
+import { Badge } from "@site/components/ui/Badge";
+import { formatMinutes } from "@site/lib/format";
 
 const SOURCE_ICON: Record<LectureSource["kind"], typeof FileText> = {
   slides: FileText,

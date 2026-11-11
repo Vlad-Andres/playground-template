@@ -3,17 +3,17 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Check, Clock, Play, RotateCcw, Send, X } from "lucide-react";
-import type { QuizQuestion } from "@/content/types";
+import type { QuizQuestion } from "@site/content/types";
 import type { MockExamProps } from "@core/widgets";
-import { lectureIndex } from "@/content/registry";
-import { examTraining } from "@/content/exam";
-import { Markdown } from "@/components/content/Markdown";
-import { DataTable } from "@/components/content/DataTable";
-import { Badge } from "@/components/ui/Badge";
-import { ProgressBar } from "@/components/ui/ProgressBar";
-import { Stat } from "@/components/ui/Stat";
-import { lecturePath } from "@/lib/format";
-import { cn } from "@/lib/cn";
+import { lectureIndex } from "@site/content/registry";
+import { examTraining } from "@site/content/exam";
+import { Markdown } from "@site/components/content/Markdown";
+import { DataTable } from "@site/components/content/DataTable";
+import { Badge } from "@site/components/ui/Badge";
+import { ProgressBar } from "@site/components/ui/ProgressBar";
+import { Stat } from "@site/components/ui/Stat";
+import { lecturePath } from "@site/lib/format";
+import { cn } from "@site/lib/cn";
 
 interface PoolQuestion {
   key: string;

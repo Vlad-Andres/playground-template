@@ -2,14 +2,14 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Check, RotateCcw, Trophy, X } from "lucide-react";
-import type { QuizQuestion } from "@/content/types";
-import { Markdown } from "@/components/content/Markdown";
-import { Badge } from "@/components/ui/Badge";
-import { Card } from "@/components/ui/Card";
-import { ProgressBar } from "@/components/ui/ProgressBar";
-import { useProgress } from "@/hooks/useProgress";
-import { QUIZ_PASS_RATIO } from "@/lib/progress";
-import { cn } from "@/lib/cn";
+import type { QuizQuestion } from "@site/content/types";
+import { Markdown } from "@site/components/content/Markdown";
+import { Badge } from "@site/components/ui/Badge";
+import { Card } from "@site/components/ui/Card";
+import { ProgressBar } from "@site/components/ui/ProgressBar";
+import { useProgress } from "@site/hooks/useProgress";
+import { QUIZ_PASS_RATIO } from "@site/lib/progress";
+import { cn } from "@site/lib/cn";
 
 interface QuizCardProps {
   lectureSlug: string;

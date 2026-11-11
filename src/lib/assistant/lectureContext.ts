@@ -1,4 +1,4 @@
-import type { Block, Concept, ExerciseSheet, ExerciseTask, Lecture, QuizQuestion } from "@/content/types";
+import type { Block, Concept, ExerciseSheet, ExerciseTask, Lecture, QuizQuestion } from "@site/content/types";
 
 function table(headers: string[], rows: string[][]) {
   const line = (cells: string[]) => `| ${cells.map((cell) => cell.replace(/\|/g, "\\|")).join(" | ")} |`;

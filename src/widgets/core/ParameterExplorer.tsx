@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { parseExpr } from "@core/expr";
 import type { ParameterExplorerProps } from "@core/widgets";
-import { RangeField } from "@/components/ui/RangeField";
+import { RangeField } from "@site/components/ui/RangeField";
 
 export function formatNumber(value: number, decimals = 2): string {
   if (!Number.isFinite(value)) return "—";

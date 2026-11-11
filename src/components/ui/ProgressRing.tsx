@@ -1,4 +1,4 @@
-import { cn } from "@/lib/cn";
+import { cn } from "@site/lib/cn";
 
 interface ProgressRingProps {
   value: number;

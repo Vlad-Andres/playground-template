@@ -13,9 +13,9 @@ import {
   type ChartOptions,
 } from "chart.js";
 import { Line } from "react-chartjs-2";
-import { RangeField } from "@/components/ui/RangeField";
-import { Stat } from "@/components/ui/Stat";
-import { useTheme } from "@/hooks/useTheme";
+import { RangeField } from "@site/components/ui/RangeField";
+import { Stat } from "@site/components/ui/Stat";
+import { useTheme } from "@site/hooks/useTheme";
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Legend, Filler);
 

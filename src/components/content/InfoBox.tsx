@@ -1,7 +1,7 @@
 import { AlertTriangle, Info, Lightbulb, OctagonAlert } from "lucide-react";
-import type { InfoVariant } from "@/content/types";
-import { Markdown } from "@/components/content/Markdown";
-import { cn } from "@/lib/cn";
+import type { InfoVariant } from "@site/content/types";
+import { Markdown } from "@site/components/content/Markdown";
+import { cn } from "@site/lib/cn";
 
 const VARIANTS = {
   note: { icon: Info, shell: "border-info/25 bg-info-soft/50", accent: "text-info" },

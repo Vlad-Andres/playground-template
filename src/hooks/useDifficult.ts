@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useSyncExternalStore } from "react";
-import { createPersistentStore } from "@/lib/store";
+import { createPersistentStore } from "@site/lib/store";
 import {
   applyReview,
   emptyDifficultState,
@@ -10,8 +10,8 @@ import {
   reviveDifficult,
   type DifficultState,
   type Rating,
-} from "@/lib/difficult";
-import { storageKey } from "@/lib/storageKey";
+} from "@site/lib/difficult";
+import { storageKey } from "@site/lib/storageKey";
 
 const store = createPersistentStore<DifficultState>(
   storageKey("difficult:v1"),

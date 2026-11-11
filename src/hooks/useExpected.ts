@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useSyncExternalStore } from "react";
-import { createPersistentStore } from "@/lib/store";
-import { storageKey } from "@/lib/storageKey";
+import { createPersistentStore } from "@site/lib/store";
+import { storageKey } from "@site/lib/storageKey";
 
 /** Which items of the "Expected at the exam" page the student already knows. */
 interface ExpectedState {

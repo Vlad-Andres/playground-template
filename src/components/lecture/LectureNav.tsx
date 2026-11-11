@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ArrowLeft, ArrowRight } from "lucide-react";
-import type { LectureMeta } from "@/content/types";
-import { lecturePath } from "@/lib/format";
+import type { LectureMeta } from "@site/content/types";
+import { lecturePath } from "@site/lib/format";
 
 interface LectureNavProps {
   previous: LectureMeta | null;

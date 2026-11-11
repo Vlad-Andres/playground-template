@@ -2,10 +2,10 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Content } from "@google/genai";
-import { AssistantError, streamReply, type AssistantErrorKind, type AssistantModelId } from "@/lib/assistant/gemini";
-import { readApiKey } from "@/lib/assistant/credentials";
-import { readAssistantModel } from "@/lib/assistant/modelPreference";
-import { buildSystem, formatQuestion, type AssistantSelection } from "@/lib/assistant/prompt";
+import { AssistantError, streamReply, type AssistantErrorKind, type AssistantModelId } from "@site/lib/assistant/gemini";
+import { readApiKey } from "@site/lib/assistant/credentials";
+import { readAssistantModel } from "@site/lib/assistant/modelPreference";
+import { buildSystem, formatQuestion, type AssistantSelection } from "@site/lib/assistant/prompt";
 
 export type TurnStatus = "thinking" | "streaming" | "done" | "truncated" | "stopped" | "error";
 

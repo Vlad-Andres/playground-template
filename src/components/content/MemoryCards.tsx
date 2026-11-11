@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import { Brain, Eye, EyeOff } from "lucide-react";
-import type { RecallCard } from "@/content/types";
-import { Markdown } from "@/components/content/Markdown";
-import { cn } from "@/lib/cn";
+import type { RecallCard } from "@site/content/types";
+import { Markdown } from "@site/components/content/Markdown";
+import { cn } from "@site/lib/cn";
 
 export function MemoryCards({ cards }: { cards: RecallCard[] }) {
   const [revealedIndexes, setRevealedIndexes] = useState<number[]>([]);

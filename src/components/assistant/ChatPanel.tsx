@@ -2,15 +2,15 @@
 
 import { useEffect, useRef, useState } from "react";
 import { ArrowUp, Check, Copy, Quote, RotateCcw, Settings2, Sparkles, Square, X } from "lucide-react";
-import { Markdown } from "@/components/content/Markdown";
-import { ConnectForm } from "@/components/assistant/ConnectForm";
-import type { ChatTurn } from "@/hooks/useAssistantChat";
-import { useAssistantModel } from "@/hooks/useAssistantModel";
-import { ASSISTANT_MODELS, assistantModelLabel, type AssistantModelId } from "@/lib/assistant/gemini";
-import { clearApiKey, type KeyStatus } from "@/lib/assistant/credentials";
-import { storeAssistantModel } from "@/lib/assistant/modelPreference";
-import type { AssistantSelection } from "@/lib/assistant/prompt";
-import { cn } from "@/lib/cn";
+import { Markdown } from "@site/components/content/Markdown";
+import { ConnectForm } from "@site/components/assistant/ConnectForm";
+import type { ChatTurn } from "@site/hooks/useAssistantChat";
+import { useAssistantModel } from "@site/hooks/useAssistantModel";
+import { ASSISTANT_MODELS, assistantModelLabel, type AssistantModelId } from "@site/lib/assistant/gemini";
+import { clearApiKey, type KeyStatus } from "@site/lib/assistant/credentials";
+import { storeAssistantModel } from "@site/lib/assistant/modelPreference";
+import type { AssistantSelection } from "@site/lib/assistant/prompt";
+import { cn } from "@site/lib/cn";
 
 const SUGGESTIONS = ["Explain this simply", "Walk me through an example", "Why does this matter?"];
 

@@ -1,4 +1,4 @@
-import type { RunLanguage } from "@/lib/runner/types";
+import type { RunLanguage } from "@site/lib/runner/types";
 
 /** Short descriptions of the sample data, shown next to runnable snippets (no engine code here). */
 export const SQL_TABLES: { name: string; columns: string; about: string }[] = [

@@ -1,6 +1,6 @@
 import type { PGlite } from "@electric-sql/pglite";
-import { SQL_SETUP } from "@/lib/runner/sqlDataset";
-import type { RunOutput, RunResult } from "@/lib/runner/types";
+import { SQL_SETUP } from "@site/lib/runner/sqlDataset";
+import type { RunOutput, RunResult } from "@site/lib/runner/types";
 
 let database: Promise<PGlite> | null = null;
 

@@ -13,7 +13,7 @@ import {
 } from "chart.js";
 import { Bar, Line } from "react-chartjs-2";
 import type { ChartProps } from "@core/widgets";
-import { useTheme } from "@/hooks/useTheme";
+import { useTheme } from "@site/hooks/useTheme";
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, PointElement, LineElement, Tooltip, Legend);
 

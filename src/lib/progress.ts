@@ -1,4 +1,4 @@
-import type { LectureMeta } from "@/content/types";
+import type { LectureMeta } from "@site/content/types";
 
 export const QUIZ_PASS_RATIO = 0.7;
 

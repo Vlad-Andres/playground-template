@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { DataTable } from "@/components/content/DataTable";
-import { Stat } from "@/components/ui/Stat";
-import { cn } from "@/lib/cn";
+import { DataTable } from "@site/components/content/DataTable";
+import { Stat } from "@site/components/ui/Stat";
+import { cn } from "@site/lib/cn";
 
 type Triple = [subject: string, predicate: string, object: string];
 

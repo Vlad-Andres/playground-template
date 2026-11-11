@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import { Check, X } from "lucide-react";
-import type { QuizQuestion } from "@/content/types";
-import { Markdown } from "@/components/content/Markdown";
-import { cn } from "@/lib/cn";
+import type { QuizQuestion } from "@site/content/types";
+import { Markdown } from "@site/components/content/Markdown";
+import { cn } from "@site/lib/cn";
 
 /** Lecture quiz questions linked to the flagged part, answered without touching lecture progress. */
 export function MiniQuiz({ questions }: { questions: QuizQuestion[] }) {

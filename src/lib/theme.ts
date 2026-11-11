@@ -1,4 +1,4 @@
-import { storageKey } from "@/lib/storageKey";
+import { storageKey } from "@site/lib/storageKey";
 
 export const THEME_STORAGE_KEY = storageKey("theme");
 

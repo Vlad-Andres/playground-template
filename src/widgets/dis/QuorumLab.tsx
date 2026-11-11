@@ -2,9 +2,9 @@
 
 import { useMemo, useState, type ReactNode } from "react";
 import { Check, RotateCcw, X } from "lucide-react";
-import { RangeField } from "@/components/ui/RangeField";
-import { Stat } from "@/components/ui/Stat";
-import { cn } from "@/lib/cn";
+import { RangeField } from "@site/components/ui/RangeField";
+import { Stat } from "@site/components/ui/Stat";
+import { cn } from "@site/lib/cn";
 
 export interface Site {
   id: string;

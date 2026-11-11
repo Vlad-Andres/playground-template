@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { DifficultHub } from "@/components/difficult/DifficultHub";
-import { features } from "@/content/course";
+import { DifficultHub } from "@site/components/difficult/DifficultHub";
+import { features } from "@site/content/course";
 
 export const metadata: Metadata = {
   title: "Difficult parts",

@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import { RotateCcw, StepForward } from "lucide-react";
-import { RangeField } from "@/components/ui/RangeField";
-import { Stat } from "@/components/ui/Stat";
-import { cn } from "@/lib/cn";
+import { RangeField } from "@site/components/ui/RangeField";
+import { Stat } from "@site/components/ui/Stat";
+import { cn } from "@site/lib/cn";
 
 interface Point {
   id: string;

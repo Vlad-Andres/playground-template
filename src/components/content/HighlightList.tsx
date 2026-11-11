@@ -1,5 +1,5 @@
 import { Sparkles, Target } from "lucide-react";
-import { cn } from "@/lib/cn";
+import { cn } from "@site/lib/cn";
 
 interface HighlightListProps {
   variant: "objectives" | "takeaways";

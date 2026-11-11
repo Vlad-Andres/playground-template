@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { ArrowDown, ArrowUp, ChevronLeft, ChevronRight, RotateCcw, ScrollText, Zap } from "lucide-react";
-import { cn } from "@/lib/cn";
+import { cn } from "@site/lib/cn";
 
 type CoordinatorState = "Initial" | "Collecting" | "Committing" | "Aborted" | "Done" | "Crashed";
 type AgentState = "Waiting" | "Prepared" | "Committed" | "Aborted" | "Crashed";

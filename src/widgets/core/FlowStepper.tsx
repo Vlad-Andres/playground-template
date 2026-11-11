@@ -3,8 +3,8 @@
 import { useId, useMemo, useState } from "react";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import type { FlowStepperProps } from "@core/widgets";
-import { Markdown } from "@/components/content/Markdown";
-import { cn } from "@/lib/cn";
+import { Markdown } from "@site/components/content/Markdown";
+import { cn } from "@site/lib/cn";
 import { layeredLayout } from "./layout";
 import { buttonClass, primaryButtonClass } from "./ui";
 

@@ -1,4 +1,4 @@
-import type { ExerciseCheck, ExerciseSheet } from "@/content/types";
+import type { ExerciseCheck, ExerciseSheet } from "@site/content/types";
 
 export type SelfMark = "correct" | "partial" | "wrong";
 

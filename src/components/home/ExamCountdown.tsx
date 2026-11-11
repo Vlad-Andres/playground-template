@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { CalendarClock } from "lucide-react";
-import { daysUntil } from "@/lib/course-info";
+import { daysUntil } from "@site/lib/course-info";
 
 /** "N days to the exam" — computed in the browser so a static build never goes stale. */
 export function ExamCountdown({ examDate }: { examDate?: string }) {

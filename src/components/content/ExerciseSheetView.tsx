@@ -1,14 +1,14 @@
 "use client";
 
 import { RotateCcw } from "lucide-react";
-import type { ExerciseSheet } from "@/content/types";
-import { ExerciseAnswer } from "@/components/content/ExerciseAnswer";
-import { Markdown } from "@/components/content/Markdown";
-import { Badge } from "@/components/ui/Badge";
-import { Card } from "@/components/ui/Card";
-import { ProgressBar } from "@/components/ui/ProgressBar";
-import { useExerciseState } from "@/hooks/useExerciseState";
-import { sheetProgress } from "@/lib/exercises";
+import type { ExerciseSheet } from "@site/content/types";
+import { ExerciseAnswer } from "@site/components/content/ExerciseAnswer";
+import { Markdown } from "@site/components/content/Markdown";
+import { Badge } from "@site/components/ui/Badge";
+import { Card } from "@site/components/ui/Card";
+import { ProgressBar } from "@site/components/ui/ProgressBar";
+import { useExerciseState } from "@site/hooks/useExerciseState";
+import { sheetProgress } from "@site/lib/exercises";
 
 export function ExerciseSheetView({ sheet }: { sheet: ExerciseSheet }) {
   const { state, resetSheet } = useExerciseState();

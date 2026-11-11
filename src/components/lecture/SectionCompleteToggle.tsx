@@ -1,8 +1,8 @@
 "use client";
 
 import { Check, Circle } from "lucide-react";
-import { useProgress } from "@/hooks/useProgress";
-import { cn } from "@/lib/cn";
+import { useProgress } from "@site/hooks/useProgress";
+import { cn } from "@site/lib/cn";
 
 interface SectionCompleteToggleProps {
   lectureSlug: string;

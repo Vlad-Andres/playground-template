@@ -1,15 +1,15 @@
 "use client";
 
 import { useCallback, useSyncExternalStore } from "react";
-import { createPersistentStore } from "@/lib/store";
+import { createPersistentStore } from "@site/lib/store";
 import {
   QUIZ_PASS_RATIO,
   emptyLectureProgress,
   reviveProgress,
   type LectureProgress,
   type ProgressState,
-} from "@/lib/progress";
-import { storageKey } from "@/lib/storageKey";
+} from "@site/lib/progress";
+import { storageKey } from "@site/lib/storageKey";
 
 const store = createPersistentStore<ProgressState>(
   storageKey("progress:v1"),

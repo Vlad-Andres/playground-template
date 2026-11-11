@@ -3,8 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { CornerDownLeft, Search, X } from "lucide-react";
-import { searchRecords, type SearchRecord, type SearchRecordType } from "@/lib/search";
-import { Badge, type BadgeTone } from "@/components/ui/Badge";
+import { searchRecords, type SearchRecord, type SearchRecordType } from "@site/lib/search";
+import { Badge, type BadgeTone } from "@site/components/ui/Badge";
 
 const TYPE_TONE: Record<SearchRecordType, BadgeTone> = {
   lecture: "brand",

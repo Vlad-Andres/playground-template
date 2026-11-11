@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import type { AssistantSelection } from "@/lib/assistant/prompt";
+import type { AssistantSelection } from "@site/lib/assistant/prompt";
 
 const MAX_SELECTION_LENGTH = 6000;
 

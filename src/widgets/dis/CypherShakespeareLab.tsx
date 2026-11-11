@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { DataTable } from "@/components/content/DataTable";
-import { cn } from "@/lib/cn";
+import { DataTable } from "@site/components/content/DataTable";
+import { cn } from "@site/lib/cn";
 
 interface GraphNode {
   id: string;

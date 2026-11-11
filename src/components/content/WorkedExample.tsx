@@ -2,10 +2,10 @@
 
 import { useState } from "react";
 import { ChevronDown, ListChecks } from "lucide-react";
-import type { WorkedStep } from "@/content/types";
-import { Markdown } from "@/components/content/Markdown";
-import { Card } from "@/components/ui/Card";
-import { cn } from "@/lib/cn";
+import type { WorkedStep } from "@site/content/types";
+import { Markdown } from "@site/components/content/Markdown";
+import { Card } from "@site/components/ui/Card";
+import { cn } from "@site/lib/cn";
 
 interface WorkedExampleProps {
   title: string;

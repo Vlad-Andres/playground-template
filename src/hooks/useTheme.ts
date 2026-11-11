@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useSyncExternalStore } from "react";
-import { THEME_STORAGE_KEY, type ResolvedTheme } from "@/lib/theme";
+import { THEME_STORAGE_KEY, type ResolvedTheme } from "@site/lib/theme";
 
 type ThemeSnapshot = ResolvedTheme | "pending";
 

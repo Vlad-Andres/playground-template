@@ -1,7 +1,7 @@
 import { PencilRuler } from "lucide-react";
-import type { ExerciseTask } from "@/content/types";
-import { ExerciseAnswer } from "@/components/content/ExerciseAnswer";
-import { Card } from "@/components/ui/Card";
+import type { ExerciseTask } from "@site/content/types";
+import { ExerciseAnswer } from "@site/components/content/ExerciseAnswer";
+import { Card } from "@site/components/ui/Card";
 
 export function PracticeSet({ id, tasks }: { id: string; tasks: ExerciseTask[] }) {
   return (

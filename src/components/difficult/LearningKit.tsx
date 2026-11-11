@@ -2,10 +2,10 @@
 
 import { useMemo, useState } from "react";
 import { Brain, Layers, ListChecks, Network, PenLine, TextCursorInput } from "lucide-react";
-import { ClozeDrill } from "@/components/difficult/ClozeDrill";
-import { ConceptMap } from "@/components/difficult/ConceptMap";
-import { FlipCards } from "@/components/difficult/FlipCards";
-import { MiniQuiz } from "@/components/difficult/MiniQuiz";
+import { ClozeDrill } from "@site/components/difficult/ClozeDrill";
+import { ConceptMap } from "@site/components/difficult/ConceptMap";
+import { FlipCards } from "@site/components/difficult/FlipCards";
+import { MiniQuiz } from "@site/components/difficult/MiniQuiz";
 import {
   clozeSentences,
   contextFor,
@@ -13,9 +13,9 @@ import {
   flashcardsFor,
   relatedQuestions,
   type ResolvedItem,
-} from "@/components/difficult/kit";
-import { useDifficult } from "@/hooks/useDifficult";
-import { cn } from "@/lib/cn";
+} from "@site/components/difficult/kit";
+import { useDifficult } from "@site/hooks/useDifficult";
+import { cn } from "@site/lib/cn";
 
 const TOOLS = [
   { id: "map", label: "Concept map", icon: Network },

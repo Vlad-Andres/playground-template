@@ -25,4 +25,4 @@ export function formatQuestion(question: string, selection?: AssistantSelection)
   const note = selection.truncated ? "\n[The selection was shortened.]" : "";
   return `<selection${section}>\n${selection.text}${note}\n</selection>\n\n${question}`;
 }
-import { course } from "@/content/course";
+import { course } from "@site/content/course";

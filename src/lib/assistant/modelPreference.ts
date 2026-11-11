@@ -1,5 +1,5 @@
-import { ASSISTANT_MODELS, DEFAULT_ASSISTANT_MODEL, type AssistantModelId } from "@/lib/assistant/gemini";
-import { storageKey } from "@/lib/storageKey";
+import { ASSISTANT_MODELS, DEFAULT_ASSISTANT_MODEL, type AssistantModelId } from "@site/lib/assistant/gemini";
+import { storageKey } from "@site/lib/storageKey";
 
 const STORAGE_KEY = storageKey("gemini-model");
 

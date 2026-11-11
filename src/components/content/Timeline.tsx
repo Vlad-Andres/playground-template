@@ -1,5 +1,5 @@
-import type { TimelineItem } from "@/content/types";
-import { Markdown } from "@/components/content/Markdown";
+import type { TimelineItem } from "@site/content/types";
+import { Markdown } from "@site/components/content/Markdown";
 
 interface TimelineProps {
   items: TimelineItem[];

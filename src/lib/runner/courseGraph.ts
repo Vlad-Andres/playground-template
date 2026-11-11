@@ -1,4 +1,4 @@
-import { Graph, executeCypher } from "@/lib/runner/cypher";
+import { Graph, executeCypher } from "@site/lib/runner/cypher";
 
 export const GRAPH_SETUP = `
 CREATE (tom:Person {name:"Tom Hanks", born:1956}), (kevin:Person {name:"Kevin Bacon", born:1958}),

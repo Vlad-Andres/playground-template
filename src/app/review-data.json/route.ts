@@ -1,8 +1,8 @@
-import { examTraining } from "@/content/exam";
-import { allLectures } from "@/content/lectures";
-import type { Lecture } from "@/content/types";
-import { EXAM_PATH, lecturePath } from "@/lib/format";
-import { toReviewBlock, type ReviewData, type ReviewLecture } from "@/lib/reviewData";
+import { examTraining } from "@site/content/exam";
+import { allLectures } from "@site/content/lectures";
+import type { Lecture } from "@site/content/types";
+import { EXAM_PATH, lecturePath } from "@site/lib/format";
+import { toReviewBlock, type ReviewData, type ReviewLecture } from "@site/lib/reviewData";
 
 export const dynamic = "force-static";
 

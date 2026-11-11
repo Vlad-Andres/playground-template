@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { PartyPopper, RotateCcw } from "lucide-react";
 import type { MatchPairsProps } from "@core/widgets";
-import { cn } from "@/lib/cn";
+import { cn } from "@site/lib/cn";
 import { seededShuffle } from "./shuffle";
 import { buttonClass, promptClass } from "./ui";
 

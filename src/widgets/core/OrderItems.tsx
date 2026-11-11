@@ -3,8 +3,8 @@
 import { useMemo, useState } from "react";
 import { ArrowDown, ArrowUp, Check, RotateCcw, X } from "lucide-react";
 import type { OrderItemsProps } from "@core/widgets";
-import { Markdown } from "@/components/content/Markdown";
-import { cn } from "@/lib/cn";
+import { Markdown } from "@site/components/content/Markdown";
+import { cn } from "@site/lib/cn";
 import { seededShuffle } from "./shuffle";
 import { buttonClass, correctClass, iconButtonClass, primaryButtonClass, promptClass, wrongClass } from "./ui";
 

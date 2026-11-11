@@ -2,13 +2,13 @@
 
 import Link from "next/link";
 import { ArrowUpRight, ChevronDown, Trash2 } from "lucide-react";
-import { LearningKit } from "@/components/difficult/LearningKit";
-import { ReviewBlockView } from "@/components/difficult/ReviewBlockView";
-import { formatDue, type ResolvedItem } from "@/components/difficult/kit";
-import { Badge } from "@/components/ui/Badge";
-import { Card } from "@/components/ui/Card";
-import { MAX_BOX } from "@/lib/difficult";
-import { cn } from "@/lib/cn";
+import { LearningKit } from "@site/components/difficult/LearningKit";
+import { ReviewBlockView } from "@site/components/difficult/ReviewBlockView";
+import { formatDue, type ResolvedItem } from "@site/components/difficult/kit";
+import { Badge } from "@site/components/ui/Badge";
+import { Card } from "@site/components/ui/Card";
+import { MAX_BOX } from "@site/lib/difficult";
+import { cn } from "@site/lib/cn";
 
 export function MasteryDots({ box }: { box: number }) {
   return (

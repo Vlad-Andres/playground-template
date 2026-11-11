@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { ExternalLink, KeyRound, LoaderCircle, ShieldCheck } from "lucide-react";
-import { verifyApiKey } from "@/lib/assistant/gemini";
-import { storeApiKey } from "@/lib/assistant/credentials";
+import { verifyApiKey } from "@site/lib/assistant/gemini";
+import { storeApiKey } from "@site/lib/assistant/credentials";
 
 export function ConnectForm() {
   const [apiKey, setApiKey] = useState("");

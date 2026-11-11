@@ -1,7 +1,7 @@
-import type { Concept } from "@/content/types";
-import { Badge } from "@/components/ui/Badge";
-import { Card } from "@/components/ui/Card";
-import { Markdown } from "@/components/content/Markdown";
+import type { Concept } from "@site/content/types";
+import { Badge } from "@site/components/ui/Badge";
+import { Card } from "@site/components/ui/Card";
+import { Markdown } from "@site/components/content/Markdown";
 
 interface ConceptCardProps {
   concept: Concept;

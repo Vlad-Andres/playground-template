@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import { ChevronLeft, ChevronRight, RotateCw } from "lucide-react";
-import type { Flashcard } from "@/components/difficult/kit";
-import { Markdown } from "@/components/content/Markdown";
-import { cn } from "@/lib/cn";
+import type { Flashcard } from "@site/components/difficult/kit";
+import { Markdown } from "@site/components/content/Markdown";
+import { cn } from "@site/lib/cn";
 
 /** A deck of flip cards: answer in your head, flip, then mark whether you knew it. */
 export function FlipCards({ cards }: { cards: Flashcard[] }) {

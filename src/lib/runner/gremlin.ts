@@ -2,7 +2,7 @@
  * A tiny Gremlin (TinkerPop 2 / Groovy console) interpreter for the traversals of the course,
  * over the wine graph of Seven Databases in Seven Weeks. Not real Groovy: only pipelines.
  */
-import type { RunResult } from "@/lib/runner/types";
+import type { RunResult } from "@site/lib/runner/types";
 
 type Primitive = string | number | boolean | null;
 type Elem = { t: "v"; id: number } | { t: "e"; id: number } | { t: "map"; entries: [string, Primitive][] } | Primitive;

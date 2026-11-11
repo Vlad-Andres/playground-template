@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Network } from "lucide-react";
 import type { ConceptMapProps } from "@core/widgets";
-import { cn } from "@/lib/cn";
+import { cn } from "@site/lib/cn";
 
 const WIDTH = 640;
 const HEIGHT = 360;

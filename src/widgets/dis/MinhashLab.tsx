@@ -2,8 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Pause, Play, RotateCcw, StepForward } from "lucide-react";
-import { Stat } from "@/components/ui/Stat";
-import { cn } from "@/lib/cn";
+import { Stat } from "@site/components/ui/Stat";
+import { cn } from "@site/lib/cn";
 
 const ROWS = 5;
 const COLUMNS = ["C₁", "C₂"];
