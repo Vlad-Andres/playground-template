@@ -5,3 +5,4 @@ export * from "./prompts";
 export * from "./plan";
 export * from "./lint";
 export * from "./lecture";
+export * from "./finish";
