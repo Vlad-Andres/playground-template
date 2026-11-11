@@ -15,7 +15,8 @@ content; the renderer and widget registry are existing implementation.
    `content/course.json` and lecture outlines before writing long blocks. Completion: every source
    topic belongs to one lecture and every lecture has objectives.
 4. **Write content.** Follow [`docs/agent/04-write-lecture.md`](docs/agent/04-write-lecture.md)
-   and the block references in [`docs/agent/blocks/`](docs/agent/blocks/). Completion: all claims
+   and the generated references: one page per block kind in [`docs/agent/blocks/`](docs/agent/blocks/index.md)
+   and one page per widget in [`docs/agent/widgets/`](docs/agent/widgets/index.md). Completion: all claims
    are source-grounded, every block has the right kind, and no course code was added.
 5. **Validate and repair.** Follow [`docs/agent/05-validate.md`](docs/agent/05-validate.md).
    Completion: validation has zero errors and the production build succeeds.
@@ -27,11 +28,20 @@ content; the renderer and widget registry are existing implementation.
 
 - Course data lives in `content/`; source working files live in `materials/`.
 - Use only the JSON shapes in `schema/*.schema.json`.
-- Use only widgets listed in `src/widgets/manifest.ts`; omit a widget when no registered widget
-  matches the teaching need.
+- Use only widgets listed in [`docs/agent/widgets/index.md`](docs/agent/widgets/index.md) (the
+  catalogue in `core/widgets.ts`), with props that match the widget's page; omit a widget when none
+  matches the teaching need. The `dis` pack is for the DIS example only.
+- Every block should carry `source`: the material file and page(s) it came from.
 - `exam.json` and `expected.json` are optional. Omit them when the source has no exam evidence.
 - Content may contain Markdown, but not executable code or raw HTML.
 - Preserve uncertainty as an explicit note; never fill a missing fact from general knowledge.
+
+## Reference and showcase
+
+- `npm run docs:reference` regenerates the block and widget pages from `core/` (a test fails when
+  they are stale).
+- `npm run dev:showcase` opens `examples/showcase/`: one lecture that uses every block kind (except
+  `figure`) and every generic widget. Copy from it.
 
 ## Completion
 

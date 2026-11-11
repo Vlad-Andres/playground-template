@@ -1,0 +1,822 @@
+{
+  "meta": {
+    "slug": "everything",
+    "number": 1,
+    "title": "Everything in one lecture",
+    "subtitle": "Every block kind and every generic widget",
+    "summary": "A tour of kinetic and potential energy that uses every block and widget the template offers.",
+    "topics": [
+      "energy",
+      "motion"
+    ],
+    "difficulty": "intro",
+    "estimatedMinutes": 25,
+    "sources": [
+      {
+        "label": "Energy notes",
+        "kind": "notes",
+        "detail": "energy-notes.pdf"
+      }
+    ],
+    "objectives": [
+      "Tell kinetic and potential energy apart.",
+      "Compute kinetic energy."
+    ],
+    "takeaways": [
+      "Speed counts twice.",
+      "Energy is conserved."
+    ]
+  },
+  "concepts": [
+    {
+      "id": "kinetic",
+      "term": "Kinetic energy",
+      "short": "Energy an object has because it moves.",
+      "detail": "Grows with the square of the speed."
+    },
+    {
+      "id": "potential",
+      "term": "Potential energy",
+      "short": "Energy stored by position, for example height.",
+      "tags": [
+        "gravity"
+      ]
+    },
+    {
+      "id": "conservation",
+      "term": "Conservation of energy",
+      "short": "Energy changes form but the total stays the same in a closed system."
+    }
+  ],
+  "quiz": [
+    {
+      "id": "q1",
+      "prompt": "If the speed doubles, kinetic energy…",
+      "options": [
+        {
+          "id": "a",
+          "text": "doubles"
+        },
+        {
+          "id": "b",
+          "text": "quadruples"
+        },
+        {
+          "id": "c",
+          "text": "stays the same"
+        }
+      ],
+      "answerId": "b",
+      "explanation": "E = ½mv², so 2² = 4."
+    },
+    {
+      "id": "q2",
+      "prompt": "Which energy does a book on a high shelf have most of?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Kinetic"
+        },
+        {
+          "id": "b",
+          "text": "Potential"
+        }
+      ],
+      "answerId": "b",
+      "explanation": "It is at rest but raised: potential energy."
+    },
+    {
+      "id": "q3",
+      "prompt": "In a closed system, total energy…",
+      "options": [
+        {
+          "id": "a",
+          "text": "increases"
+        },
+        {
+          "id": "b",
+          "text": "decreases"
+        },
+        {
+          "id": "c",
+          "text": "stays constant"
+        }
+      ],
+      "answerId": "c",
+      "explanation": "That is conservation of energy."
+    },
+    {
+      "id": "q4",
+      "prompt": "What is the SI unit of energy?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Watt"
+        },
+        {
+          "id": "b",
+          "text": "Joule"
+        },
+        {
+          "id": "c",
+          "text": "Newton"
+        }
+      ],
+      "answerId": "b",
+      "explanation": "One joule is one newton-metre."
+    }
+  ],
+  "sections": [
+    {
+      "id": "goals",
+      "title": "What you will learn",
+      "kind": "objectives",
+      "blocks": [
+        {
+          "kind": "list",
+          "variant": "objectives",
+          "items": [
+            "Tell kinetic and potential energy apart.",
+            "Compute kinetic energy.",
+            "Explain conservation of energy."
+          ],
+          "source": [
+            {
+              "file": "energy-notes.pdf",
+              "page": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "intuition",
+      "title": "The big picture",
+      "kind": "intuition",
+      "blocks": [
+        {
+          "kind": "prose",
+          "md": "A rolling ball and a stretched spring both **store energy**. Energy never disappears: it moves between forms. This page shows every block and widget the playground offers.",
+          "source": [
+            {
+              "file": "energy-notes.pdf",
+              "page": 2
+            }
+          ]
+        },
+        {
+          "kind": "info",
+          "variant": "insight",
+          "title": "Speed matters most",
+          "md": "Doubling the speed of a car gives it **four times** the kinetic energy — that is why braking distance grows so fast.",
+          "source": [
+            {
+              "file": "energy-notes.pdf",
+              "page": 2
+            }
+          ]
+        },
+        {
+          "kind": "widget",
+          "type": "flow-stepper",
+          "title": "Where the energy goes",
+          "props": {
+            "nodes": [
+              {
+                "id": "lift",
+                "label": "Lift the ball",
+                "detail": "Work you do becomes **potential energy**."
+              },
+              {
+                "id": "fall",
+                "label": "It falls",
+                "detail": "Potential energy turns into kinetic energy."
+              },
+              {
+                "id": "hit",
+                "label": "It hits the floor",
+                "detail": "Kinetic energy becomes sound and heat."
+              }
+            ],
+            "edges": [
+              {
+                "from": "lift",
+                "to": "fall"
+              },
+              {
+                "from": "fall",
+                "to": "hit",
+                "label": "impact"
+              }
+            ]
+          },
+          "source": [
+            {
+              "file": "energy-notes.pdf",
+              "page": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "concepts",
+      "title": "Key ideas",
+      "kind": "concepts",
+      "blocks": [
+        {
+          "kind": "concepts",
+          "ids": [
+            "kinetic",
+            "potential",
+            "conservation"
+          ],
+          "source": [
+            {
+              "file": "energy-notes.pdf",
+              "page": 4
+            }
+          ]
+        },
+        {
+          "kind": "formula",
+          "tex": "E_k = \\tfrac{1}{2} m v^2",
+          "caption": "Kinetic energy: m is the mass in kg, v the speed in m/s.",
+          "source": [
+            {
+              "file": "energy-notes.pdf",
+              "page": 4
+            }
+          ]
+        },
+        {
+          "kind": "table",
+          "headers": [
+            "Form",
+            "Depends on",
+            "Example"
+          ],
+          "rows": [
+            [
+              "Kinetic",
+              "mass, speed",
+              "a moving bike"
+            ],
+            [
+              "Potential",
+              "mass, height",
+              "water behind a dam"
+            ],
+            [
+              "Thermal",
+              "temperature",
+              "a hot cup of tea"
+            ]
+          ],
+          "caption": "Common forms of energy.",
+          "source": [
+            {
+              "file": "energy-notes.pdf",
+              "page": 5
+            }
+          ]
+        },
+        {
+          "kind": "widget",
+          "type": "concept-map",
+          "title": "How the ideas connect",
+          "props": {
+            "nodes": [
+              {
+                "id": "ke",
+                "label": "Kinetic energy"
+              },
+              {
+                "id": "pe",
+                "label": "Potential energy"
+              },
+              {
+                "id": "work",
+                "label": "Work"
+              },
+              {
+                "id": "heat",
+                "label": "Heat"
+              }
+            ],
+            "links": [
+              {
+                "from": "work",
+                "to": "pe",
+                "label": "stores"
+              },
+              {
+                "from": "pe",
+                "to": "ke",
+                "label": "turns into"
+              },
+              {
+                "from": "ke",
+                "to": "heat",
+                "label": "lost as"
+              }
+            ]
+          },
+          "source": [
+            {
+              "file": "energy-notes.pdf",
+              "page": 5
+            }
+          ]
+        },
+        {
+          "kind": "widget",
+          "type": "match-pairs",
+          "title": "Match the form to the example",
+          "props": {
+            "prompt": "Which form of energy is mainly involved?",
+            "pairs": [
+              {
+                "left": "A moving bike",
+                "right": "Kinetic"
+              },
+              {
+                "left": "Water behind a dam",
+                "right": "Potential"
+              },
+              {
+                "left": "A hot cup of tea",
+                "right": "Thermal"
+              }
+            ]
+          },
+          "source": [
+            {
+              "file": "energy-notes.pdf",
+              "page": 5
+            }
+          ]
+        },
+        {
+          "kind": "widget",
+          "type": "categorize",
+          "title": "Sort the examples",
+          "props": {
+            "prompt": "Mostly kinetic or mostly potential?",
+            "categories": [
+              "Kinetic",
+              "Potential"
+            ],
+            "items": [
+              {
+                "text": "A flying arrow",
+                "category": "Kinetic"
+              },
+              {
+                "text": "A drawn bow",
+                "category": "Potential"
+              },
+              {
+                "text": "A rolling boulder",
+                "category": "Kinetic"
+              },
+              {
+                "text": "A boulder on a cliff",
+                "category": "Potential"
+              }
+            ]
+          },
+          "source": [
+            {
+              "file": "energy-notes.pdf",
+              "page": 6
+            }
+          ]
+        },
+        {
+          "kind": "widget",
+          "type": "cloze",
+          "title": "Fill in the definition",
+          "props": {
+            "text": "Energy cannot be {{created}} or destroyed; it only changes {{form}}.",
+            "distractors": [
+              "moved",
+              "speed"
+            ]
+          },
+          "source": [
+            {
+              "file": "energy-notes.pdf",
+              "page": 6
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "play",
+      "title": "Play with the numbers",
+      "kind": "playground",
+      "blocks": [
+        {
+          "kind": "widget",
+          "type": "parameter-explorer",
+          "title": "Kinetic energy calculator",
+          "props": {
+            "inputs": [
+              {
+                "id": "m",
+                "label": "Mass",
+                "min": 1,
+                "max": 2000,
+                "step": 1,
+                "value": 1000,
+                "unit": "kg"
+              },
+              {
+                "id": "v",
+                "label": "Speed",
+                "min": 0,
+                "max": 40,
+                "step": 0.5,
+                "value": 13.5,
+                "unit": "m/s"
+              }
+            ],
+            "outputs": [
+              {
+                "label": "Kinetic energy",
+                "expr": "0.5 * m * v^2 / 1000",
+                "unit": "kJ",
+                "decimals": 1
+              },
+              {
+                "label": "Speed in km/h",
+                "expr": "v * 3.6",
+                "unit": "km/h",
+                "decimals": 0
+              }
+            ]
+          },
+          "source": [
+            {
+              "file": "energy-notes.pdf",
+              "page": 7
+            }
+          ]
+        },
+        {
+          "kind": "widget",
+          "type": "function-plot",
+          "title": "Height of a thrown ball",
+          "props": {
+            "expr": "v0 * x - 4.905 * x^2",
+            "xMin": 0,
+            "xMax": 4,
+            "params": [
+              {
+                "id": "v0",
+                "label": "Launch speed (m/s)",
+                "min": 5,
+                "max": 20,
+                "value": 15
+              }
+            ]
+          },
+          "source": [
+            {
+              "file": "energy-notes.pdf",
+              "page": 8
+            }
+          ],
+          "description": "x is the time in seconds; y is the height in metres."
+        },
+        {
+          "kind": "widget",
+          "type": "chart",
+          "title": "Braking distance",
+          "props": {
+            "type": "line",
+            "title": "Braking distance by speed",
+            "xLabel": "Speed (km/h)",
+            "yLabel": "Metres",
+            "labels": [
+              "30",
+              "50",
+              "70",
+              "90",
+              "110"
+            ],
+            "series": [
+              {
+                "name": "Dry road",
+                "values": [
+                  5,
+                  14,
+                  27,
+                  45,
+                  67
+                ]
+              },
+              {
+                "name": "Wet road",
+                "values": [
+                  9,
+                  25,
+                  49,
+                  81,
+                  121
+                ]
+              }
+            ]
+          },
+          "source": [
+            {
+              "file": "energy-notes.pdf",
+              "page": 9
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "examples",
+      "title": "Worked examples",
+      "kind": "examples",
+      "blocks": [
+        {
+          "kind": "steps",
+          "title": "Energy of a moving car",
+          "intro": "A 1,000 kg car drives at 20 m/s.",
+          "steps": [
+            {
+              "title": "Write the formula",
+              "md": "$E_k = \\tfrac{1}{2} m v^2$"
+            },
+            {
+              "title": "Fill in",
+              "md": "$\\tfrac{1}{2} \\cdot 1000 \\cdot 20^2 = 200\\,000$ J"
+            },
+            {
+              "title": "Convert",
+              "md": "200 kJ"
+            }
+          ],
+          "source": [
+            {
+              "file": "energy-notes.pdf",
+              "page": 10
+            }
+          ]
+        },
+        {
+          "kind": "code",
+          "lang": "python",
+          "code": "def kinetic_energy(mass, speed):\n    return 0.5 * mass * speed ** 2\n\nprint(kinetic_energy(1000, 20))  # 200000.0",
+          "caption": "The same calculation in Python.",
+          "run": false,
+          "source": [
+            {
+              "file": "energy-notes.pdf",
+              "page": 10
+            }
+          ]
+        },
+        {
+          "kind": "timeline",
+          "items": [
+            {
+              "label": "1687",
+              "title": "Newton",
+              "md": "Laws of motion."
+            },
+            {
+              "label": "1807",
+              "title": "Young",
+              "md": "Uses the word *energy* in its modern sense."
+            },
+            {
+              "label": "1847",
+              "title": "Helmholtz",
+              "md": "States conservation of energy."
+            }
+          ],
+          "source": [
+            {
+              "file": "energy-notes.pdf",
+              "page": 11
+            }
+          ]
+        },
+        {
+          "kind": "widget",
+          "type": "order-items",
+          "title": "Put the history in order",
+          "props": {
+            "prompt": "Oldest first.",
+            "items": [
+              "Newton's laws of motion",
+              "Young names energy",
+              "Helmholtz: conservation of energy"
+            ],
+            "explanation": "1687, 1807, 1847."
+          },
+          "source": [
+            {
+              "file": "energy-notes.pdf",
+              "page": 11
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "mistakes",
+      "title": "Common mistakes",
+      "kind": "mistakes",
+      "blocks": [
+        {
+          "kind": "info",
+          "variant": "pitfall",
+          "title": "Forgetting to square the speed",
+          "md": "Kinetic energy depends on **v²**, not v. Twice as fast means four times the energy.",
+          "source": [
+            {
+              "file": "energy-notes.pdf",
+              "page": 12
+            }
+          ]
+        },
+        {
+          "kind": "info",
+          "variant": "warning",
+          "title": "Mixing units",
+          "md": "Use kg and m/s to get joules. km/h must be divided by 3.6 first.",
+          "source": [
+            {
+              "file": "energy-notes.pdf",
+              "page": 12
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "quiz",
+      "title": "Check yourself",
+      "kind": "quiz",
+      "blocks": [
+        {
+          "kind": "recall",
+          "cards": [
+            {
+              "prompt": "Formula for kinetic energy?",
+              "answer": "E = ½ m v²"
+            },
+            {
+              "prompt": "Unit of energy?",
+              "answer": "The joule (J)."
+            }
+          ],
+          "source": [
+            {
+              "file": "energy-notes.pdf",
+              "page": 13
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "exercises",
+      "title": "Exercises",
+      "kind": "exercises",
+      "blocks": [
+        {
+          "kind": "practice",
+          "id": "practice-energy",
+          "tasks": [
+            {
+              "id": "p1",
+              "prompt": "A 2 kg ball moves at 3 m/s. What is its kinetic energy in joules?",
+              "check": {
+                "mode": "text",
+                "accept": [
+                  "9",
+                  "9 J",
+                  "9J"
+                ]
+              },
+              "solution": "½ · 2 · 3² = 9 J.",
+              "hint": "Square the speed first."
+            },
+            {
+              "id": "p2",
+              "prompt": "Which change gives more kinetic energy?",
+              "check": {
+                "mode": "select",
+                "options": [
+                  "Double the mass",
+                  "Double the speed"
+                ],
+                "answer": [
+                  "Double the speed"
+                ]
+              },
+              "solution": "Speed is squared, mass is not."
+            },
+            {
+              "id": "p3",
+              "prompt": "Describe the energy changes of a swinging pendulum.",
+              "check": {
+                "mode": "open"
+              },
+              "solution": "Potential at the top, kinetic at the bottom, and back."
+            }
+          ],
+          "source": [
+            {
+              "file": "energy-notes.pdf",
+              "page": 14
+            }
+          ]
+        },
+        {
+          "kind": "exercises",
+          "sheet": {
+            "id": "sheet-energy",
+            "title": "Exercise sheet",
+            "description": "Energy calculations.",
+            "source": "Tutorial 1",
+            "exercises": [
+              {
+                "id": "ex-1",
+                "title": "Falling apple",
+                "intro": "An apple of 0.1 kg falls from 5 m.",
+                "tasks": [
+                  {
+                    "id": "ex-1-a",
+                    "prompt": "Potential energy at the top (g = 9.81)?",
+                    "check": {
+                      "mode": "text",
+                      "accept": [
+                        "4.905",
+                        "4.9",
+                        "4.91"
+                      ]
+                    },
+                    "solution": "m·g·h = 0.1 · 9.81 · 5 = 4.905 J."
+                  }
+                ]
+              }
+            ]
+          },
+          "source": [
+            {
+              "file": "energy-notes.pdf",
+              "page": 15
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "summary",
+      "title": "Summary",
+      "kind": "summary",
+      "blocks": [
+        {
+          "kind": "list",
+          "variant": "takeaways",
+          "items": [
+            "Kinetic energy grows with the square of speed.",
+            "Potential energy is stored by position.",
+            "Total energy is conserved."
+          ],
+          "source": [
+            {
+              "file": "energy-notes.pdf",
+              "page": 16
+            }
+          ]
+        },
+        {
+          "kind": "widget",
+          "type": "mock-exam",
+          "title": "Practice test",
+          "props": {
+            "questionCount": 10,
+            "minutes": 10
+          },
+          "source": [
+            {
+              "file": "energy-notes.pdf",
+              "page": 16
+            }
+          ],
+          "description": "A timed test from this course's quiz questions."
+        }
+      ]
+    }
+  ]
+}

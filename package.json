@@ -15,7 +15,10 @@
     "test": "vitest run",
     "schema": "tsx scripts/content/schema-export.ts",
     "validate": "tsx scripts/content/validate.ts",
-    "content": "tsx scripts/content/build.ts"
+    "content": "tsx scripts/content/build.ts",
+    "dev:showcase": "CONTENT_DIR=examples/showcase npm run dev",
+    "build:showcase": "CONTENT_DIR=examples/showcase npm run build",
+    "docs:reference": "tsx scripts/docs/reference.ts"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.5.15",
