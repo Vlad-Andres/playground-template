@@ -42,3 +42,16 @@ describe("lintLecture", () => {
     expect(codes(lecture)).toContain("W306");
   });
 });
+
+describe("lintLecture size and variety", () => {
+  it("W307 too few blocks for the number of pages", () => {
+    expect(lintLecture(good(), brief, 60).map((problem) => problem.code)).toContain("W307");
+    expect(lintLecture(good(), brief, 6).map((problem) => problem.code)).not.toContain("W307");
+  });
+  it("W308 fewer than five block kinds", () => {
+    const lecture = good();
+    expect(codes(lecture)).not.toContain("W308");
+    lecture.sections[1].blocks = lecture.sections[1].blocks.filter((block) => !["widget", "practice", "table"].includes(block.kind));
+    expect(codes(lecture)).toContain("W308");
+  });
+});

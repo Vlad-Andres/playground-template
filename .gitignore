@@ -46,3 +46,7 @@ next-env.d.ts
 /src/content/generated/
 
 /public/figures/
+
+# Course material used locally by `npm run generate`
+/materials/*
+!/materials/.gitkeep

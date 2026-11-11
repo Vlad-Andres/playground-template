@@ -1,6 +1,6 @@
 import type { LectureFile } from "../schema";
 import type { Problem } from "../validate";
-import { DEPTH_TARGETS } from "./prompts";
+import { blockTarget, DEPTH_TARGETS } from "./prompts";
 import type { Brief } from "./types";
 
 const STRUCTURED = new Set(["table", "steps", "timeline", "widget", "formula", "code"]);
@@ -9,8 +9,10 @@ function warning(code: string, path: string, message: string, fix: string): Prob
   return { code, severity: "warning", file: "", path, message, fix };
 }
 
-/** Quality warnings for a generated lecture (no model call). */
-export function lintLecture(lecture: LectureFile, brief: Brief): Problem[] {
+const MIN_KINDS = 5;
+
+/** Quality warnings for a generated lecture (no model call). `pageCount` enables the size check W307. */
+export function lintLecture(lecture: LectureFile, brief: Brief, pageCount = 0): Problem[] {
   const target = DEPTH_TARGETS[brief.depth];
   const blocks = lecture.sections.flatMap((section, sectionIndex) =>
     section.blocks.map((block, blockIndex) => ({ block, path: `sections[${sectionIndex}].blocks[${blockIndex}]` })),
@@ -31,6 +33,14 @@ export function lintLecture(lecture: LectureFile, brief: Brief): Problem[] {
   }
   if (!blocks.some(({ block }) => STRUCTURED.has(block.kind))) {
     problems.push(warning("W305", "sections", "No table, steps, timeline, widget, formula or code block.", "Add at least one structured block."));
+  }
+  const wanted = Math.ceil(blockTarget(pageCount, brief.depth) * 0.7);
+  if (pageCount > 0 && blocks.length < wanted) {
+    problems.push(warning("W307", "sections", `Only ${blocks.length} blocks for ${pageCount} pages; expected at least ${wanted}.`, `Add ${wanted - blocks.length} more blocks covering pages that are not covered yet.`));
+  }
+  const kinds = new Set(blocks.map(({ block }) => block.kind));
+  if (kinds.size < MIN_KINDS) {
+    problems.push(warning("W308", "sections", `Only ${kinds.size} block kinds (${[...kinds].join(", ")}).`, `Use at least ${MIN_KINDS} different kinds, e.g. table, steps, timeline, info, recall, practice or a widget.`));
   }
   for (const { block, path } of blocks) {
     if (!block.source) problems.push(warning("W306", path, `A ${block.kind} block has no source.`, "Add the source pages this block came from."));

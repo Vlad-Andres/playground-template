@@ -118,3 +118,15 @@ describe("writeLecture", () => {
     expect(JSON.stringify(result.lecture)).not.toContain("onload");
   });
 });
+
+describe("lecture prompt", () => {
+  it("asks for a block count that grows with the pages and lists block shapes in the improvement call", async () => {
+    const lecture = goodLecture();
+    lecture.quiz = [];
+    const { model, calls } = scripted({ lecture: () => JSON.stringify(lecture), improve: () => "{}" });
+    await writeLecture(plan, 0, materials, brief, model);
+    expect(calls[0].request.system).toContain("(6 pages)");
+    expect(calls[0].request.system).toContain("about 10 blocks");
+    expect(calls[1].request.system).toContain('"kind":"recall"');
+  });
+});

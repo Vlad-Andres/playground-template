@@ -149,7 +149,8 @@ export async function writeLecture(
   const planned = plan.lectures[index];
   if (!planned) throw new Error(`The plan has no lecture ${index + 1}.`);
   const pagesText = renderMaterials(materials, planned.pages);
-  const prompt = lecturePrompt({ brief, lecturePlan: planned, courseTitle: plan.course.title, pagesText });
+  const pageCount = (pagesText.match(/^=== .+ — page \d+ ===$/gm) ?? []).length;
+  const prompt = lecturePrompt({ brief, lecturePlan: planned, courseTitle: plan.course.title, pagesText, pageCount });
 
   // 1. One main call, one retry when the reply is not JSON.
   let raw = await askJson(model, prompt.system, prompt.user, LECTURE_MAX_OUTPUT_TOKENS);
@@ -187,6 +188,7 @@ export async function writeLecture(
   if (invalid.length > 0) {
     const repair = repairPrompt(
       invalid.map((item) => ({ label: item.label, value: item.value, problems: item.problems.map((problem) => formatProblem(problem).trim()) })),
+      brief.widgets,
     );
     const repaired = asArray(asObject(await askJson(model, repair.system, repair.user, REPAIR_MAX_OUTPUT_TOKENS)).items);
     invalid.forEach((item, i) => {
@@ -235,7 +237,7 @@ export async function writeLecture(
   const lecture = assemble(meta, concepts, quiz, sections.map((section) => ({ ...section, blocks: section.blocks.flatMap(({ path }) => (validBlocks.has(path) ? [validBlocks.get(path) as Block] : [])) })));
 
   // 5. One improvement call when the lecture misses its targets.
-  const warnings = lintLecture(lecture, brief);
+  const warnings = lintLecture(lecture, brief, pageCount);
   if (warnings.length === 0) return { lecture, dropped };
   const improve = improvePrompt({
     brief,

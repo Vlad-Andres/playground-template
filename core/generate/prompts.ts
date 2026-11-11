@@ -116,13 +116,21 @@ export const LECTURE_SHAPE = `{
   "sections": [{ "id": "short-id", "title": "...", "kind": "${SECTION_KINDS.split(", ").join(" | ")}", "blocks": [ ... ] }]
 }`;
 
+/** Rough number of blocks a lecture should have for the amount of material it covers. */
+export function blockTarget(pageCount: number, depth: Depth): number {
+  const perPage = depth === "cram" ? 1 / 4 : depth === "standard" ? 1 / 3 : 1 / 2;
+  return Math.max(10, Math.min(60, Math.ceil(pageCount * perPage)));
+}
+
 export function lecturePrompt(input: {
   brief: Brief;
   lecturePlan: unknown;
   courseTitle: string;
   pagesText: string;
+  pageCount: number;
 }): { system: string; user: string } {
   const { brief } = input;
+  const blocks = blockTarget(input.pageCount, brief.depth);
   const system = `${TASK.lecture}
 You write one lecture of a study website as JSON. ${SAFETY}
 
@@ -130,11 +138,14 @@ Return exactly this shape:
 ${LECTURE_SHAPE}
 
 Rules:
+- Cover every page that has real content (${input.pageCount} pages). Write about ${blocks} blocks in total, at least 3 per section. Do not summarise the whole lecture into a few paragraphs: keep definitions, numbers, examples, comparisons and caveats.
 - Use only facts from the given pages. If something is unclear, say so in an "info" block; never fill gaps from general knowledge.
 - Write all text in ${languageName(brief.language)}, for a ${brief.level} learner.
 - Every block carries "source": the pages it came from, e.g. [{"file": "slides.pdf", "page": 12}] (1 to 5 entries, exact file names).
 - "prose" and "info" blocks have at most 80 words. Prefer tables, steps, timelines, lists, formulas and widgets over long prose; at most 60% of blocks may be prose.
 - Every id in a "concepts" block must exist in "concepts". Ids use letters, digits, ".", "_" or "-".
+- "list" is only for the lecture's objectives or takeaways. Any other list is Markdown bullets inside a "prose" block, or a "table".
+- Use at least 5 different block kinds.
 - Markdown is allowed in "md" fields and KaTeX ($...$) for maths. No HTML. Links only to http(s) URLs that appear in the material.
 ${targetLines(brief)}
 - The sections should follow the plan below; you may merge or split sections when the content needs it.
@@ -150,10 +161,14 @@ ${
   return { system, user };
 }
 
-export function repairPrompt(items: { label: string; value: unknown; problems: string[] }[]): { system: string; user: string } {
+export function repairPrompt(items: { label: string; value: unknown; problems: string[] }[], widgets = true): { system: string; user: string } {
   const system = `${TASK.repair}
 You fix JSON items of a study website so they pass validation. ${SAFETY}
-Return {"items": [ ... ]} with one corrected item per input item, in the same order. Keep the content and language; change only what the problems require. Use null for an item you cannot fix.`;
+Return {"items": [ ... ]} with one corrected item per input item, in the same order. Keep the content and language; change only what the problems require. A block with an unknown "kind" must become one of the block kinds below (an interactive exercise becomes a "widget" block with "type" and "props"). Use null for an item you cannot fix.
+
+BLOCK KINDS (one JSON example each; copy the shape exactly):
+${blockReference()}
+${widgets ? `\nWIDGETS (props must follow the example exactly):\n${widgetReference()}` : '\nDo not use "widget" blocks.'}`;
   const user = items
     .map((item, index) => `ITEM ${index + 1} (${item.label}):\n${JSON.stringify(item.value)}\nPROBLEMS:\n${item.problems.map((problem) => `- ${problem}`).join("\n")}`)
     .join("\n\n");
@@ -173,7 +188,11 @@ You add missing material to one lecture of a study website. ${SAFETY}
 Return {"concepts": [...], "quiz": [...], "blocks": [{"sectionId": "existing section id", "block": { ... }}]} with ONLY new items (use [] where nothing is needed).
 Use the same shapes as before:
 ${LECTURE_SHAPE}
-Rules: only facts from the pages; write in ${languageName(input.brief.language)}; every block has "source"; new concept and quiz ids must not reuse existing ones.${input.brief.quizzes ? "" : ' "quiz" must be [].'}${input.brief.widgets ? ` Widgets allowed: ${generatorWidgetTypes.filter((type) => type !== "mock-exam").join(", ")}.` : ' No "widget" blocks.'}`;
+Rules: only facts from the pages; write in ${languageName(input.brief.language)}; every block has "source"; new concept and quiz ids must not reuse existing ones.${input.brief.quizzes ? "" : ' "quiz" must be [].'}
+
+BLOCK KINDS (one JSON example each; copy the shape exactly):
+${blockReference()}
+${input.brief.widgets ? `\nWIDGETS (props must follow the example exactly):\n${widgetReference()}` : '\nDo not use "widget" blocks.'}`;
   const user = `WARNINGS TO FIX:\n${input.warnings.map((warning) => `- ${warning}`).join("\n")}\n\nExisting section ids: ${input.sectionIds.join(", ")}\nExisting concept ids: ${input.conceptIds.join(", ") || "(none)"}\nExisting quiz ids: ${input.quizIds.join(", ") || "(none)"}\n\nPAGES:\n${input.pagesText}`;
   return { system, user };
 }

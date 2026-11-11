@@ -49,3 +49,31 @@ export function renderMaterials(materials: Material[], ranges?: PageRange[]): st
     )
     .join("\n\n");
 }
+
+/** Join pdf.js text items into page text (items end lines with hasEOL). */
+export function joinTextItems(items: readonly unknown[]): string {
+  let text = "";
+  for (const item of items) {
+    if (!item || typeof item !== "object" || !("str" in item)) continue;
+    const { str, hasEOL } = item as { str: unknown; hasEOL?: unknown };
+    if (typeof str !== "string") continue;
+    text += str;
+    if (hasEOL) text += "\n";
+    else if (str && !/\s$/.test(str)) text += " ";
+  }
+  return text.replace(/[ \t]+\n/g, "\n").replace(/\n{3,}/g, "\n\n").replace(/[ \t]{2,}/g, " ").trim();
+}
+
+/** Plain text split into pages of about `size` characters, at paragraph or line breaks when possible. */
+export function splitTextIntoPages(text: string, size = 3_000): { n: number; text: string }[] {
+  const pages: { n: number; text: string }[] = [];
+  let rest = text.replace(/\r\n?/g, "\n").trim();
+  while (rest.length > 0) {
+    let cut = rest.length <= size ? rest.length : rest.lastIndexOf("\n\n", size);
+    if (cut < size / 2) cut = rest.length <= size ? rest.length : rest.lastIndexOf("\n", size);
+    if (cut < size / 2) cut = Math.min(size, rest.length);
+    pages.push({ n: pages.length + 1, text: rest.slice(0, cut).trim() });
+    rest = rest.slice(cut).trim();
+  }
+  return pages;
+}
