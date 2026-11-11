@@ -7,17 +7,10 @@ import {
   type Course,
   type ExpectedTopic,
   type LectureFile,
-} from "../../src/content/schema";
-import type { ZodIssue } from "zod";
+} from "../../core/schema";
+import { schemaProblems, type Problem } from "../../core/validate";
 
-export interface Problem {
-  code: string;
-  severity: "error" | "warning";
-  file: string;
-  path: string;
-  message: string;
-  fix: string;
-}
+export type { Problem };
 
 export interface LoadedCourse {
   course: Course | null;
@@ -25,24 +18,6 @@ export interface LoadedCourse {
   exam: LectureFile | null;
   expected: ExpectedTopic[];
   problems: Problem[];
-}
-
-function issuePath(issue: ZodIssue): string {
-  return issue.path
-    .map((part) => (typeof part === "number" ? `[${part}]` : part))
-    .join(".")
-    .replace(".[", "[");
-}
-
-function schemaProblems(file: string, issues: ZodIssue[]): Problem[] {
-  return issues.map((issue) => ({
-    code: "E003",
-    severity: "error",
-    file,
-    path: issuePath(issue),
-    message: issue.message,
-    fix: "Change this value to match the content schema.",
-  }));
 }
 
 function readJson(filePath: string): unknown {

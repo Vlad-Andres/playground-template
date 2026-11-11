@@ -5,7 +5,6 @@ import type {
   ExerciseCheck,
   ExerciseSheet,
   ExerciseTask,
-  LectureMeta as ContentLectureMeta,
   LectureSource,
   LectureSection,
   RecallCard,
@@ -40,18 +39,4 @@ export type {
   LectureFile,
   InfoVariant,
 };
-export type LectureMeta = ContentLectureMeta & { outline: SectionOutline[] };
-
-export interface Lecture {
-  meta: ContentLectureMeta & { outline: SectionOutline[] };
-  concepts: Concept[];
-  quiz: QuizQuestion[];
-  sections: LectureSection[];
-}
-
-export interface LectureIndexEntry {
-  meta: ContentLectureMeta & { outline: SectionOutline[] };
-  concepts: Concept[];
-  quiz: QuizQuestion[];
-  exercises: ExerciseSheet[];
-}
+export type { Lecture, LectureIndexEntry, AssembledLectureMeta as LectureMeta } from "@core/assemble";
