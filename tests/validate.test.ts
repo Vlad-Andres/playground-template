@@ -154,4 +154,23 @@ describe("content validator", () => {
     writeCourse(dir, { lectures: { "01-intro.json": lecture } });
     expect(problem(dir, "W201")).toMatchObject({ severity: "warning", path: "sections[0].blocks[0].md" });
   });
+
+  it("cross-checks exam.json: wrong answer id gives E103", () => {
+    const dir = directory();
+    const exam = { ...minimalLecture, meta: { ...minimalLecture.meta, slug: "exam", number: 0 }, quiz: [{ ...minimalLecture.quiz[0], answerId: "zzz" }] };
+    writeCourse(dir, { exam });
+    expect(problem(dir, "E103")).toMatchObject({ file: "exam.json" });
+    expect(problem(dir, "E107")).toBeUndefined();
+  });
+
+  it("cross-checks exam.json: unknown widget type gives E104", () => {
+    const dir = directory();
+    const exam = {
+      ...minimalLecture,
+      meta: { ...minimalLecture.meta, slug: "exam", number: 0 },
+      sections: [{ id: "s1", title: "Exam", kind: "concepts", blocks: [{ kind: "widget", type: "no-such-widget", title: "Missing" }] }],
+    };
+    writeCourse(dir, { exam });
+    expect(problem(dir, "E104")).toMatchObject({ file: "exam.json" });
+  });
 });

@@ -20,14 +20,6 @@ The starter course lives in [`content/`](content/). Put source PDFs and other wo
 in [`materials/`](materials/), and generated JSON in `content/`. The build rejects invalid JSON,
 unknown keys, unsafe widget types, and broken lecture references.
 
-The local Gemini proof command is opt-in and guarded by a 25 MB PDF limit and a 250 KB output
-limit. It reads `GEMINI_API_KEY` from the environment or ignored `.env.local`, validates the
-response before writing it, and deletes the temporary uploaded Gemini file:
-
-```bash
-npm run generate:gemini
-```
-
 ## Content
 
 - `content/course.json` defines the course identity and optional overview/footer text.

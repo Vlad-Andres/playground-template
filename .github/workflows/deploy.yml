@@ -16,6 +16,7 @@ concurrency:
 
 jobs:
   build:
+    if: ${{ !github.event.repository.is_template }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -38,6 +39,7 @@ jobs:
           path: ./out
 
   deploy:
+    if: ${{ !github.event.repository.is_template }}
     needs: build
     runs-on: ubuntu-latest
     environment:

@@ -5,18 +5,17 @@
   "scripts": {
     "predev": "node scripts/copy-pglite.mjs && npm run content",
     "dev": "next dev",
-    "dev:dis": "CONTENT_DIR=examples/dis next dev",
+    "dev:dis": "CONTENT_DIR=examples/dis npm run dev",
     "prebuild": "node scripts/copy-pglite.mjs && npm run content",
     "build": "next build",
-    "build:dis": "CONTENT_DIR=examples/dis next build",
+    "build:dis": "CONTENT_DIR=examples/dis npm run build",
     "postbuild": "node scripts/write-precache-manifest.mjs",
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
     "schema": "tsx scripts/content/schema-export.ts",
     "validate": "tsx scripts/content/validate.ts",
-    "content": "tsx scripts/content/build.ts",
-    "generate:gemini": "tsx scripts/model/gemini-proof.ts"
+    "content": "tsx scripts/content/build.ts"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.5.15",
@@ -50,5 +49,6 @@
     "typescript": "^6.0.3",
     "vitest": "^5.1.0",
     "zod": "^4.6.7"
-  }
+  },
+  "license": "MIT"
 }
