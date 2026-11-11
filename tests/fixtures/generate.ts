@@ -1,4 +1,5 @@
-import type { Brief, Material } from "@core/generate/index";
+import type { Brief, Material, PlannedLecture } from "@core/generate/index";
+import type { LectureFile } from "@core/schema";
 
 export const brief: Brief = { language: "en", level: "university", depth: "standard", examMode: true, quizzes: true, widgets: true, context: "" };
 
@@ -6,7 +7,7 @@ export const materials: Material[] = [
   { name: "slides.pdf", pages: Array.from({ length: 6 }, (_, i) => ({ n: i + 1, text: `Page ${i + 1}. Kinetic energy is one half m v squared. `.repeat(4) })) },
 ];
 
-export function plannedLecture(number: number, slug = `lecture-${number}`) {
+export function plannedLecture(number: number, slug = `lecture-${number}`): PlannedLecture {
   return {
     number,
     slug,
@@ -31,7 +32,7 @@ export function planReply(lectures = [plannedLecture(1)], extra: Record<string, 
 
 const src = [{ file: "slides.pdf", page: 1 }];
 
-export function goodLecture(number = 1, slug = `lecture-${number}`) {
+export function goodLecture(number = 1, slug = `lecture-${number}`): LectureFile {
   return {
     meta: {
       slug,
