@@ -11,6 +11,7 @@ import { clearApiKey, type KeyStatus } from "@site/lib/assistant/credentials";
 import { storeAssistantModel } from "@site/lib/assistant/modelPreference";
 import type { AssistantSelection } from "@site/lib/assistant/prompt";
 import { cn } from "@site/lib/cn";
+import { useSite } from "@site/site/context";
 
 const SUGGESTIONS = ["Explain this simply", "Walk me through an example", "Why does this matter?"];
 
@@ -65,6 +66,7 @@ function ErrorDetails({ details }: { details: string }) {
 }
 
 function ModelPicker() {
+  const { storageKey } = useSite();
   const selectedModel = useAssistantModel();
 
   return (
@@ -83,7 +85,7 @@ function ModelPicker() {
             name="assistant-model"
             value={model.id}
             checked={selectedModel === model.id}
-            onChange={() => storeAssistantModel(model.id)}
+            onChange={() => storeAssistantModel(storageKey("gemini-model"), model.id)}
             className="mt-1 accent-brand"
           />
           <span className="grid gap-0.5">
@@ -98,6 +100,7 @@ function ModelPicker() {
 }
 
 function SwitchModelButton({ failedModel }: { failedModel: AssistantModelId }) {
+  const { storageKey } = useSite();
   const selectedModel = useAssistantModel();
   const alternative = ASSISTANT_MODELS.find((model) => model.id !== failedModel);
   if (!alternative) return null;
@@ -108,7 +111,7 @@ function SwitchModelButton({ failedModel }: { failedModel: AssistantModelId }) {
   return (
     <button
       type="button"
-      onClick={() => storeAssistantModel(alternative.id)}
+      onClick={() => storeAssistantModel(storageKey("gemini-model"), alternative.id)}
       className="ml-2 font-medium underline underline-offset-2"
     >
       Switch to {assistantModelLabel(alternative.id)}
@@ -117,6 +120,7 @@ function SwitchModelButton({ failedModel }: { failedModel: AssistantModelId }) {
 }
 
 function AssistantTurn({ turn }: { turn: ChatTurn }) {
+  const { storageKey } = useSite();
   const waiting = turn.status === "thinking" && turn.text.length === 0;
 
   return (
@@ -138,7 +142,7 @@ function AssistantTurn({ turn }: { turn: ChatTurn }) {
           {turn.errorKind === "auth" ? (
             <button
               type="button"
-              onClick={clearApiKey}
+              onClick={() => clearApiKey(storageKey("gemini-api-key"))}
               className="ml-2 font-medium underline underline-offset-2"
             >
               Reconnect
@@ -164,6 +168,7 @@ export function ChatPanel({
   onReset,
   onClose,
 }: ChatPanelProps) {
+  const { storageKey } = useSite();
   const [view, setView] = useState<"chat" | "settings">("chat");
   const [draft, setDraft] = useState("");
   const listRef = useRef<HTMLDivElement>(null);
@@ -257,7 +262,7 @@ export function ChatPanel({
             </p>
             <button
               type="button"
-              onClick={clearApiKey}
+              onClick={() => clearApiKey(storageKey("gemini-api-key"))}
               className="w-fit text-sm font-medium text-danger underline underline-offset-2"
             >
               Disconnect and forget the key

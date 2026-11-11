@@ -12,8 +12,9 @@ import { ProgressBar } from "@site/components/ui/ProgressBar";
 import { ProgressRing } from "@site/components/ui/ProgressRing";
 import { useDifficult } from "@site/hooks/useDifficult";
 import { DAILY_GOAL, MAX_BOX, levelFor, liveStreak, reviewsDoneToday } from "@site/lib/difficult";
-import { REVIEW_DATA_PATH, type ReviewData } from "@site/lib/reviewData";
+import type { ReviewData } from "@site/lib/reviewData";
 import { cn } from "@site/lib/cn";
+import { useSite } from "@site/site/context";
 
 type Tab = "focus" | "review" | "match";
 
@@ -27,6 +28,7 @@ function useNow() {
 }
 
 export function DifficultHub() {
+  const { paths } = useSite();
   const { state, remove } = useDifficult();
   const now = useNow();
   const [data, setData] = useState<ReviewData | null>(null);
@@ -40,7 +42,7 @@ export function DifficultHub() {
   useEffect(() => {
     if (!hasItems || data) return;
     let cancelled = false;
-    fetch(`${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}${REVIEW_DATA_PATH}`)
+    fetch(`${paths.home}review-data.json`)
       .then((response) => {
         if (!response.ok) throw new Error(String(response.status));
         return response.json() as Promise<ReviewData>;
@@ -54,7 +56,7 @@ export function DifficultHub() {
     return () => {
       cancelled = true;
     };
-  }, [hasItems, data]);
+  }, [hasItems, data, paths.home]);
 
   const { resolved, missing } = useMemo(() => {
     if (!data) return { resolved: [] as ResolvedItem[], missing: [] as string[] };

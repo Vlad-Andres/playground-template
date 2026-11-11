@@ -26,8 +26,6 @@ export interface ReviewData {
   lectures: ReviewLecture[];
 }
 
-export const REVIEW_DATA_PATH = "/review-data.json";
-
 export function toReviewBlock(block: Block): ReviewBlock {
   if (block.kind === "widget") return { kind: "widget", type: block.type, title: block.title, description: block.description };
   if (block.kind === "exercises") return { kind: "exercises", title: block.sheet.title };

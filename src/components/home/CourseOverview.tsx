@@ -1,13 +1,14 @@
 import { BookOpen, Compass, ListChecks, PencilRuler } from "lucide-react";
 import { countExercises, type LectureIndexEntry } from "@site/content/registry";
 import { Badge } from "@site/components/ui/Badge";
-import { course } from "@site/content/course";
+import type { Course } from "@site/content/types";
 
 interface CourseOverviewProps {
+  course: Course;
   entries: LectureIndexEntry[];
 }
 
-export function CourseOverview({ entries }: CourseOverviewProps) {
+export function CourseOverview({ course, entries }: CourseOverviewProps) {
   const stats = [
     { icon: Compass, label: "Lectures", value: String(entries.length) },
     {

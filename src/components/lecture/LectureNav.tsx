@@ -1,7 +1,9 @@
+"use client";
+
 import Link from "next/link";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import type { LectureMeta } from "@site/content/types";
-import { lecturePath } from "@site/lib/format";
+import { useSite } from "@site/site/context";
 
 interface LectureNavProps {
   previous: LectureMeta | null;
@@ -9,11 +11,13 @@ interface LectureNavProps {
 }
 
 export function LectureNav({ previous, next }: LectureNavProps) {
+  const { paths } = useSite();
+
   return (
     <nav aria-label="Lecture navigation" className="grid gap-3 border-t border-line pt-8 sm:grid-cols-2">
       {previous ? (
         <Link
-          href={lecturePath(previous.slug)}
+          href={paths.lecture(previous.slug)}
           className="group grid gap-1 rounded-xl border border-line bg-surface p-4 transition-colors hover:border-brand/40"
         >
           <span className="flex items-center gap-1.5 text-xs text-faint">
@@ -28,7 +32,7 @@ export function LectureNav({ previous, next }: LectureNavProps) {
 
       {next ? (
         <Link
-          href={lecturePath(next.slug)}
+          href={paths.lecture(next.slug)}
           className="group grid justify-items-end gap-1 rounded-xl border border-line bg-surface p-4 text-right transition-colors hover:border-brand/40 sm:col-start-2"
         >
           <span className="flex items-center gap-1.5 text-xs text-faint">

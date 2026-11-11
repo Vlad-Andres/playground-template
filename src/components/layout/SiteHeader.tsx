@@ -8,12 +8,10 @@ import type { LectureMeta } from "@site/content/types";
 import type { SearchRecord } from "@site/lib/search";
 import { SearchDialog } from "@site/components/layout/SearchDialog";
 import { ThemeToggle } from "@site/components/layout/ThemeToggle";
-import { DIFFICULT_PATH, EXAM_PATH, EXPECTED_PATH, lecturePath } from "@site/lib/format";
 import { useDifficult } from "@site/hooks/useDifficult";
 import { cn } from "@site/lib/cn";
-import { course, features } from "@site/content/course";
-import { examTraining } from "@site/content/exam";
-import { expectedTopics } from "@site/content/expected";
+import { siteFeatures } from "@core/site";
+import { useSite } from "@site/site/context";
 
 interface SiteHeaderProps {
   metas: LectureMeta[];
@@ -21,6 +19,9 @@ interface SiteHeaderProps {
 }
 
 export function SiteHeader({ metas, records }: SiteHeaderProps) {
+  const { data, paths } = useSite();
+  const course = data.course;
+  const features = siteFeatures(course);
   const pathname = usePathname();
   const [searchOpen, setSearchOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -28,8 +29,9 @@ export function SiteHeader({ metas, records }: SiteHeaderProps) {
   const lecturesRef = useRef<HTMLDivElement>(null);
   const { state: difficult } = useDifficult();
   const difficultCount = Object.keys(difficult.items).length;
-  const hasExam = examTraining !== null;
-  const hasExpected = expectedTopics.length > 0;
+  const hasExam = data.exam !== null;
+  const hasExpected = data.expected.length > 0;
+  const lecturesRoot = paths.lecture("");
 
   const closeMenus = useCallback(() => {
     setMenuOpen(false);
@@ -53,12 +55,12 @@ export function SiteHeader({ metas, records }: SiteHeaderProps) {
       document.removeEventListener("keydown", onKeyDown);
       document.removeEventListener("pointerdown", onPointerDown);
     };
-  }, []);
+  }, [features.search]);
 
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-canvas/85 backdrop-blur-md">
       <div className="mx-auto flex h-16 w-full max-w-6xl items-center gap-3 px-4 sm:px-6">
-        <Link href="/" onClick={closeMenus} className="flex items-center gap-2.5 font-semibold">
+        <Link href={paths.home} onClick={closeMenus} className="flex items-center gap-2.5 font-semibold">
           <span className="grid size-8 place-items-center rounded-lg bg-brand text-sm text-brand-ink">
             {course.shortTitle.slice(0, 3).toUpperCase()}
           </span>
@@ -67,11 +69,11 @@ export function SiteHeader({ metas, records }: SiteHeaderProps) {
 
         <nav className="ml-4 hidden items-center gap-1 md:flex">
           {hasExam ? <Link
-            href="/"
+            href={paths.home}
             onClick={closeMenus}
             className={cn(
               "rounded-lg px-3 py-1.5 text-sm font-medium transition-colors hover:bg-sunken",
-              pathname === "/" ? "text-brand" : "text-muted",
+              pathname === paths.home ? "text-brand" : "text-muted",
             )}
           >
             Overview
@@ -84,7 +86,7 @@ export function SiteHeader({ metas, records }: SiteHeaderProps) {
               aria-expanded={lecturesOpen}
               className={cn(
                 "flex items-center gap-1 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors hover:bg-sunken",
-                pathname.startsWith("/lectures") ? "text-brand" : "text-muted",
+                pathname.startsWith(lecturesRoot) ? "text-brand" : "text-muted",
               )}
             >
               Lectures
@@ -100,7 +102,7 @@ export function SiteHeader({ metas, records }: SiteHeaderProps) {
                 {metas.map((meta) => (
                   <Link
                     key={meta.slug}
-                    href={lecturePath(meta.slug)}
+                    href={paths.lecture(meta.slug)}
                     onClick={closeMenus}
                     className="grid gap-0.5 rounded-lg px-3 py-2 hover:bg-brand-soft/50"
                   >
@@ -115,11 +117,11 @@ export function SiteHeader({ metas, records }: SiteHeaderProps) {
           </div>
 
           {hasExam ? <Link
-            href={EXAM_PATH}
+            href={paths.exam}
             onClick={closeMenus}
             className={cn(
               "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors hover:bg-sunken",
-              pathname.startsWith("/exam") ? "text-brand" : "text-muted",
+              pathname.startsWith(paths.exam) ? "text-brand" : "text-muted",
             )}
           >
             <GraduationCap size={15} aria-hidden />
@@ -127,11 +129,11 @@ export function SiteHeader({ metas, records }: SiteHeaderProps) {
           </Link> : null}
 
           {hasExpected ? <Link
-            href={EXPECTED_PATH}
+            href={paths.expected}
             onClick={closeMenus}
             className={cn(
               "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors hover:bg-sunken",
-              pathname.startsWith("/expected") ? "text-brand" : "text-muted",
+              pathname.startsWith(paths.expected) ? "text-brand" : "text-muted",
             )}
           >
             <Target size={15} aria-hidden />
@@ -140,11 +142,11 @@ export function SiteHeader({ metas, records }: SiteHeaderProps) {
 
           {features.difficult ? (
             <Link
-              href={DIFFICULT_PATH}
+              href={paths.difficult}
               onClick={closeMenus}
               className={cn(
                 "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors hover:bg-sunken",
-                pathname.startsWith("/difficult") ? "text-brand" : "text-muted",
+                pathname.startsWith(paths.difficult) ? "text-brand" : "text-muted",
               )}
             >
               <Flag size={15} aria-hidden />
@@ -188,21 +190,21 @@ export function SiteHeader({ metas, records }: SiteHeaderProps) {
       {menuOpen ? (
         <nav className="animate-rise border-t border-line bg-surface px-4 py-3 md:hidden">
           <Link
-            href="/"
+            href={paths.home}
             onClick={closeMenus}
             className="block rounded-lg px-3 py-2 text-sm font-medium hover:bg-sunken"
           >
             Overview
           </Link>
           {hasExam ? <Link
-            href={EXAM_PATH}
+            href={paths.exam}
             onClick={closeMenus}
             className="block rounded-lg px-3 py-2 text-sm font-medium hover:bg-sunken"
           >
             Exam training
           </Link> : null}
           {hasExpected ? <Link
-            href={EXPECTED_PATH}
+            href={paths.expected}
             onClick={closeMenus}
             className="block rounded-lg px-3 py-2 text-sm font-medium hover:bg-sunken"
           >
@@ -210,7 +212,7 @@ export function SiteHeader({ metas, records }: SiteHeaderProps) {
           </Link> : null}
           {features.difficult ? (
             <Link
-              href={DIFFICULT_PATH}
+              href={paths.difficult}
               onClick={closeMenus}
               className="block rounded-lg px-3 py-2 text-sm font-medium hover:bg-sunken"
             >
@@ -223,7 +225,7 @@ export function SiteHeader({ metas, records }: SiteHeaderProps) {
           {metas.map((meta) => (
             <Link
               key={meta.slug}
-              href={lecturePath(meta.slug)}
+              href={paths.lecture(meta.slug)}
               onClick={closeMenus}
               className="block rounded-lg px-3 py-2 text-sm hover:bg-sunken"
             >

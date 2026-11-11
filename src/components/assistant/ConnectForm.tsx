@@ -4,8 +4,10 @@ import { useState } from "react";
 import { ExternalLink, KeyRound, LoaderCircle, ShieldCheck } from "lucide-react";
 import { verifyApiKey } from "@site/lib/assistant/gemini";
 import { storeApiKey } from "@site/lib/assistant/credentials";
+import { useSite } from "@site/site/context";
 
 export function ConnectForm() {
+  const { storageKey } = useSite();
   const [apiKey, setApiKey] = useState("");
   const [remember, setRemember] = useState(false);
   const [checking, setChecking] = useState(false);
@@ -17,7 +19,7 @@ export function ConnectForm() {
     setError(null);
     try {
       await verifyApiKey(candidate);
-      storeApiKey(candidate, remember ? "device" : "session");
+      storeApiKey(storageKey("gemini-api-key"), candidate, remember ? "device" : "session");
       setApiKey("");
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : "Could not verify the key.");

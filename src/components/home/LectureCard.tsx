@@ -8,7 +8,8 @@ import { Card } from "@site/components/ui/Card";
 import { ProgressRing } from "@site/components/ui/ProgressRing";
 import { useProgress } from "@site/hooks/useProgress";
 import { lectureStats } from "@site/lib/progress";
-import { formatMinutes, lecturePath } from "@site/lib/format";
+import { formatMinutes } from "@site/lib/format";
+import { useSite } from "@site/site/context";
 
 const DIFFICULTY_TONE: Record<LectureMeta["difficulty"], BadgeTone> = {
   intro: "positive",
@@ -24,6 +25,7 @@ interface LectureCardProps {
 }
 
 export function LectureCard({ meta, conceptCount, quizCount, exerciseCount }: LectureCardProps) {
+  const { paths } = useSite();
   const { progress } = useProgress();
   const stats = lectureStats(progress, meta);
 
@@ -37,7 +39,7 @@ export function LectureCard({ meta, conceptCount, quizCount, exerciseCount }: Le
             {stats.completed ? <Badge tone="positive">completed</Badge> : null}
           </div>
           <h3 className="text-lg font-semibold text-ink">
-            <Link href={lecturePath(meta.slug)} className="after:absolute after:inset-0">
+            <Link href={paths.lecture(meta.slug)} className="after:absolute after:inset-0">
               {meta.title}
             </Link>
           </h3>

@@ -5,12 +5,13 @@ import { ArrowUpRight, Check, ChevronDown, EyeOff, RotateCcw, Target } from "luc
 import { Markdown } from "@site/components/content/Markdown";
 import { Badge } from "@site/components/ui/Badge";
 import { ProgressBar } from "@site/components/ui/ProgressBar";
-import { expectedItemCount, expectedKey, expectedTopics, type ExpectedTopic } from "@site/content/expected";
+import { expectedKey, type ExpectedTopic } from "@site/content/expected";
 import { useExpected } from "@site/hooks/useExpected";
-import { lecturePath } from "@site/lib/format";
 import { cn } from "@site/lib/cn";
+import { useSite } from "@site/site/context";
 
 function TopicSection({ topic }: { topic: ExpectedTopic }) {
+  const { paths } = useSite();
   const { state, setKnown } = useExpected();
   const keys = topic.items.map((item) => expectedKey(topic.id, item.id));
   const knownCount = keys.filter((key) => state.known.includes(key)).length;
@@ -30,7 +31,7 @@ function TopicSection({ topic }: { topic: ExpectedTopic }) {
           {topic.links.map((link) => (
             <Link
               key={link.slug}
-              href={lecturePath(link.slug)}
+              href={paths.lecture(link.slug)}
               className="inline-flex items-center gap-1 text-xs font-medium text-muted hover:text-brand"
             >
               {link.label} in full <ArrowUpRight size={12} aria-hidden />
@@ -102,6 +103,9 @@ function TopicSection({ topic }: { topic: ExpectedTopic }) {
 }
 
 export function ExpectedBoard() {
+  const { data } = useSite();
+  const expectedTopics = data.expected;
+  const expectedItemCount = expectedTopics.reduce((sum, topic) => sum + topic.items.length, 0);
   const { state, setHideKnown, reset } = useExpected();
   const allKeys = new Set(expectedTopics.flatMap((topic) => topic.items.map((item) => expectedKey(topic.id, item.id))));
   const knownCount = state.known.filter((key) => allKeys.has(key)).length;

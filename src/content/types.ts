@@ -1,6 +1,8 @@
 import type {
   Block,
   Concept,
+  Course,
+  ExpectedTopic,
   Exercise,
   ExerciseCheck,
   ExerciseSheet,
@@ -22,6 +24,8 @@ import type {
 export type {
   Block,
   Concept,
+  Course,
+  ExpectedTopic,
   Exercise,
   ExerciseCheck,
   ExerciseSheet,

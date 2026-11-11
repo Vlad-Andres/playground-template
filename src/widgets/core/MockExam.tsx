@@ -5,15 +5,13 @@ import Link from "next/link";
 import { Check, Clock, Play, RotateCcw, Send, X } from "lucide-react";
 import type { QuizQuestion } from "@site/content/types";
 import type { MockExamProps } from "@core/widgets";
-import { lectureIndex } from "@site/content/registry";
-import { examTraining } from "@site/content/exam";
 import { Markdown } from "@site/components/content/Markdown";
 import { DataTable } from "@site/components/content/DataTable";
 import { Badge } from "@site/components/ui/Badge";
 import { ProgressBar } from "@site/components/ui/ProgressBar";
 import { Stat } from "@site/components/ui/Stat";
-import { lecturePath } from "@site/lib/format";
 import { cn } from "@site/lib/cn";
+import { useSite } from "@site/site/context";
 
 interface PoolQuestion {
   key: string;
@@ -24,30 +22,6 @@ interface PoolQuestion {
 }
 
 const MIXED_SOURCE = "mixed";
-
-const POOL: PoolQuestion[] = [
-  ...lectureIndex.flatMap((entry) =>
-    entry.quiz.map((question) => ({
-      key: `${entry.meta.slug}:${question.id}`,
-      source: entry.meta.slug,
-      sourceLabel: `L${entry.meta.number} · ${entry.meta.title}`,
-      href: `${lecturePath(entry.meta.slug)}#quiz`,
-      question,
-    })),
-  ),
-  ...(examTraining?.quiz ?? []).map((question) => ({
-    key: `exam:${question.id}`,
-    source: MIXED_SOURCE,
-    sourceLabel: "Cross-lecture",
-    href: null,
-    question,
-  })),
-];
-
-const SOURCES = [
-  ...lectureIndex.map((entry) => ({ id: entry.meta.slug, label: `L${entry.meta.number}`, title: entry.meta.title })),
-  { id: MIXED_SOURCE, label: "Mixed", title: "Cross-lecture questions" },
-];
 
 const LENGTHS = [10, 20, 30, 45];
 const SECONDS_PER_QUESTION = 90;
@@ -70,18 +44,49 @@ function formatClock(seconds: number) {
 }
 
 export function MockExam({ questionCount, minutes }: MockExamProps = {}) {
+  const { data, paths } = useSite();
+  const pool = useMemo<PoolQuestion[]>(
+    () => [
+      ...data.index.flatMap((entry) =>
+        entry.quiz.map((question) => ({
+          key: `${entry.meta.slug}:${question.id}`,
+          source: entry.meta.slug,
+          sourceLabel: `L${entry.meta.number} · ${entry.meta.title}`,
+          href: `${paths.lecture(entry.meta.slug)}#quiz`,
+          question,
+        })),
+      ),
+      ...(data.exam?.quiz ?? []).map((question) => ({
+        key: `exam:${question.id}`,
+        source: MIXED_SOURCE,
+        sourceLabel: "Cross-lecture",
+        href: null,
+        question,
+      })),
+    ],
+    [data.index, data.exam, paths],
+  );
+
+  const sources = useMemo(
+    () => [
+      ...data.index.map((entry) => ({ id: entry.meta.slug, label: `L${entry.meta.number}`, title: entry.meta.title })),
+      { id: MIXED_SOURCE, label: "Mixed", title: "Cross-lecture questions" },
+    ],
+    [data.index],
+  );
+
   const defaultLength = questionCount ?? 20;
   const lengths = LENGTHS.includes(defaultLength) ? LENGTHS : [...LENGTHS, defaultLength].sort((a, b) => a - b);
   const secondsPerQuestion = minutes ? Math.max(10, Math.round((minutes * 60) / defaultLength)) : SECONDS_PER_QUESTION;
   const [phase, setPhase] = useState<Phase>("setup");
   const [length, setLength] = useState(defaultLength);
-  const [selected, setSelected] = useState<string[]>(SOURCES.map((source) => source.id));
+  const [selected, setSelected] = useState<string[]>(() => sources.map((source) => source.id));
   const [timed, setTimed] = useState(true);
   const [questions, setQuestions] = useState<PoolQuestion[]>([]);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [remaining, setRemaining] = useState(0);
 
-  const available = useMemo(() => POOL.filter((entry) => selected.includes(entry.source)), [selected]);
+  const available = useMemo(() => pool.filter((entry) => selected.includes(entry.source)), [pool, selected]);
 
   const submit = useCallback(() => setPhase("done"), [setPhase]);
 
@@ -121,7 +126,7 @@ export function MockExam({ questionCount, minutes }: MockExamProps = {}) {
         <div className="grid gap-2">
           <span className="text-sm font-medium text-ink">Lectures in the draw</span>
           <div className="flex flex-wrap gap-1.5">
-            {SOURCES.map((source) => (
+            {sources.map((source) => (
               <button
                 key={source.id}
                 type="button"
@@ -140,10 +145,10 @@ export function MockExam({ questionCount, minutes }: MockExamProps = {}) {
             ))}
             <button
               type="button"
-              onClick={() => setSelected(selected.length === SOURCES.length ? [] : SOURCES.map((source) => source.id))}
+              onClick={() => setSelected(selected.length === sources.length ? [] : sources.map((source) => source.id))}
               className="rounded-lg px-2.5 py-1 text-sm text-muted underline-offset-2 hover:underline"
             >
-              {selected.length === SOURCES.length ? "None" : "All"}
+              {selected.length === sources.length ? "None" : "All"}
             </button>
           </div>
         </div>
@@ -191,7 +196,7 @@ export function MockExam({ questionCount, minutes }: MockExamProps = {}) {
     );
   }
 
-  const breakdown = SOURCES.map((source) => {
+  const breakdown = sources.map((source) => {
     const ofSource = questions.filter((entry) => entry.source === source.id);
     const right = ofSource.filter((entry) => answers[entry.key] === entry.question.answerId).length;
     return { source, total: ofSource.length, right };

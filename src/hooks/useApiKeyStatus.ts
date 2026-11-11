@@ -1,8 +1,15 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
+import { useCallback, useSyncExternalStore } from "react";
 import { apiKeyStatus, subscribeToApiKey, type KeyStatus } from "@site/lib/assistant/credentials";
+import { useSite } from "@site/site/context";
 
 export function useApiKeyStatus() {
-  return useSyncExternalStore<KeyStatus>(subscribeToApiKey, apiKeyStatus, () => "none");
+  const { storageKey } = useSite();
+  const key = storageKey("gemini-api-key");
+  return useSyncExternalStore<KeyStatus>(
+    useCallback((listener: () => void) => subscribeToApiKey(key, listener), [key]),
+    useCallback(() => apiKeyStatus(key), [key]),
+    () => "none",
+  );
 }

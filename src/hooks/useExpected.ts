@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useSyncExternalStore } from "react";
-import { createPersistentStore } from "@site/lib/store";
-import { storageKey } from "@site/lib/storageKey";
+import { createPersistentStore, type PersistentStore } from "@site/lib/store";
+import { useSite } from "@site/site/context";
 
 /** Which items of the "Expected at the exam" page the student already knows. */
 interface ExpectedState {
@@ -12,16 +12,29 @@ interface ExpectedState {
 
 const fallback: ExpectedState = { known: [], hideKnown: false };
 
-const store = createPersistentStore<ExpectedState>(storageKey("expected:v1"), fallback, (raw) => {
+function revive(raw: unknown): ExpectedState | null {
   if (!raw || typeof raw !== "object") return null;
   const source = raw as Partial<ExpectedState>;
   return {
     known: Array.isArray(source.known) ? source.known.filter((key): key is string => typeof key === "string") : [],
     hideKnown: source.hideKnown === true,
   };
-});
+}
+
+const stores = new Map<string, PersistentStore<ExpectedState>>();
+
+function storeFor(key: string) {
+  let store = stores.get(key);
+  if (!store) {
+    store = createPersistentStore<ExpectedState>(key, fallback, revive);
+    stores.set(key, store);
+  }
+  return store;
+}
 
 export function useExpected() {
+  const { storageKey } = useSite();
+  const store = storeFor(storageKey("expected:v1"));
   const state = useSyncExternalStore(store.subscribe, store.getSnapshot, store.getServerSnapshot);
 
   const setKnown = useCallback((keys: string[], known: boolean) => {
@@ -33,13 +46,13 @@ export function useExpected() {
       }
       return { ...previous, known: [...next] };
     });
-  }, []);
+  }, [store]);
 
   const setHideKnown = useCallback((hideKnown: boolean) => {
     store.set((previous) => ({ ...previous, hideKnown }));
-  }, []);
+  }, [store]);
 
-  const reset = useCallback(() => store.set((previous) => ({ ...previous, known: [] })), []);
+  const reset = useCallback(() => store.set((previous) => ({ ...previous, known: [] })), [store]);
 
   return { state, setKnown, setHideKnown, reset };
 }

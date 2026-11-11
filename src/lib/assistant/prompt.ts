@@ -4,7 +4,7 @@ export interface AssistantSelection {
   truncated?: boolean;
 }
 
-const INSTRUCTIONS = `You are the study assistant built into ${course.title}, a website for the course. A student is reading one lecture and asking you about it.
+const INSTRUCTIONS = (courseTitle: string) => `You are the study assistant built into ${courseTitle}, a website for the course. A student is reading one lecture and asking you about it.
 
 The full lecture is provided below inside <lecture> tags: every section, the worked examples, the glossary, the quiz with its answers, and any exercise sheets with their official solutions. It was written from the course sources listed at its top. When the student has selected a passage, it arrives inside <selection> tags together with the section it came from; center your answer on that passage.
 
@@ -15,8 +15,8 @@ The full lecture is provided below inside <lecture> tags: every section, the wor
 
 Keep responses focused, brief, and concise to avoid overwhelming the person. When asked to explain something, give a high-level summary unless an in-depth one is specifically requested.`;
 
-export function buildSystem(lectureContext: string) {
-  return `${INSTRUCTIONS}\n\n<lecture>\n${lectureContext}\n</lecture>`;
+export function buildSystem(courseTitle: string, lectureContext: string) {
+  return `${INSTRUCTIONS(courseTitle)}\n\n<lecture>\n${lectureContext}\n</lecture>`;
 }
 
 export function formatQuestion(question: string, selection?: AssistantSelection) {
@@ -25,4 +25,3 @@ export function formatQuestion(question: string, selection?: AssistantSelection)
   const note = selection.truncated ? "\n[The selection was shortened.]" : "";
   return `<selection${section}>\n${selection.text}${note}\n</selection>\n\n${question}`;
 }
-import { course } from "@site/content/course";

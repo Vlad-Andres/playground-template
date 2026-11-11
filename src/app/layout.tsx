@@ -1,15 +1,13 @@
 import type { Metadata } from "next";
 import "katex/dist/katex.min.css";
 import "./globals.css";
-import { SiteFooter } from "@site/components/layout/SiteFooter";
-import { ServiceWorkerRegistration } from "@site/components/layout/ServiceWorkerRegistration";
-import { SiteHeader } from "@site/components/layout/SiteHeader";
-import { lectureIndex, lectureMetas } from "@site/content/registry";
-import { buildSearchRecords } from "@site/lib/search";
+import { staticSite } from "@site/content/static";
 import { CONTENT_SECURITY_POLICY } from "@site/lib/security";
-import { THEME_BOOTSTRAP_SCRIPT } from "@site/lib/theme";
-import { course } from "@site/content/course";
+import { themeBootstrapScript } from "@site/lib/theme";
 import { themeCss } from "@site/lib/theme-css";
+import { SiteShell } from "@site/screens/SiteShell";
+
+const course = staticSite.course;
 
 export const metadata: Metadata = {
   title: {
@@ -25,7 +23,6 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
-  const records = buildSearchRecords(lectureIndex);
   const courseThemeCss = themeCss(course.theme);
 
   return (
@@ -34,22 +31,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {process.env.NODE_ENV === "production" ? (
           <meta httpEquiv="Content-Security-Policy" content={CONTENT_SECURITY_POLICY} />
         ) : null}
-        <script dangerouslySetInnerHTML={{ __html: THEME_BOOTSTRAP_SCRIPT }} />
+        <script dangerouslySetInnerHTML={{ __html: themeBootstrapScript(staticSite.key) }} />
         {courseThemeCss ? <style dangerouslySetInnerHTML={{ __html: courseThemeCss }} /> : null}
       </head>
       <body className="flex min-h-screen flex-col">
-        <a
-          href="#main"
-          className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-brand focus:px-4 focus:py-2 focus:text-brand-ink"
-        >
-          Skip to content
-        </a>
-        <SiteHeader metas={lectureMetas} records={records} />
-        <main id="main" className="flex-1">
+        <SiteShell data={staticSite} base="">
           {children}
-        </main>
-        <SiteFooter />
-        <ServiceWorkerRegistration />
+        </SiteShell>
       </body>
     </html>
   );

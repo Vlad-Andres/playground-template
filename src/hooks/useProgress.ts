@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useSyncExternalStore } from "react";
-import { createPersistentStore } from "@site/lib/store";
+import { createPersistentStore, type PersistentStore } from "@site/lib/store";
 import {
   QUIZ_PASS_RATIO,
   emptyLectureProgress,
@@ -9,13 +9,18 @@ import {
   type LectureProgress,
   type ProgressState,
 } from "@site/lib/progress";
-import { storageKey } from "@site/lib/storageKey";
+import { useSite } from "@site/site/context";
 
-const store = createPersistentStore<ProgressState>(
-  storageKey("progress:v1"),
-  {},
-  reviveProgress,
-);
+const stores = new Map<string, PersistentStore<ProgressState>>();
+
+function storeFor(key: string) {
+  let store = stores.get(key);
+  if (!store) {
+    store = createPersistentStore<ProgressState>(key, {}, reviveProgress);
+    stores.set(key, store);
+  }
+  return store;
+}
 
 function updateLecture(
   state: ProgressState,
@@ -27,6 +32,8 @@ function updateLecture(
 }
 
 export function useProgress() {
+  const { storageKey } = useSite();
+  const store = storeFor(storageKey("progress:v1"));
   const progress = useSyncExternalStore(
     store.subscribe,
     store.getSnapshot,
@@ -42,7 +49,7 @@ export function useProgress() {
           : [...entry.sections, sectionId],
       })),
     );
-  }, []);
+  }, [store]);
 
   const recordQuizResult = useCallback(
     (slug: string, quizSectionId: string, correct: number, total: number) => {
@@ -62,12 +69,12 @@ export function useProgress() {
         }),
       );
     },
-    [],
+    [store],
   );
 
   const resetLecture = useCallback((slug: string) => {
     store.set((state) => ({ ...state, [slug]: emptyLectureProgress }));
-  }, []);
+  }, [store]);
 
   return { progress, toggleSection, recordQuizResult, resetLecture };
 }

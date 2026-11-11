@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useSyncExternalStore } from "react";
-import { createPersistentStore } from "@site/lib/store";
+import { createPersistentStore, type PersistentStore } from "@site/lib/store";
 import {
   emptyTaskState,
   reviveExerciseState,
@@ -9,15 +9,22 @@ import {
   type SelfMark,
   type TaskState,
 } from "@site/lib/exercises";
-import { storageKey } from "@site/lib/storageKey";
+import { useSite } from "@site/site/context";
 
-const store = createPersistentStore<ExerciseState>(
-  storageKey("exercises:v1"),
-  {},
-  reviveExerciseState,
-);
+const stores = new Map<string, PersistentStore<ExerciseState>>();
+
+function storeFor(key: string) {
+  let store = stores.get(key);
+  if (!store) {
+    store = createPersistentStore<ExerciseState>(key, {}, reviveExerciseState);
+    stores.set(key, store);
+  }
+  return store;
+}
 
 export function useExerciseState() {
+  const { storageKey } = useSite();
+  const store = storeFor(storageKey("exercises:v1"));
   const state = useSyncExternalStore(store.subscribe, store.getSnapshot, store.getServerSnapshot);
 
   const update = useCallback((key: string, patch: Partial<TaskState>) => {
@@ -25,7 +32,7 @@ export function useExerciseState() {
       ...previous,
       [key]: { ...(previous[key] ?? emptyTaskState), ...patch },
     }));
-  }, []);
+  }, [store]);
 
   const setValue = useCallback(
     (key: string, value: string) => update(key, { value }),
@@ -40,7 +47,7 @@ export function useExerciseState() {
         : [...current.selected, option];
       return { ...previous, [key]: { ...current, selected } };
     });
-  }, []);
+  }, [store]);
 
   const reveal = useCallback((key: string) => update(key, { revealed: true }), [update]);
 
@@ -55,7 +62,7 @@ export function useExerciseState() {
         Object.entries(previous).filter(([key]) => !key.startsWith(`${sheetId}:`)),
       ),
     );
-  }, []);
+  }, [store]);
 
   return { state, update, setValue, toggleOption, reveal, setSelfMark, resetSheet };
 }

@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
-import { DifficultHub } from "@site/components/difficult/DifficultHub";
-import { features } from "@site/content/course";
+import { staticSite } from "@site/content/static";
+import { DifficultScreen } from "@site/screens/DifficultScreen";
 
 export const metadata: Metadata = {
   title: "Difficult parts",
@@ -9,6 +8,5 @@ export const metadata: Metadata = {
 };
 
 export default function DifficultPage() {
-  if (!features.difficult) notFound();
-  return <DifficultHub />;
+  return <DifficultScreen data={staticSite} />;
 }

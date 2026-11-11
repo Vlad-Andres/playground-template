@@ -1,11 +1,12 @@
 import type { MetadataRoute } from "next";
-import { course } from "@site/content/course";
+import { staticSite } from "@site/content/static";
 
 export const dynamic = "force-static";
 
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 
 export default function manifest(): MetadataRoute.Manifest {
+  const course = staticSite.course;
   return {
     name: course.title,
     short_name: course.shortTitle,

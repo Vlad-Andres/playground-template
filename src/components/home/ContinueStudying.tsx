@@ -7,13 +7,14 @@ import { Card } from "@site/components/ui/Card";
 import { ProgressBar } from "@site/components/ui/ProgressBar";
 import { useProgress } from "@site/hooks/useProgress";
 import { lectureStats } from "@site/lib/progress";
-import { lecturePath } from "@site/lib/format";
+import { useSite } from "@site/site/context";
 
 interface ContinueStudyingProps {
   metas: LectureMeta[];
 }
 
 export function ContinueStudying({ metas }: ContinueStudyingProps) {
+  const { paths } = useSite();
   const { progress } = useProgress();
 
   const inProgress = metas.find((meta) => {
@@ -50,7 +51,7 @@ export function ContinueStudying({ metas }: ContinueStudyingProps) {
       </p>
 
       <Link
-        href={nextSection ? `${lecturePath(target.slug)}#${nextSection.id}` : lecturePath(target.slug)}
+        href={nextSection ? `${paths.lecture(target.slug)}#${nextSection.id}` : paths.lecture(target.slug)}
         className="inline-flex w-fit items-center gap-1.5 rounded-lg bg-brand px-4 py-2 text-sm font-medium text-brand-ink transition-opacity hover:opacity-90"
       >
         {stats.started ? "Resume" : "Open lecture"}

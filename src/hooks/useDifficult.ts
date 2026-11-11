@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useSyncExternalStore } from "react";
-import { createPersistentStore } from "@site/lib/store";
+import { createPersistentStore, type PersistentStore } from "@site/lib/store";
 import {
   applyReview,
   emptyDifficultState,
@@ -11,15 +11,22 @@ import {
   type DifficultState,
   type Rating,
 } from "@site/lib/difficult";
-import { storageKey } from "@site/lib/storageKey";
+import { useSite } from "@site/site/context";
 
-const store = createPersistentStore<DifficultState>(
-  storageKey("difficult:v1"),
-  emptyDifficultState,
-  reviveDifficult,
-);
+const stores = new Map<string, PersistentStore<DifficultState>>();
+
+function storeFor(key: string) {
+  let store = stores.get(key);
+  if (!store) {
+    store = createPersistentStore<DifficultState>(key, emptyDifficultState, reviveDifficult);
+    stores.set(key, store);
+  }
+  return store;
+}
 
 export function useDifficult() {
+  const { storageKey } = useSite();
+  const store = storeFor(storageKey("difficult:v1"));
   const state = useSyncExternalStore(store.subscribe, store.getSnapshot, store.getServerSnapshot);
 
   const toggle = useCallback((slug: string, sectionId: string, blockIndex: number | null) => {
@@ -30,7 +37,7 @@ export function useDifficult() {
       else items[key] = newItem(slug, sectionId, blockIndex, Date.now());
       return { ...previous, items };
     });
-  }, []);
+  }, [store]);
 
   const remove = useCallback((key: string) => {
     store.set((previous) => {
@@ -39,11 +46,11 @@ export function useDifficult() {
       delete items[key];
       return { ...previous, items };
     });
-  }, []);
+  }, [store]);
 
   const review = useCallback((key: string, rating: Rating) => {
     store.set((previous) => applyReview(previous, key, rating, Date.now()));
-  }, []);
+  }, [store]);
 
   const setNote = useCallback((key: string, note: string) => {
     store.set((previous) => {
@@ -51,7 +58,7 @@ export function useDifficult() {
       if (!item || item.note === note) return previous;
       return { ...previous, items: { ...previous.items, [key]: { ...item, note } } };
     });
-  }, []);
+  }, [store]);
 
   const recordMatch = useCallback((seconds: number) => {
     store.set((previous) => ({
@@ -59,7 +66,7 @@ export function useDifficult() {
       xp: previous.xp + 20,
       matchBest: previous.matchBest === null ? seconds : Math.min(previous.matchBest, seconds),
     }));
-  }, []);
+  }, [store]);
 
   return { state, toggle, remove, review, setNote, recordMatch };
 }

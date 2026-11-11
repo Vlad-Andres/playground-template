@@ -1,7 +1,3 @@
-import { storageKey } from "@site/lib/storageKey";
-
-const STORAGE_KEY = storageKey("gemini-api-key");
-
 export type KeyPersistence = "session" | "device";
 export type KeyStatus = "none" | KeyPersistence;
 
@@ -19,43 +15,43 @@ function safely<T>(read: () => T, fallback: T): T {
   }
 }
 
-export function readApiKey(): string | null {
+export function readApiKey(storageKey: string): string | null {
   return safely(
-    () => window.sessionStorage.getItem(STORAGE_KEY) ?? window.localStorage.getItem(STORAGE_KEY),
+    () => window.sessionStorage.getItem(storageKey) ?? window.localStorage.getItem(storageKey),
     null,
   );
 }
 
-export function apiKeyStatus(): KeyStatus {
+export function apiKeyStatus(storageKey: string): KeyStatus {
   return safely<KeyStatus>(() => {
-    if (window.sessionStorage.getItem(STORAGE_KEY)) return "session";
-    if (window.localStorage.getItem(STORAGE_KEY)) return "device";
+    if (window.sessionStorage.getItem(storageKey)) return "session";
+    if (window.localStorage.getItem(storageKey)) return "device";
     return "none";
   }, "none");
 }
 
-export function storeApiKey(apiKey: string, persistence: KeyPersistence) {
+export function storeApiKey(storageKey: string, apiKey: string, persistence: KeyPersistence) {
   safely(() => {
-    window.sessionStorage.removeItem(STORAGE_KEY);
-    window.localStorage.removeItem(STORAGE_KEY);
+    window.sessionStorage.removeItem(storageKey);
+    window.localStorage.removeItem(storageKey);
     const storage = persistence === "device" ? window.localStorage : window.sessionStorage;
-    storage.setItem(STORAGE_KEY, apiKey);
+    storage.setItem(storageKey, apiKey);
   }, undefined);
   emit();
 }
 
-export function clearApiKey() {
+export function clearApiKey(storageKey: string) {
   safely(() => {
-    window.sessionStorage.removeItem(STORAGE_KEY);
-    window.localStorage.removeItem(STORAGE_KEY);
+    window.sessionStorage.removeItem(storageKey);
+    window.localStorage.removeItem(storageKey);
   }, undefined);
   emit();
 }
 
-export function subscribeToApiKey(listener: () => void) {
+export function subscribeToApiKey(storageKey: string, listener: () => void) {
   listeners.add(listener);
   const onStorage = (event: StorageEvent) => {
-    if (event.key === STORAGE_KEY) listener();
+    if (event.key === storageKey) listener();
   };
   window.addEventListener("storage", onStorage);
   return () => {

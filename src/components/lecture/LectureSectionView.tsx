@@ -1,10 +1,13 @@
+"use client";
+
 import type { Block, Lecture, LectureSection, SectionKind } from "@site/content/types";
 import { BlockRenderer } from "@site/components/content/BlockRenderer";
 import { QuizCard } from "@site/components/content/QuizCard";
 import { SectionCompleteToggle } from "@site/components/lecture/SectionCompleteToggle";
 import { DifficultBlock } from "@site/components/difficult/DifficultBlock";
-import { features } from "@site/content/course";
 import { DifficultSectionToggle } from "@site/components/difficult/DifficultSectionToggle";
+import { siteFeatures } from "@core/site";
+import { useSite } from "@site/site/context";
 
 const KIND_LABEL: Record<SectionKind, string> = {
   objectives: "Objectives",
@@ -30,6 +33,9 @@ interface LectureSectionViewProps {
 }
 
 export function LectureSectionView({ lecture, section }: LectureSectionViewProps) {
+  const { data } = useSite();
+  const features = siteFeatures(data.course);
+
   return (
     <section id={section.id} className="grid scroll-mt-24 gap-6">
       <header className="flex items-end justify-between gap-3">

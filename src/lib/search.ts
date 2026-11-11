@@ -1,5 +1,4 @@
 import type { Concept, LectureMeta } from "@site/content/types";
-import { lecturePath } from "@site/lib/format";
 
 export type SearchRecordType = "lecture" | "section" | "concept" | "objective";
 
@@ -23,10 +22,11 @@ const TYPE_WEIGHT: Record<SearchRecordType, number> = {
 
 export function buildSearchRecords(
   entries: { meta: LectureMeta; concepts: Concept[] }[],
+  lectureHref: (slug: string) => string,
 ): SearchRecord[] {
   return entries.flatMap(({ meta, concepts }) => {
     const base = { lectureNumber: meta.number, lectureTitle: meta.title };
-    const href = lecturePath(meta.slug);
+    const href = lectureHref(meta.slug);
 
     const lectureRecord: SearchRecord = {
       ...base,

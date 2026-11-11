@@ -8,11 +8,3 @@ export function formatMinutes(minutes: number) {
 export function formatPercent(value: number) {
   return `${Math.round(value * 100)}%`;
 }
-
-export function lecturePath(slug: string) {
-  return `/lectures/${slug}/`;
-}
-
-export const EXAM_PATH = "/exam/";
-export const DIFFICULT_PATH = "/difficult/";
-export const EXPECTED_PATH = "/expected/";

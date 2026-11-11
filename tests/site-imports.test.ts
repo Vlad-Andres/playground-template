@@ -26,4 +26,18 @@ describe("shared UI imports", () => {
 
     expect(offenders).toEqual([]);
   });
+
+  it("keeps generated content behind src/content/static.ts", () => {
+    const offenders: string[] = [];
+    for (const file of sourceFiles(SRC)) {
+      const relative = path.relative(SRC, file).split(path.sep).join("/");
+      if (relative === "content/static.ts") continue;
+      const text = fs.readFileSync(file, "utf8");
+      for (const match of text.matchAll(IMPORT)) {
+        if (/(^|\/)generated\//.test(match[1])) offenders.push(`${relative}: ${match[1]}`);
+      }
+    }
+
+    expect(offenders).toEqual([]);
+  });
 });
