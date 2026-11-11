@@ -14,6 +14,7 @@ import { PracticeSet } from "@/components/content/PracticeSet";
 import { Timeline } from "@/components/content/Timeline";
 import { WorkedExample } from "@/components/content/WorkedExample";
 import { WidgetHost } from "@/widgets/WidgetHost";
+import { sourceLabel } from "@/lib/course-info";
 
 interface BlockRendererProps {
   block: Block;
@@ -21,6 +22,16 @@ interface BlockRendererProps {
 }
 
 export function BlockRenderer({ block, concepts }: BlockRendererProps) {
+  if (!block.source) return <BlockContent block={block} concepts={concepts} />;
+  return (
+    <div className="grid gap-1.5">
+      <BlockContent block={block} concepts={concepts} />
+      <p className="w-fit rounded-md bg-sunken px-2 py-0.5 text-xs text-faint">{sourceLabel(block.source)}</p>
+    </div>
+  );
+}
+
+function BlockContent({ block, concepts }: BlockRendererProps) {
   switch (block.kind) {
     case "prose":
       return <Markdown>{block.md}</Markdown>;

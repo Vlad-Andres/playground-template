@@ -15,11 +15,10 @@ describe("widget registry", () => {
     expect(toWidgetType(componentName)).toBe(widgetType);
   });
 
-  it("lists one type per file in src/widgets/dis", () => {
-    const directory = path.resolve("src/widgets/dis");
-    const types = fs
-      .readdirSync(directory)
-      .filter((file) => file.endsWith(".tsx"))
+  it("lists one type per component file in src/widgets/dis and src/widgets/core", () => {
+    const types = ["dis", "core"]
+      .flatMap((folder) => fs.readdirSync(path.resolve("src/widgets", folder)))
+      .filter((file) => /^[A-Z].*\.tsx$/.test(file))
       .map((file) => toWidgetType(file.slice(0, -4)))
       .sort();
     expect(types).toEqual([...WIDGET_TYPES].sort());

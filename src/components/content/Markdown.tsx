@@ -6,10 +6,22 @@ import { RunnableCode } from "@/components/content/RunnableCode";
 import { cn } from "@/lib/cn";
 import { runLanguage } from "@/lib/runner/types";
 
+/** `//host` and `/\host` are protocol-relative: the browser resolves them to another origin. */
+function isProtocolRelative(value: string): boolean {
+  return value.startsWith("//") || value.startsWith("/\\") || value.startsWith("\\");
+}
+
 function safeHref(href: string | undefined): string | undefined {
-  if (!href) return undefined;
+  if (!href || isProtocolRelative(href)) return undefined;
   if (href.startsWith("#") || href.startsWith("/") || href.startsWith("./") || href.startsWith("../")) return href;
   if (/^https?:\/\//i.test(href)) return href;
+  return undefined;
+}
+
+/** Content images may only point at files shipped with the site, never a third-party URL. */
+function safeImageSrc(src: string | undefined): string | undefined {
+  if (!src || isProtocolRelative(src)) return undefined;
+  if (src.startsWith("/") || src.startsWith("./") || src.startsWith("../")) return src;
   return undefined;
 }
 
@@ -31,6 +43,13 @@ const components: Components = {
         {children}
       </a>
     );
+  },
+  img: ({ src, alt }) => {
+    const safe = typeof src === "string" ? safeImageSrc(src) : undefined;
+    // Never let content trigger a third-party image request; keep the alt text as plain text.
+    if (!safe) return alt ? <span className="text-faint">{alt}</span> : null;
+    // eslint-disable-next-line @next/next/no-img-element -- content images are local files and have no known dimensions
+    return <img src={safe} alt={alt ?? ""} loading="lazy" className="max-w-full rounded-lg border border-line" />;
   },
   ul: ({ children }) => (
     <ul className="ml-1 grid gap-1.5 text-muted [&>li]:relative [&>li]:pl-5">{children}</ul>

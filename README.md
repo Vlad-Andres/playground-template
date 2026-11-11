@@ -20,6 +20,28 @@ The starter course lives in [`content/`](content/). Put source PDFs and other wo
 in [`materials/`](materials/), and generated JSON in `content/`. The build rejects invalid JSON,
 unknown keys, unsafe widget types, and broken lecture references.
 
+## Generate a course from your material
+
+Put PDFs, `.txt` or `.md` files in `materials/` (ignored by git) and a key in `.env.local`
+(`GEMINI_API_KEY`, or `OPENAI_COMPATIBLE_API_KEY` + `OPENAI_COMPATIBLE_BASE_URL` with `--provider openai`):
+
+```bash
+npm run generate -- --materials materials --out content --exam
+```
+
+Options: `--depth cram|standard|deep`, `--language en`, `--level school|university|professional`,
+`--no-widgets`, `--no-quizzes`, `--title`, `--accent "#0f766e"`, `--model <id>`, `--bundle <file>`,
+`--report <file>`, `--trace <file>` (local log of prompts and replies), `--price-in`/`--price-out`
+(USD per million tokens, for the cost line), `--fake` (canned model, no key, no cost). The text is
+read locally; only text is sent to the model. Every step runs under a token budget.
+
+A course bundle (`{"format": "playground-bundle@1", "files": {...}}`, e.g. from the portal) is
+imported with:
+
+```bash
+npm run import -- course-bundle.json --out content
+```
+
 ## Content
 
 - `content/course.json` defines the course identity and optional overview/footer text.

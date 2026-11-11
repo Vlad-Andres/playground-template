@@ -1,0 +1,25 @@
+{
+  "id": "energy-and-motion",
+  "title": "Energy and Motion",
+  "shortTitle": "Energy",
+  "description": "A showcase course: every block kind and every generic widget on one page.",
+  "language": "en",
+  "indexable": false,
+  "overviewBadge": "Showcase",
+  "overviewTitle": "Energy and motion, made interactive.",
+  "level": "school",
+  "domains": [
+    "core",
+    "math"
+  ],
+  "examDate": "2027-06-15",
+  "theme": {
+    "accent": "#0f766e",
+    "corners": "soft"
+  },
+  "features": {
+    "assistant": true,
+    "difficult": true,
+    "search": true
+  }
+}

@@ -3,6 +3,7 @@ import { BlockRenderer } from "@/components/content/BlockRenderer";
 import { QuizCard } from "@/components/content/QuizCard";
 import { SectionCompleteToggle } from "@/components/lecture/SectionCompleteToggle";
 import { DifficultBlock } from "@/components/difficult/DifficultBlock";
+import { features } from "@/content/course";
 import { DifficultSectionToggle } from "@/components/difficult/DifficultSectionToggle";
 
 const KIND_LABEL: Record<SectionKind, string> = {
@@ -38,13 +39,13 @@ export function LectureSectionView({ lecture, section }: LectureSectionViewProps
           </p>
           <h2 className="text-2xl font-semibold tracking-tight">{section.title}</h2>
         </div>
-        {section.kind !== "objectives" ? (
+        {features.difficult && section.kind !== "objectives" ? (
           <DifficultSectionToggle lectureSlug={lecture.meta.slug} sectionId={section.id} />
         ) : null}
       </header>
 
       {section.blocks.map((block, index) =>
-        FLAGGABLE.has(block.kind) ? (
+        features.difficult && FLAGGABLE.has(block.kind) ? (
           <DifficultBlock key={index} lectureSlug={lecture.meta.slug} sectionId={section.id} blockIndex={index}>
             <BlockRenderer block={block} concepts={lecture.concepts} />
           </DifficultBlock>

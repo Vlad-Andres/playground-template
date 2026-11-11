@@ -5,7 +5,8 @@ import type { ComponentType } from "react";
 import { InteractivePanel } from "@/components/content/InteractivePanel";
 import { isWidgetType, type WidgetType } from "./types";
 
-const widgetComponents: Record<WidgetType, ComponentType> = {
+// Each component receives the props validated against its catalogue schema at build time.
+const widgetComponents: Record<WidgetType, ComponentType<any>> = {
   "b-plus-tree-lab": dynamic(() => import("./dis/BPlusTreeLab").then((module) => module.BPlusTreeLab)),
   "band-tuner": dynamic(() => import("./dis/BandTuner").then((module) => module.BandTuner)),
   "clustering-lab": dynamic(() => import("./dis/ClusteringLab").then((module) => module.ClusteringLab)),
@@ -21,7 +22,6 @@ const widgetComponents: Record<WidgetType, ComponentType> = {
   "lazy-evaluation-lab": dynamic(() => import("./dis/LazyEvaluationLab").then((module) => module.LazyEvaluationLab)),
   "map-reduce-lab": dynamic(() => import("./dis/MapReduceLab").then((module) => module.MapReduceLab)),
   "minhash-lab": dynamic(() => import("./dis/MinhashLab").then((module) => module.MinhashLab)),
-  "mock-exam": dynamic(() => import("./dis/MockExam").then((module) => module.MockExam)),
   "pair-cost-calculator": dynamic(() => import("./dis/PairCostCalculator").then((module) => module.PairCostCalculator)),
   "quorum-lab": dynamic(() => import("./dis/QuorumLab").then((module) => module.QuorumLab)),
   "rdf-storage-lab": dynamic(() => import("./dis/RdfStorageLab").then((module) => module.RdfStorageLab)),
@@ -32,6 +32,16 @@ const widgetComponents: Record<WidgetType, ComponentType> = {
   "string-similarity-lab": dynamic(() => import("./dis/StringSimilarityLab").then((module) => module.StringSimilarityLab)),
   "two-phase-commit-simulator": dynamic(() => import("./dis/TwoPhaseCommitSimulator").then((module) => module.TwoPhaseCommitSimulator)),
   "vector-search-lab": dynamic(() => import("./dis/VectorSearchLab").then((module) => module.VectorSearchLab)),
+  "order-items": dynamic(() => import("./core/OrderItems").then((module) => module.OrderItems)),
+  "match-pairs": dynamic(() => import("./core/MatchPairs").then((module) => module.MatchPairs)),
+  categorize: dynamic(() => import("./core/Categorize").then((module) => module.Categorize)),
+  cloze: dynamic(() => import("./core/Cloze").then((module) => module.Cloze)),
+  "flow-stepper": dynamic(() => import("./core/FlowStepper").then((module) => module.FlowStepper)),
+  "concept-map": dynamic(() => import("./core/ConceptMap").then((module) => module.ConceptMap)),
+  chart: dynamic(() => import("./core/Chart").then((module) => module.Chart)),
+  "parameter-explorer": dynamic(() => import("./core/ParameterExplorer").then((module) => module.ParameterExplorer)),
+  "function-plot": dynamic(() => import("./core/FunctionPlot").then((module) => module.FunctionPlot)),
+  "mock-exam": dynamic(() => import("./core/MockExam").then((module) => module.MockExam)),
 };
 
 interface WidgetHostProps {
