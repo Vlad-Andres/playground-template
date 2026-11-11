@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Check, Clock, Play, RotateCcw, Send, X } from "lucide-react";
 import type { QuizQuestion } from "@/content/types";
+import type { MockExamProps } from "@core/widgets";
 import { lectureIndex } from "@/content/registry";
 import { examTraining } from "@/content/exam";
 import { Markdown } from "@/components/content/Markdown";
@@ -68,9 +69,12 @@ function formatClock(seconds: number) {
   return `${minutes}:${String(rest).padStart(2, "0")}`;
 }
 
-export function MockExam() {
+export function MockExam({ questionCount, minutes }: MockExamProps = {}) {
+  const defaultLength = questionCount ?? 20;
+  const lengths = LENGTHS.includes(defaultLength) ? LENGTHS : [...LENGTHS, defaultLength].sort((a, b) => a - b);
+  const secondsPerQuestion = minutes ? Math.max(10, Math.round((minutes * 60) / defaultLength)) : SECONDS_PER_QUESTION;
   const [phase, setPhase] = useState<Phase>("setup");
-  const [length, setLength] = useState(20);
+  const [length, setLength] = useState(defaultLength);
   const [selected, setSelected] = useState<string[]>(SOURCES.map((source) => source.id));
   const [timed, setTimed] = useState(true);
   const [questions, setQuestions] = useState<PoolQuestion[]>([]);
@@ -79,7 +83,7 @@ export function MockExam() {
 
   const available = useMemo(() => POOL.filter((entry) => selected.includes(entry.source)), [selected]);
 
-  const submit = useCallback(() => setPhase("done"), []);
+  const submit = useCallback(() => setPhase("done"), [setPhase]);
 
   useEffect(() => {
     if (phase !== "running" || !timed) return;
@@ -100,7 +104,7 @@ export function MockExam() {
     const drawn = shuffle(available).slice(0, Math.min(length, available.length));
     setQuestions(drawn);
     setAnswers({});
-    setRemaining(drawn.length * SECONDS_PER_QUESTION);
+    setRemaining(drawn.length * secondsPerQuestion);
     setPhase("running");
   }
 
@@ -146,7 +150,7 @@ export function MockExam() {
 
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-sm font-medium text-ink">Questions</span>
-          {LENGTHS.map((value) => (
+          {lengths.map((value) => (
             <button
               key={value}
               type="button"
@@ -164,7 +168,7 @@ export function MockExam() {
           ))}
           <label className="ml-2 flex items-center gap-2 text-sm text-muted">
             <input type="checkbox" checked={timed} onChange={(event) => setTimed(event.target.checked)} className="accent-brand" />
-            Timed ({SECONDS_PER_QUESTION} s per question)
+            Timed ({secondsPerQuestion} s per question)
           </label>
         </div>
 
