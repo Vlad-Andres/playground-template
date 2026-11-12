@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Analytics } from "@vercel/analytics/next";
 import "katex/dist/katex.min.css";
 import "./globals.css";
 import { staticSite } from "@site/content/static";
@@ -38,6 +39,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <SiteShell data={staticSite} base="">
           {children}
         </SiteShell>
+        <Analytics />
       </body>
     </html>
   );
