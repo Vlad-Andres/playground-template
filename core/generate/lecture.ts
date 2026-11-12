@@ -18,7 +18,7 @@ import { renderMaterials } from "./ingest";
 import { lintLecture } from "./lint";
 import { extractJson, type ModelClient } from "./model";
 import type { CoursePlan, PlannedLecture } from "./plan";
-import { improvePrompt, lecturePrompt, repairPrompt } from "./prompts";
+import { DEPTH_TARGETS, improvePrompt, lecturePrompt, repairPrompt } from "./prompts";
 import type { Brief, Material } from "./types";
 
 export const LECTURE_MAX_OUTPUT_TOKENS = 24_000;
@@ -75,17 +75,27 @@ function quizProblems(value: unknown): Problem[] {
   return problems;
 }
 
-function blockProblems(value: unknown, brief: Brief): Problem[] {
+/** How many model-written custom exercises this lecture may keep: only where the plan asked for one. */
+export function customLimit(brief: Brief, planned: PlannedLecture): number {
+  if (!brief.widgets) return 0;
+  if (!planned.sections.some((section) => section.blocks.includes("custom"))) return 0;
+  return DEPTH_TARGETS[brief.depth].custom;
+}
+
+const NOT_PLANNED: Problem = { code: "W309", severity: "error", file: "", path: "kind", message: "A custom exercise is not planned here.", fix: "Use a catalogue widget or another block kind." };
+
+function blockProblems(value: unknown, brief: Brief, allowCustom = 0): Problem[] {
   const problems = validateBlock(value);
   if (problems.length) return problems;
   const block = value as Block;
+  if (block.kind === "custom" && allowCustom <= 0) return [NOT_PLANNED];
   if (block.kind === "widget" && (!brief.widgets || !(generatorWidgetTypes as string[]).includes(block.type) || block.type === "mock-exam")) {
     return [{ code: "E104", severity: "error", file: "", path: "type", message: `Widget "${block.type}" is not available here.`, fix: `Use one of: ${generatorWidgetTypes.filter((type) => type !== "mock-exam").join(", ")}, or another block kind.` }];
   }
   return [];
 }
 
-function check(item: Omit<Item, "problems">, brief: Brief): Item {
+function check(item: Omit<Item, "problems">, brief: Brief, allowCustom = 0): Item {
   const problems =
     item.kind === "meta"
       ? zodProblems(lectureMetaSchema, item.value)
@@ -93,7 +103,7 @@ function check(item: Omit<Item, "problems">, brief: Brief): Item {
         ? zodProblems(conceptSchema, item.value)
         : item.kind === "quiz"
           ? quizProblems(item.value)
-          : blockProblems(item.value, brief);
+          : blockProblems(item.value, brief, allowCustom);
   return { ...item, problems };
 }
 
@@ -150,7 +160,8 @@ export async function writeLecture(
   if (!planned) throw new Error(`The plan has no lecture ${index + 1}.`);
   const pagesText = renderMaterials(materials, planned.pages);
   const pageCount = (pagesText.match(/^=== .+ — page \d+ ===$/gm) ?? []).length;
-  const prompt = lecturePrompt({ brief, lecturePlan: planned, courseTitle: plan.course.title, pagesText, pageCount });
+  const allowCustom = customLimit(brief, planned);
+  const prompt = lecturePrompt({ brief, lecturePlan: planned, courseTitle: plan.course.title, pagesText, pageCount, customLimit: allowCustom });
 
   // 1. One main call, one retry when the reply is not JSON.
   let raw = await askJson(model, prompt.system, prompt.user, LECTURE_MAX_OUTPUT_TOKENS);
@@ -179,7 +190,7 @@ export async function writeLecture(
     ...asArray(reply.concepts).map((value, i) => check({ kind: "concept", path: `concepts[${i}]`, label: "concept", value }, brief)),
     ...(brief.quizzes ? asArray(reply.quiz) : []).map((value, i) => check({ kind: "quiz", path: `quiz[${i}]`, label: "quiz question", value }, brief)),
     ...sections.flatMap((section) =>
-      section.blocks.map(({ path, value }) => check({ kind: "block", path, label: `block in section "${section.id}"`, value }, brief)),
+      section.blocks.map(({ path, value }) => check({ kind: "block", path, label: `block in section "${section.id}"`, value }, brief, allowCustom)),
     ),
   ];
 
@@ -194,7 +205,7 @@ export async function writeLecture(
     invalid.forEach((item, i) => {
       const value = repaired[i];
       if (value === null || value === undefined) return;
-      const next = check({ ...item, value: item.kind === "meta" ? forceMeta(value, planned) : value }, brief);
+      const next = check({ ...item, value: item.kind === "meta" ? forceMeta(value, planned) : value }, brief, allowCustom);
       if (next.problems.length === 0) {
         item.value = next.value;
         item.problems = [];
@@ -231,7 +242,16 @@ export async function writeLecture(
     if (quiz.some((existing) => existing.id === question.id)) dropped.push(dropProblem({ ...item, problems: [{ code: "E101", severity: "error", file: "", path: "id", message: `Duplicate quiz id "${question.id}".`, fix: "" }] }));
     else quiz.push(question);
   }
-  const validBlocks = new Map(valid("block").map((item) => [item.path, item.value as Block]));
+  // Keep at most `allowCustom` custom exercises; any beyond that are dropped, never published.
+  let customKept = 0;
+  const blockItems = valid("block").filter((item) => {
+    if ((item.value as Block).kind !== "custom") return true;
+    customKept += 1;
+    if (customKept <= allowCustom) return true;
+    dropped.push(dropProblem({ ...item, problems: [{ ...NOT_PLANNED, message: `More than ${allowCustom} custom exercise(s) in this lecture.` }] }));
+    return false;
+  });
+  const validBlocks = new Map(blockItems.map((item) => [item.path, item.value as Block]));
 
   // 4. Clean up references and empty sections.
   const lecture = assemble(meta, concepts, quiz, sections.map((section) => ({ ...section, blocks: section.blocks.flatMap(({ path }) => (validBlocks.has(path) ? [validBlocks.get(path) as Block] : [])) })));

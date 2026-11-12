@@ -26,7 +26,7 @@ export function cannedModel(): ModelClient {
       const sections = [
         { id: "goals", title: "Goals", kind: "objectives", blocks: ["list"] },
         { id: "ideas", title: "Key ideas", kind: "concepts", blocks: ["prose", "concepts", "table"] },
-        { id: "practice", title: "Practice", kind: "quiz", blocks: ["recall", "practice", "widget"] },
+        { id: "practice", title: "Practice", kind: "quiz", blocks: ["recall", "practice", "widget", ...(request.user.includes("[custom]") ? ["custom"] : [])] },
       ];
       // The expand call lists the lectures to keep; answer with exactly that many.
       const fixed = request.system.startsWith(TASK.expand) ? (/LECTURES ARE FIXED:\n((?:- .*\n?)*)/.exec(request.user)?.[1] ?? "").split("\n").filter((line) => line.startsWith("- ")).length : 0;
@@ -113,6 +113,9 @@ export function cannedModel(): ModelClient {
               { kind: "practice", id: "practice-1", tasks: [{ id: "t1", prompt: "Pick alpha", check: { mode: "select", options: ["alpha", "beta"], answer: ["alpha"] }, solution: "alpha" }], source },
               { kind: "widget", type: "order-items", title: "Put in order", props: { prompt: "Order the letters.", items: ["Alpha", "Beta", "Gamma"] }, source },
               { kind: "widget", type: "match-pairs", title: "Match", props: { pairs: [{ left: "A", right: "Alpha" }, { left: "B", right: "Beta" }, { left: "G", right: "Gamma" }] }, source },
+              ...(request.user.includes("[custom]")
+                ? [{ kind: "custom", id: "try-it", title: "Try it", description: "Press the button when you are done.", html: '<button onclick="pg.done(1)">Done</button>', height: 200, source }]
+                : []),
             ],
           },
         ],

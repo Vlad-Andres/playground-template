@@ -48,10 +48,16 @@ describe("lintLecture size and variety", () => {
     expect(lintLecture(good(), brief, 60).map((problem) => problem.code)).toContain("W307");
     expect(lintLecture(good(), brief, 6).map((problem) => problem.code)).not.toContain("W307");
   });
-  it("W308 fewer than five block kinds", () => {
+  it("no variety quota: a lecture with three block kinds gets no W308", () => {
     const lecture = good();
-    expect(codes(lecture)).not.toContain("W308");
     lecture.sections[1].blocks = lecture.sections[1].blocks.filter((block) => !["widget", "practice", "table"].includes(block.kind));
-    expect(codes(lecture)).toContain("W308");
+    expect(new Set(lecture.sections.flatMap((section) => section.blocks.map((block) => block.kind))).size).toBeLessThanOrEqual(4);
+    expect(codes(lecture)).not.toContain("W308");
+  });
+  it("a prose-only lecture still gets W304 (too much prose) and W305 (nothing structured)", () => {
+    const lecture = good();
+    const prose = { kind: "prose" as const, md: "Text.", source: [{ file: "slides.pdf", page: 1 }] };
+    lecture.sections = lecture.sections.map((section) => ({ ...section, blocks: [prose, prose] }));
+    expect(codes(lecture)).toEqual(expect.arrayContaining(["W304", "W305"]));
   });
 });
