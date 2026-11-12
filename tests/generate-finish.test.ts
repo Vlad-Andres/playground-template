@@ -8,6 +8,8 @@ const course = { id: "energy", title: "Energy", shortTitle: "Energy", descriptio
 const plan = (exam: boolean): CoursePlan => ({
   course,
   lectures: [plannedLecture(1, "kinetic"), plannedLecture(2, "potential")],
+  approach: "follow-source",
+  why: "",
   ...(exam ? { exam: { title: "Exam training", intro: "Practise." } } : {}),
 });
 const lectures = [goodLecture(1, "kinetic"), goodLecture(2, "potential")];

@@ -5,6 +5,8 @@ import { brief, goodLecture, materials, plannedLecture } from "./fixtures/genera
 const plan: CoursePlan = {
   course: { id: "energy", title: "Energy", shortTitle: "Energy", description: "d", language: "en", indexable: false },
   lectures: [plannedLecture(1, "kinetic")],
+  approach: "follow-source",
+  why: "",
 };
 
 function scripted(handlers: Partial<Record<keyof typeof TASK, (request: ModelRequest) => string>>) {

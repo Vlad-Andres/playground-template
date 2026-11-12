@@ -17,26 +17,51 @@ export function cannedModel(): ModelClient {
         : null;
       return JSON.stringify({ subject: "Sample subject", level: "university", goals: ["Explain the main ideas of the material."], assumptions: [], focus });
     }
-    if (request.system.startsWith(TASK.plan)) {
+    if (request.system.startsWith(TASK.plan) || request.system.startsWith(TASK.expand)) {
       const files = [...new Set(pages.map((page) => page.file))];
+      const rangeOf = (file: string) => {
+        const filePages = pages.filter((page) => page.file === file).map((page) => page.page);
+        return { file, from: Math.min(...filePages), to: Math.max(...filePages) };
+      };
+      const sections = [
+        { id: "goals", title: "Goals", kind: "objectives", blocks: ["list"] },
+        { id: "ideas", title: "Key ideas", kind: "concepts", blocks: ["prose", "concepts", "table"] },
+        { id: "practice", title: "Practice", kind: "quiz", blocks: ["recall", "practice", "widget"] },
+      ];
+      // The expand call lists the lectures to keep; answer with exactly that many.
+      const fixed = request.system.startsWith(TASK.expand) ? (/LECTURES ARE FIXED:\n((?:- .*\n?)*)/.exec(request.user)?.[1] ?? "").split("\n").filter((line) => line.startsWith("- ")).length : 0;
+      const count = fixed || files.length;
+      const lectures = Array.from({ length: count }, (_, index) => {
+        const file = files[index % files.length];
+        return {
+          number: index + 1,
+          slug: `part-${index + 1}`,
+          title: `Part ${index + 1}`,
+          summary: `Everything in ${file}.`,
+          goals: [`Explain the ideas of part ${index + 1}.`],
+          pages: [rangeOf(file)],
+          sections,
+        };
+      });
+      const alternatives = request.user.includes("[alternatives]")
+        ? [{ approach: "by-topic", why: "One lecture that groups everything by topic.", lectures: [{ title: "Everything", summary: "All the material in one lecture.", pages: files.map(rangeOf) }] }]
+        : [];
       return JSON.stringify({
-        course: { id: "sample-course", title: "Sample course", shortTitle: "Sample", description: "Generated with the canned model.", language: "en", indexable: false, domains: ["core"] },
-        lectures: files.map((file, index) => {
-          const filePages = pages.filter((page) => page.file === file).map((page) => page.page);
-          return {
-            number: index + 1,
-            slug: `part-${index + 1}`,
-            title: `Part ${index + 1}`,
-            summary: `Everything in ${file}.`,
-            pages: [{ file, from: Math.min(...filePages), to: Math.max(...filePages) }],
-            sections: [
-              { id: "goals", title: "Goals", kind: "objectives", blocks: ["list"] },
-              { id: "ideas", title: "Key ideas", kind: "concepts", blocks: ["prose", "concepts", "table"] },
-              { id: "practice", title: "Practice", kind: "quiz", blocks: ["recall", "practice", "widget"] },
-            ],
-          };
-        }),
+        course: {
+          id: "sample-course",
+          title: "Sample course",
+          shortTitle: "Sample",
+          description: "Generated with the canned model.",
+          language: "en",
+          indexable: false,
+          domains: ["core"],
+          home: { intro: "Welcome to the sample course.", highlights: [{ title: "Short lectures", md: "Each part fits in one sitting." }], studyPath: ["Read a part", "Try the practice"] },
+        },
+        approach: "follow-source",
+        why: "Follows the order of your files.",
+        lectures,
         exam: { title: "Exam training", intro: "Practise with questions from every part." },
+        ...(fixed ? {} : { alternatives }),
       });
     }
     if (request.system.startsWith(TASK.lecture)) {

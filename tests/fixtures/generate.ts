@@ -13,6 +13,7 @@ export function plannedLecture(number: number, slug = `lecture-${number}`): Plan
     slug,
     title: `Lecture ${number}`,
     summary: "A summary.",
+    goals: [],
     pages: [{ file: "slides.pdf", from: 1, to: 6 }],
     sections: [
       { id: "goals", title: "Goals", kind: "objectives", blocks: ["list"] },

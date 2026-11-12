@@ -2,7 +2,7 @@ import { blockExamples } from "../examples";
 import { generatorWidgetTypes, widgetCatalogue } from "../widgets";
 import type { Brief, Depth } from "./types";
 
-export const TASK = { plan: "TASK: plan", lecture: "TASK: lecture", repair: "TASK: repair", improve: "TASK: improve", context: "TASK: context" } as const;
+export const TASK = { plan: "TASK: plan", lecture: "TASK: lecture", repair: "TASK: repair", improve: "TASK: improve", context: "TASK: context", expand: "TASK: expand" } as const;
 
 export const LANGUAGE_NAMES: Record<string, string> = {
   en: "English",
@@ -51,30 +51,63 @@ function briefLines(brief: Brief): string {
     .join("\n");
 }
 
-export function planPrompt(materialText: string, brief: Brief, maxLectures: number): { system: string; user: string } {
-  const system = `${TASK.plan}
+export interface DesignContextLines {
+  subject: string;
+  goals: string[];
+  assumptions: string[];
+}
+
+/**
+ * The course design: lectures, sections and their likely block kinds, a short home page, the approach and why,
+ * and up to two genuinely different alternatives. `fixed` turns it into the expand call for a chosen outline.
+ */
+export function designPrompt(
+  materialText: string,
+  brief: Brief,
+  context: DesignContextLines,
+  maxLectures: number,
+  fixed?: { title: string; pages: string }[],
+): { system: string; user: string } {
+  const task = fixed ? TASK.expand : TASK.plan;
+  const system = `${task}
 You plan a study website built from course material. ${SAFETY}
 
 Return this JSON shape:
 {
-  "course": { "id": "lower-case-slug", "title": "...", "shortTitle": "max 16 characters", "description": "one sentence", "language": "${brief.language}", "indexable": false, "level": "${brief.level}", "domains": ["core", ...] },
+  "course": { "id": "lower-case-slug", "title": "...", "shortTitle": "max 16 characters", "description": "one sentence", "language": "${brief.language}", "indexable": false, "level": "${brief.level}", "domains": ["core", ...],
+              "home": { "intro": "a short welcome", "highlights": [{ "title": "...", "md": "..." }], "studyPath": ["step"] } },
+  "approach": "${APPROACH_LIST}",
+  "why": "one sentence: why this structure fits this material",
   "lectures": [
-    { "number": 1, "slug": "lower-case-slug", "title": "...", "summary": "one or two sentences",
+    { "number": 1, "slug": "lower-case-slug", "title": "...", "summary": "one or two sentences", "goals": ["what the learner can do after this lecture"],
       "pages": [{ "file": "exact file name", "from": 1, "to": 12 }],
-      "sections": [{ "id": "short-id", "title": "...", "kind": "one of: ${SECTION_KINDS}", "blocks": ["block kinds you intend to use"] }] }
-  ]${brief.examMode ? `,\n  "exam": { "title": "...", "intro": "one or two sentences" }` : ""}
+      "sections": [{ "id": "short-id", "title": "...", "kind": "one of: ${SECTION_KINDS}", "blocks": ["block kinds that fit this section"] }] }
+  ]${brief.examMode ? `,\n  "exam": { "title": "...", "intro": "one or two sentences" }` : ""}${fixed ? "" : `,\n  "alternatives": [{ "approach": "...", "why": "...", "lectures": [{ "title": "...", "summary": "...", "pages": [{ "file": "...", "from": 1, "to": 3 }] }] }]`}
 }
 
 Rules:
-- 1 to ${maxLectures} lectures that follow the material's own structure (chapters, weeks, slide decks).
-- Every page with real content belongs to exactly one lecture; give each lecture the page ranges it covers, per file.
-- 4 to 8 sections per lecture. Start with an "objectives" section and end with a "summary" section.
+- 1 to ${maxLectures} lectures. Every page with real content belongs to exactly one lecture; give each lecture the page ranges it covers, per file.
+- 4 to 8 sections per lecture. Start with an "objectives" section and end with a "summary" section. 1 to 4 "goals" per lecture.
+- "blocks" lists the block kinds that fit that section's content. List "custom" only when no widget type can teach the idea.
 - "domains" lists the packs that fit: core (always), math (formulas), cs (algorithms, code), memorise (vocabulary, facts to learn by heart), humanities (history, texts, arguments).
+- "home": a short welcome built only from the material: an intro, up to 4 highlights and up to 6 study steps.
 - Block kinds: ${Object.keys(blockExamples).filter((kind) => kind !== "figure").join(", ")}.
-- Write titles and summaries in ${languageName(brief.language)}.${brief.examMode ? "" : "\n- Do not include an exam."}`;
-  const user = `${briefLines(brief)}\n\nCOURSE MATERIAL:\n${materialText}`;
-  return { system, user };
+- Write titles, summaries and the home page in ${languageName(brief.language)}.${brief.examMode ? "" : "\n- Do not include an exam."}${
+    fixed
+      ? `\n- LECTURES ARE FIXED: use exactly the lectures listed in the request, in that order, with those titles and pages. Do not add alternatives.`
+      : `\n- "alternatives": 0, 1 or 2 other ways to organise the SAME material, each with a different "approach" from "${APPROACH_LIST}". Return [] when there is no really different way.`
+  }`;
+  const lines = [
+    briefLines(brief),
+    context.subject ? `Subject: ${context.subject}` : "",
+    context.goals.length ? `Goals of the course:\n${context.goals.map((goal) => `- ${goal}`).join("\n")}` : "",
+    context.assumptions.length ? `Assumptions:\n${context.assumptions.map((item) => `- ${item}`).join("\n")}` : "",
+    fixed ? `LECTURES ARE FIXED:\n${fixed.map((lecture, index) => `- ${index + 1}. ${lecture.title} (${lecture.pages})`).join("\n")}` : "",
+  ].filter(Boolean);
+  return { system, user: `${lines.join("\n\n")}\n\nCOURSE MATERIAL:\n${materialText}` };
 }
+
+export const APPROACH_LIST = "follow-source | by-topic | problem-first | exam-focused | timeline";
 
 function blockReference(): string {
   return Object.entries(blockExamples)

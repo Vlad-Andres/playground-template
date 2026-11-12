@@ -59,6 +59,46 @@
       "type": "string",
       "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
     },
+    "home": {
+      "type": "object",
+      "properties": {
+        "intro": {
+          "type": "string",
+          "maxLength": 1200
+        },
+        "highlights": {
+          "maxItems": 4,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "title": {
+                "type": "string",
+                "maxLength": 80
+              },
+              "md": {
+                "type": "string",
+                "maxLength": 400
+              }
+            },
+            "required": [
+              "title",
+              "md"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "studyPath": {
+          "maxItems": 6,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 160
+          }
+        }
+      },
+      "additionalProperties": false
+    },
     "theme": {
       "type": "object",
       "properties": {
