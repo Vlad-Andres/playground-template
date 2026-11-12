@@ -128,11 +128,11 @@ export function cannedModel(): ModelClient {
       return JSON.stringify({ summary: "Made the first lecture simpler.", course: {}, lectures: first ? [{ slug: first.slug, instruction: "Make it simpler." }] : [] });
     }
     if (request.system.startsWith(TASK.refine)) {
-      const lecture = JSON.parse(/LECTURE:\n(.*?)(?:\n\nPAGES:|$)/s.exec(request.user)?.[1] ?? "{}") as { meta?: Record<string, unknown> };
+      const lecture = JSON.parse(/LECTURE:\n([\s\S]*?)(?:\n\nPAGES:|$)/.exec(request.user)?.[1] ?? "{}") as { meta?: Record<string, unknown> };
       return JSON.stringify({ ...lecture, meta: { ...lecture.meta, subtitle: "Refined" } });
     }
     if (request.system.startsWith(TASK.appendPlan)) {
-      const existing = JSON.parse(/EXISTING LECTURES:\n(.*?)\n\nNEW MATERIAL:/s.exec(request.user)?.[1] ?? "[]") as { slug: string }[];
+      const existing = JSON.parse(/EXISTING LECTURES:\n([\s\S]*?)\n\nNEW MATERIAL:/.exec(request.user)?.[1] ?? "[]") as { slug: string }[];
       const files = [...new Set(pages.map((page) => page.file))];
       const lectures = files.map((file, index) => {
         const filePages = pages.filter((page) => page.file === file).map((page) => page.page);
