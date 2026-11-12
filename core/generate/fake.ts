@@ -121,6 +121,40 @@ export function cannedModel(): ModelClient {
         ],
       });
     }
+    if (request.system.startsWith(TASK.refinePlan)) {
+      if (request.user.includes("[empty]")) return JSON.stringify({ summary: "", course: {}, lectures: [] });
+      const outline = /OUTLINE:\n([\s\S]*)$/.exec(request.user)?.[1] ?? "[]";
+      const first = (JSON.parse(outline) as { slug: string }[])[0];
+      return JSON.stringify({ summary: "Made the first lecture simpler.", course: {}, lectures: first ? [{ slug: first.slug, instruction: "Make it simpler." }] : [] });
+    }
+    if (request.system.startsWith(TASK.refine)) {
+      const lecture = JSON.parse(/LECTURE:\n(.*?)(?:\n\nPAGES:|$)/s.exec(request.user)?.[1] ?? "{}") as { meta?: Record<string, unknown> };
+      return JSON.stringify({ ...lecture, meta: { ...lecture.meta, subtitle: "Refined" } });
+    }
+    if (request.system.startsWith(TASK.appendPlan)) {
+      const existing = JSON.parse(/EXISTING LECTURES:\n(.*?)\n\nNEW MATERIAL:/s.exec(request.user)?.[1] ?? "[]") as { slug: string }[];
+      const files = [...new Set(pages.map((page) => page.file))];
+      const lectures = files.map((file, index) => {
+        const filePages = pages.filter((page) => page.file === file).map((page) => page.page);
+        return {
+          number: index + 1,
+          slug: `added-${index + 1}`,
+          title: `Added part ${index + 1}`,
+          summary: `Everything in ${file}.`,
+          goals: ["Explain the new material."],
+          pages: [{ file, from: Math.min(...filePages), to: Math.max(...filePages) }],
+          sections: [
+            { id: "goals", title: "Goals", kind: "objectives", blocks: ["list"] },
+            { id: "ideas", title: "Key ideas", kind: "concepts", blocks: ["prose", "concepts", "table"] },
+            { id: "practice", title: "Practice", kind: "quiz", blocks: ["recall", "practice", "widget"] },
+          ],
+        };
+      });
+      const restructure = request.user.includes("[restructure]")
+        ? { recommended: true, affected: existing.slice(0, 2).map((lecture) => lecture.slug), reason: "The new material changes the first two lectures." }
+        : { recommended: false, affected: [], reason: "" };
+      return JSON.stringify({ lectures, restructure });
+    }
     if (request.system.startsWith(TASK.repair)) return JSON.stringify({ items: [] });
     return JSON.stringify({ concepts: [], quiz: [], blocks: [] });
   });

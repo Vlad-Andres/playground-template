@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const LIMITS = { files: 12, pages: 400, characters: 600_000, lectures: 12, contextCharacters: 2_000 } as const;
+export const LIMITS = { files: 12, pages: 400, characters: 600_000, lectures: 12, contextCharacters: 2_000, courseLectures: 24, refineNote: 1_000, refineLectures: 3 } as const;
 
 export const LEVELS = ["school", "university", "professional"] as const;
 export const DEPTHS = ["cram", "standard", "deep"] as const;

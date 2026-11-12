@@ -42,7 +42,7 @@ export interface CourseDesign {
   alternatives: DesignOutline[];
 }
 
-const plannedLectureSchema = z.object({
+export const plannedLectureSchema = z.object({
   number: z.number().int().nonnegative(),
   slug: z.string().min(1).max(80),
   title: z.string().trim().min(1).max(160),
@@ -153,10 +153,11 @@ function prepare(raw: unknown, brief: Brief): unknown {
   return value;
 }
 
-function finish(plan: CoursePlan, brief: Brief): CoursePlan {
-  const seen = new Set<string>();
-  const lectures = plan.lectures.slice(0, LIMITS.lectures).map((lecture, index) => {
-    const number = index + 1;
+/** Number lectures from `start + 1`, make slugs unique (also against `taken`) and section ids unique per lecture. */
+export function finishLectures(lectures: PlannedLecture[], start = 0, taken: Iterable<string> = []): PlannedLecture[] {
+  const seen = new Set<string>(taken);
+  return lectures.map((lecture, index) => {
+    const number = start + index + 1;
     let slug = slugify(lecture.slug, `lecture-${number}`);
     if (seen.has(slug)) {
       let suffix = 2;
@@ -173,6 +174,10 @@ function finish(plan: CoursePlan, brief: Brief): CoursePlan {
     });
     return { ...lecture, number, slug, sections };
   });
+}
+
+function finish(plan: CoursePlan, brief: Brief): CoursePlan {
+  const lectures = finishLectures(plan.lectures.slice(0, LIMITS.lectures));
   const exam = brief.examMode ? (plan.exam ?? { title: "Exam training", intro: "Practise with questions from every lecture." }) : undefined;
   return { course: { ...plan.course, indexable: false }, lectures, ...(exam ? { exam } : {}), approach: plan.approach, why: plan.why };
 }

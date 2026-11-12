@@ -2,7 +2,7 @@ import { blockExamples } from "../examples";
 import { generatorWidgetTypes, widgetCatalogue } from "../widgets";
 import type { Brief, Depth } from "./types";
 
-export const TASK = { plan: "TASK: plan", lecture: "TASK: lecture", repair: "TASK: repair", improve: "TASK: improve", context: "TASK: context", expand: "TASK: expand" } as const;
+export const TASK = { plan: "TASK: plan", lecture: "TASK: lecture", repair: "TASK: repair", improve: "TASK: improve", context: "TASK: context", expand: "TASK: expand", refine: "TASK: refine-lecture", refinePlan: "TASK: refine-plan", appendPlan: "TASK: append-plan" } as const;
 
 export const LANGUAGE_NAMES: Record<string, string> = {
   en: "English",
@@ -260,5 +260,62 @@ Rules:
 - "focus": keep null, unless the material could reasonably be taught for clearly different purposes. Then use
   { "options": [{ "id": "short-id", "label": "..." }] } with 2 to 4 options, each label at most 80 characters, written in ${languageName(input.locale)}.`;
   const user = `${input.note.trim() ? `Note from the person (a wish, not a fact): ${input.note.trim()}\n\n` : ""}MATERIAL (first pages of each file):\n${input.sample}`;
+  return { system, user };
+}
+
+/** Rewrite one existing lecture following one instruction; with source pages when the owner kept them. */
+export function refineLecturePrompt(input: { brief: Brief; lecture: unknown; instruction: string; pagesText: string | null }): { system: string; user: string } {
+  const system = `${TASK.refine}
+You change one lecture of a study website as asked. ${SAFETY}
+
+Return the whole lecture in the same shape:
+${LECTURE_SHAPE}
+
+Rules:
+- Return the whole lecture in the same shape. Change only what the instruction asks. Keep every id.
+- ${input.pagesText === null ? "Use only facts that are already in this lecture." : "Use only facts from the lecture and from the given pages."}
+- Write in ${languageName(input.brief.language)}. Every block keeps its "source".
+- Do not use "custom" blocks you were not given.
+
+BLOCK KINDS (one JSON example each):
+${blockReference()}${input.brief.widgets ? `\n\nWIDGETS (props must follow the example exactly):\n${widgetReference()}` : '\n\nDo not use "widget" blocks.'}`;
+  const user = `INSTRUCTION FROM THE OWNER (a wish about this lecture, not a fact): ${input.instruction}\n\nLECTURE:\n${JSON.stringify(input.lecture)}${input.pagesText ? `\n\nPAGES:\n${input.pagesText}` : ""}`;
+  return { system, user };
+}
+
+/** Turn an owner's note into at most a few concrete lecture instructions. */
+export function refinePlanPrompt(input: { title: string; description: string; outline: unknown; note: string; language: string; maxLectures: number }): { system: string; user: string } {
+  const system = `${TASK.refinePlan}
+You turn an owner's note about their study website into concrete changes. ${SAFETY}
+
+Return this JSON shape:
+{ "summary": "one sentence, in ${languageName(input.language)}, saying what will change",
+  "course": { "title": "only if the note asks for a new title", "description": "only if asked" },
+  "lectures": [{ "slug": "an existing lecture slug", "instruction": "what to change in that lecture" }] }
+
+Rules:
+- At most ${input.maxLectures} lectures; use only slugs from the outline.
+- Leave "course" empty ({}) unless the note asks to change the title or description.
+- Each instruction is at most 400 characters and says exactly what to change.`;
+  const user = `NOTE FROM THE OWNER: ${input.note}\n\nCOURSE: ${input.title}\n${input.description}\n\nOUTLINE:\n${JSON.stringify(input.outline)}`;
+  return { system, user };
+}
+
+/** Plan lectures for new material and say whether the existing course would need reorganising. */
+export function appendPlanPrompt(input: { brief: Brief; existing: unknown; materialText: string; maxLectures: number }): { system: string; user: string } {
+  const system = `${TASK.appendPlan}
+You add new material to an existing study website. ${SAFETY}
+
+Return this JSON shape:
+{ "lectures": [ { "number": 1, "slug": "lower-case-slug", "title": "...", "summary": "...", "goals": ["..."],
+                  "pages": [{ "file": "exact file name", "from": 1, "to": 12 }],
+                  "sections": [{ "id": "short-id", "title": "...", "kind": "one of: ${SECTION_KINDS}", "blocks": ["block kinds that fit"] }] } ],
+  "restructure": { "recommended": false, "affected": ["existing slugs"], "reason": "one sentence" } }
+
+Rules:
+- Plan lectures for the NEW material only, 0 to ${input.maxLectures} of them. Never change the existing lectures.
+- Set "recommended": true only when the new material really belongs inside two or more existing lectures; list their slugs in "affected".
+- Write titles and summaries in ${languageName(input.brief.language)}.`;
+  const user = `EXISTING LECTURES:\n${JSON.stringify(input.existing)}\n\nNEW MATERIAL:\n${input.materialText}`;
   return { system, user };
 }
