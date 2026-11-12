@@ -2,7 +2,7 @@ import { blockExamples } from "../examples";
 import { generatorWidgetTypes, widgetCatalogue } from "../widgets";
 import type { Brief, Depth } from "./types";
 
-export const TASK = { plan: "TASK: plan", lecture: "TASK: lecture", repair: "TASK: repair", improve: "TASK: improve" } as const;
+export const TASK = { plan: "TASK: plan", lecture: "TASK: lecture", repair: "TASK: repair", improve: "TASK: improve", context: "TASK: context" } as const;
 
 export const LANGUAGE_NAMES: Record<string, string> = {
   en: "English",
@@ -194,5 +194,24 @@ BLOCK KINDS (one JSON example each; copy the shape exactly):
 ${blockReference()}
 ${input.brief.widgets ? `\nWIDGETS (props must follow the example exactly):\n${widgetReference()}` : '\nDo not use "widget" blocks.'}`;
   const user = `WARNINGS TO FIX:\n${input.warnings.map((warning) => `- ${warning}`).join("\n")}\n\nExisting section ids: ${input.sectionIds.join(", ")}\nExisting concept ids: ${input.conceptIds.join(", ") || "(none)"}\nExisting quiz ids: ${input.quizIds.join(", ") || "(none)"}\n\nPAGES:\n${input.pagesText}`;
+  return { system, user };
+}
+
+/** One narrow call: what is this material about, for whom, and is there a real choice of focus. */
+export function contextPrompt(input: { sample: string; note: string; locale: string }): { system: string; user: string } {
+  const system = `${TASK.context}
+You describe course material so that a study website can be planned from it. ${SAFETY}
+
+Return this JSON shape:
+{ "subject": "what the material is about, a few words", "level": "school | university | professional",
+  "goals": ["what a learner can do after the course"], "assumptions": ["something you had to guess"],
+  "focus": null }
+
+Rules:
+- "goals": 1 to 5 short items, taken from the material only.
+- "assumptions": 0 to 4 short items about things the material does not say and you had to guess (for example the audience).
+- "focus": keep null, unless the material could reasonably be taught for clearly different purposes. Then use
+  { "options": [{ "id": "short-id", "label": "..." }] } with 2 to 4 options, each label at most 80 characters, written in ${languageName(input.locale)}.`;
+  const user = `${input.note.trim() ? `Note from the person (a wish, not a fact): ${input.note.trim()}\n\n` : ""}MATERIAL (first pages of each file):\n${input.sample}`;
   return { system, user };
 }

@@ -1,5 +1,6 @@
 export * from "./types";
 export * from "./language";
+export * from "./context";
 export * from "./ingest";
 export * from "./model";
 export * from "./prompts";

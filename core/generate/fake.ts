@@ -11,6 +11,12 @@ export function cannedModel(): ModelClient {
   return fakeModel((request) => {
     const pages = pagesIn(request.user);
     const source = pages.slice(0, 1).length ? pages.slice(0, 1) : [{ file: "material.txt", page: 1 }];
+    if (request.system.startsWith(TASK.context)) {
+      const focus = request.user.includes("[ask-focus]")
+        ? { options: [{ id: "exam", label: "Pass the exam" }, { id: "deep", label: "Understand it deeply" }] }
+        : null;
+      return JSON.stringify({ subject: "Sample subject", level: "university", goals: ["Explain the main ideas of the material."], assumptions: [], focus });
+    }
     if (request.system.startsWith(TASK.plan)) {
       const files = [...new Set(pages.map((page) => page.file))];
       return JSON.stringify({
