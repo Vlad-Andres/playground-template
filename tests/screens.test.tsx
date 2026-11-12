@@ -55,3 +55,26 @@ describe("screens mount under the site base", () => {
     for (const href of hrefs) expect(href.startsWith(`${BASE}/`)).toBe(true);
   });
 });
+
+describe("home page welcome", () => {
+  const home = {
+    intro: "Welcome to **energy**.",
+    highlights: [{ title: "Short lectures", md: "Each fits one sitting." }, { title: "Practice first", md: "Try before you read." }],
+    studyPath: ["Read lecture 1", "Do the quiz"],
+  };
+
+  it("shows the intro, every highlight and the study path when the course has a home", async () => {
+    const withHome = { ...showcase, course: { ...showcase.course, home } };
+    const html = await render(<HomeScreen data={withHome} />);
+    expect(html).toContain("data-course-welcome");
+    expect(html).toMatch(/<strong[^>]*>energy<\/strong>/);
+    for (const text of ["Short lectures", "Practice first", "How to study this course", "Read lecture 1", "Do the quiz"]) expect(html).toContain(text);
+    expect(html.indexOf("data-course-welcome")).toBeLessThan(html.indexOf('id="lectures"'));
+  });
+
+  it("renders no welcome without a home", async () => {
+    const html = await render(<HomeScreen data={showcase} />);
+    expect(html).not.toContain("data-course-welcome");
+    expect(html).not.toContain("How to study this course");
+  });
+});
