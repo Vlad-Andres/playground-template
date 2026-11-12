@@ -33,7 +33,7 @@ content; the renderer and widget registry are existing implementation.
   matches the teaching need. The `dis` pack is for the DIS example only.
 - Every block should carry `source`: the material file and page(s) it came from.
 - `exam.json` and `expected.json` are optional. Omit them when the source has no exam evidence.
-- Content may contain Markdown, but not executable code or raw HTML.
+- Content may contain Markdown, but not executable code or raw HTML — with one exception: a `custom` block (see `docs/agent/blocks/`) carries one self-contained exercise in its `html` field. It runs only inside a sandboxed frame without network or storage, must pass `scanCustomHtml` (`core/custom.ts`), and is used only when no catalogue widget can teach the idea.
 - Preserve uncertainty as an explicit note; never fill a missing fact from general knowledge.
 
 ## Reference and showcase

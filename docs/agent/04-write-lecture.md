@@ -16,3 +16,7 @@ mark a conflict or uncertainty in an `info` block. Keep Markdown links to `http(
 paths, or anchors. Do not write raw HTML.
 
 Done means the lecture is complete, concise, traceable, and represented entirely by JSON.
+
+## Custom exercises
+
+Content may contain Markdown, but not executable code or raw HTML — with one exception: a `custom` block (see `docs/agent/blocks/`) carries one self-contained exercise in its `html` field. It runs only inside a sandboxed frame without network or storage, must pass `scanCustomHtml` (`core/custom.ts`), and is used only when no catalogue widget can teach the idea.
