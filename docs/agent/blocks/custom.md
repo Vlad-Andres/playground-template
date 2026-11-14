@@ -2,7 +2,7 @@
 
 # Block `custom`
 
-**Use:** A self-contained HTML/CSS/JS exercise the widget catalogue does not cover, rendered in a sandboxed frame.
+**Use:** A self-contained HTML/CSS/JS simulation or interactive model written for this material, rendered in a sandboxed frame.
 
 **Avoid:** Anything that needs the network, storage, another page or the course's own JavaScript.
 
