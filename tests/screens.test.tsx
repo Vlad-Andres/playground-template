@@ -104,3 +104,12 @@ describe("home page promises only what the course has", () => {
     expect(html).toContain("built from the lecture questions");
   });
 });
+
+describe("course overview headline", () => {
+  it("falls back to a headline without the old playground name", async () => {
+    const plain = { ...showcase, course: { ...showcase.course, overviewTitle: undefined } };
+    const html = await render(<HomeScreen data={plain} />);
+    expect(html).not.toMatch(/playground/i);
+    expect(html).toContain(`Study ${showcase.course.title.toLowerCase()}, one idea at a time.`);
+  });
+});
