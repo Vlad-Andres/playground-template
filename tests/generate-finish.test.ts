@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { validateCourseData } from "@core/validate";
 import { courseSchema, lectureFileSchema } from "@core/schema";
-import { DEFAULT_BUDGET, finishCourse, type CoursePlan } from "@core/generate/index";
+import { DEFAULT_BUDGET, EXAM_MIN_LECTURES, EXAM_MIN_QUESTIONS, finishCourse, type CoursePlan } from "@core/generate/index";
 import { brief, goodLecture, plannedLecture } from "./fixtures/generate";
 
 const course = { id: "energy", title: "Energy", shortTitle: "Energy", description: "d", language: "en", indexable: false };
@@ -50,6 +50,31 @@ describe("finishCourse", () => {
 
   it("writes no exam.json without exam mode", () => {
     expect(finishCourse(plan(true), lectures, { ...brief, examMode: false }).files["exam.json"]).toBeUndefined();
+  });
+
+  describe("exam threshold", () => {
+    const withQuiz = (number: number, slug: string, count: number) => ({ ...goodLecture(number, slug), quiz: goodLecture(number, slug).quiz.slice(0, count) });
+
+    it("exports the threshold constants", () => {
+      expect(EXAM_MIN_QUESTIONS).toBe(5);
+      expect(EXAM_MIN_LECTURES).toBe(2);
+    });
+
+    it("writes no exam with fewer than 5 questions in total", () => {
+      const few = [withQuiz(1, "kinetic", 2), withQuiz(2, "potential", 2)];
+      expect(finishCourse(plan(true), few, brief).files["exam.json"]).toBeUndefined();
+    });
+
+    it("writes no exam when the questions come from a single lecture", () => {
+      const single = [withQuiz(1, "kinetic", 6), withQuiz(2, "potential", 0)];
+      expect(finishCourse(plan(true), single, brief).files["exam.json"]).toBeUndefined();
+    });
+
+    it("writes an exam with 5 questions across 2 lectures", () => {
+      const enough = [withQuiz(1, "kinetic", 3), withQuiz(2, "potential", 2)];
+      const exam = lectureFileSchema.parse(JSON.parse(finishCourse(plan(true), enough, brief).files["exam.json"]));
+      expect(exam.quiz).toHaveLength(5);
+    });
   });
 
   it("exports the default budget", () => expect(DEFAULT_BUDGET).toEqual({ inputTokens: 600_000, outputTokens: 120_000 }));
