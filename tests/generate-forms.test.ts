@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cannedModel, customLimit, fakeModel, lecturePrompt, planCourse, TASK, writeLecture, type Brief, type CoursePlan, type ModelRequest } from "@core/generate/index";
+import { cannedModel, customLimit, designPrompt, fakeModel, lecturePrompt, planCourse, TASK, writeLecture, type Brief, type CoursePlan, type ModelRequest } from "@core/generate/index";
 import { brief, goodLecture, materials, plannedLecture } from "./fixtures/generate";
 
 const src = [{ file: "slides.pdf", page: 1 }];
@@ -62,6 +62,36 @@ describe("lecture prompt", () => {
     expect(system).toContain("pg.done(score)");
     expect(system).toContain("at most 1");
     expect(system).not.toContain('Do not use "custom" blocks.');
+  });
+});
+
+describe("planning custom simulations", () => {
+  const context = { subject: "", goals: [], assumptions: [] };
+  const design = (b: Brief) => designPrompt("material", b, context, 6).system;
+
+  it("prefers a model-written simulation when an idea is better shown than told", () => {
+    const system = design({ ...brief, depth: "deep" });
+    expect(system).toContain("better shown than told");
+    expect(system).toContain("Prefer \"custom\" over a catalogue widget");
+    expect(system).toContain("at most 2 per lecture");
+    expect(system).not.toContain("only when no widget type can teach the idea");
+  });
+
+  it("uses the depth limit in the planning rule", () => {
+    expect(design({ ...brief, depth: "standard" })).toContain("at most 1 per lecture");
+  });
+
+  it("does not offer custom blocks at cram depth or without widgets", () => {
+    expect(design({ ...brief, depth: "cram" })).toContain('Do not list "custom".');
+    expect(design({ ...brief, widgets: false })).toContain('Do not list "custom".');
+  });
+
+  it("asks the lecture writer for a real simulation built from the material", () => {
+    const system = lecturePrompt({ brief, lecturePlan: planWith(true).lectures[0], courseTitle: "Energy", pagesText: "", pageCount: 6, customLimit: 2 }).system;
+    expect(system).toContain("real simulation or interactive model");
+    expect(system).toContain("prefers-color-scheme");
+    expect(system).toContain("never LaTeX");
+    expect(system).not.toContain("when no widget type can teach the idea");
   });
 });
 
