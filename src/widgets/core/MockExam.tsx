@@ -14,6 +14,7 @@ import { cn } from "@site/lib/cn";
 import type { ExamAttempt } from "@site/lib/examHistory";
 import { useExamHistory } from "@site/hooks/useExamHistory";
 import { useSite } from "@site/site/context";
+import { quizHref } from "@site/site/paths";
 
 interface PoolQuestion {
   key: string;
@@ -54,7 +55,7 @@ export function MockExam({ questionCount, minutes }: MockExamProps = {}) {
           key: `${entry.meta.slug}:${question.id}`,
           source: entry.meta.slug,
           sourceLabel: `L${entry.meta.number} · ${entry.meta.title}`,
-          href: `${paths.lecture(entry.meta.slug)}#quiz`,
+          href: quizHref(paths, entry.meta, entry.meta.slug),
           question,
         })),
       ),
