@@ -32,7 +32,7 @@ export function DueToday() {
   return (
     <Card className="flex flex-wrap items-center gap-4 p-5" data-due-today>
       <CalendarClock size={24} className="shrink-0 text-brand" aria-hidden />
-      <span className="grid flex-1 gap-0.5">
+      <span className="grid min-w-48 flex-1 gap-0.5">
         <span className="text-base font-semibold text-ink">
           {due > 0 ? `${due} ${due === 1 ? "card" : "cards"} due today` : "All caught up"}
         </span>
