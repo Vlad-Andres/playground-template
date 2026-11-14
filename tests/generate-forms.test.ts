@@ -90,6 +90,7 @@ describe("planning custom simulations", () => {
     const system = lecturePrompt({ brief, lecturePlan: planWith(true).lectures[0], courseTitle: "Energy", pagesText: "", pageCount: 6, customLimit: 2 }).system;
     expect(system).toContain("real simulation or interactive model");
     expect(system).toContain("prefers-color-scheme");
+    expect(system).toContain("never LaTeX");
     expect(system).not.toContain("when no widget type can teach the idea");
   });
 });
