@@ -13,18 +13,27 @@ const loaded = loadCourse("examples/showcase");
 if (!loaded.course) throw new Error("The showcase course did not load.");
 const data = buildSiteData({ key: loaded.course.id, course: loaded.course, lectures: loaded.lectures.map((entry) => entry.data), exam: loaded.exam, expected: loaded.expected });
 
-async function html(offline?: boolean) {
-  const stream = await renderToReadableStream(<SiteShell data={data} base="/courses/x-12345678" {...(offline === undefined ? {} : { offline })}>body</SiteShell>);
+async function html(props: { base?: string; offline?: boolean } = {}) {
+  const { base = "", offline } = props;
+  const stream = await renderToReadableStream(
+    <SiteShell data={data} base={base} {...(offline === undefined ? {} : { offline })}>
+      body
+    </SiteShell>,
+  );
   await stream.allReady;
   return new Response(stream).text();
 }
 
 describe("SiteShell offline support", () => {
-  it("registers the service worker by default (the template's own static site)", async () => {
-    expect(await html()).toContain('data-sw="on"');
+  it("registers the service worker for a standalone site (base is root)", async () => {
+    expect(await html({ base: "" })).toContain('data-sw="on"');
   });
 
-  it("skips it when a host serves many sites from one origin", async () => {
-    expect(await html(false)).not.toContain('data-sw="on"');
+  it("skips registration when the site is served under a path", async () => {
+    expect(await html({ base: "/courses/x-12345678" })).not.toContain('data-sw="on"');
+  });
+
+  it("skips registration when a host explicitly disables it", async () => {
+    expect(await html({ base: "", offline: false })).not.toContain('data-sw="on"');
   });
 });
