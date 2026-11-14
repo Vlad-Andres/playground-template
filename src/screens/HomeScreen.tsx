@@ -6,6 +6,7 @@ import type { SiteData } from "@core/site";
 import { ContinueStudying } from "@site/components/home/ContinueStudying";
 import { CourseOverview } from "@site/components/home/CourseOverview";
 import { CourseWelcome } from "@site/components/home/CourseWelcome";
+import { DueToday } from "@site/components/home/DueToday";
 import { ExamCountdown } from "@site/components/home/ExamCountdown";
 import { LectureCard } from "@site/components/home/LectureCard";
 import { ProgressSummary } from "@site/components/home/ProgressSummary";
@@ -28,6 +29,7 @@ export function HomeScreen({ data }: { data: SiteData }) {
       </div>
 
       <StudyNext metas={metas} />
+      <DueToday />
 
       {data.exam ? <Link
         href={paths.exam}

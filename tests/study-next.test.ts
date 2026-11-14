@@ -59,3 +59,15 @@ describe("quizHref", () => {
     expect(quizHref(paths, { outline: [] }, "l1")).toBe("/courses/x/lectures/l1/");
   });
 });
+
+describe("dueSummary", () => {
+  it("counts items due now and finds the next due time", async () => {
+    const { dueSummary } = await import("@site/lib/difficult");
+    const a = { ...newItem("l1", "a", null, 0), due: 100 };
+    const b = { ...newItem("l1", "b", null, 0), due: 500 };
+    const c = { ...newItem("l2", "c", 1, 0), due: 900 };
+    expect(dueSummary([a, b, c], 500)).toEqual({ total: 3, due: 2, nextDue: 900 });
+    expect(dueSummary([c], 500)).toEqual({ total: 1, due: 0, nextDue: 900 });
+    expect(dueSummary([], 500)).toEqual({ total: 0, due: 0, nextDue: null });
+  });
+});
