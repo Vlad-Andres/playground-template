@@ -78,3 +78,29 @@ describe("home page welcome", () => {
     expect(html).not.toContain("How to study this course");
   });
 });
+
+describe("home page promises only what the course has", () => {
+  const lecture = loaded.lectures[0].data;
+  const withExam = buildSiteData({
+    key: loaded.course!.id,
+    course: loaded.course!,
+    lectures: [lecture],
+    exam: { ...lecture, meta: { ...lecture.meta, slug: "exam", number: 0, title: "Exam training" } },
+    expected: [],
+  });
+
+  it("links to no exam, expected page or fixed principles when the course has none", async () => {
+    const bare = { ...showcase, exam: null, expected: [] };
+    const html = await render(<HomeScreen data={bare} />);
+    expect(internalHrefs(html).some((href) => href.startsWith(`${BASE}/exam`))).toBe(false);
+    expect(internalHrefs(html).some((href) => href.startsWith(`${BASE}/expected`))).toBe(false);
+    expect(html).not.toContain("How this site is built");
+  });
+
+  it("labels the exam as practice built from the lecture questions", async () => {
+    const html = await render(<HomeScreen data={withExam} />);
+    expect(internalHrefs(html).some((href) => href.startsWith(`${BASE}/exam`))).toBe(true);
+    expect(html).toContain("Practice exam");
+    expect(html).toContain("built from the lecture questions");
+  });
+});

@@ -125,7 +125,7 @@ export function SiteHeader({ metas, records }: SiteHeaderProps) {
             )}
           >
             <GraduationCap size={15} aria-hidden />
-            Exam training
+            Practice exam
           </Link> : null}
 
           {hasExpected ? <Link
@@ -201,7 +201,7 @@ export function SiteHeader({ metas, records }: SiteHeaderProps) {
             onClick={closeMenus}
             className="block rounded-lg px-3 py-2 text-sm font-medium hover:bg-sunken"
           >
-            Exam training
+            Practice exam
           </Link> : null}
           {hasExpected ? <Link
             href={paths.expected}
