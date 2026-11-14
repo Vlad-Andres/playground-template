@@ -9,6 +9,7 @@ import { CourseWelcome } from "@site/components/home/CourseWelcome";
 import { ExamCountdown } from "@site/components/home/ExamCountdown";
 import { LectureCard } from "@site/components/home/LectureCard";
 import { ProgressSummary } from "@site/components/home/ProgressSummary";
+import { StudyNext } from "@site/components/home/StudyNext";
 import { countExercises } from "@site/content/registry";
 import { useSite } from "@site/site/context";
 
@@ -25,6 +26,8 @@ export function HomeScreen({ data }: { data: SiteData }) {
         <ContinueStudying metas={metas} />
         <ProgressSummary metas={metas} />
       </div>
+
+      <StudyNext metas={metas} />
 
       {data.exam ? <Link
         href={paths.exam}
