@@ -61,7 +61,9 @@ describe("SiteShell host brand", () => {
 it("renders the course rail with its active lecture, study links, and menu controls", async () => {
   usePathname.mockReturnValueOnce("/courses/x-12345678/lectures/everything/");
   const page = await html({ base: "/courses/x-12345678" });
-  expect(page).toContain('aria-label="Course navigation"');
+  const menuTarget = /aria-label="Open course menu" aria-expanded="false" aria-controls="([^"]+)"/.exec(page)?.[1];
+  expect(menuTarget).toBeTruthy();
+  expect(page).toContain(`<nav id="${menuTarget}" class="course-workspace-rail" aria-label="Course navigation">`);
   expect(page).toMatch(/aria-current="page" href="\/courses\/x-12345678\/lectures\/everything/);
   expect(page).toContain("Recall cards");
   expect(page).toContain("Quiz practice");
