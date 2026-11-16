@@ -148,7 +148,7 @@ describe("answerContext and resolveBrief", () => {
   it("resolveBrief copies the request and takes language and level from the context; throws while the language is open", () => {
     const ctx = defaultContext({ language: "ro", level: "school", depth: "deep", examMode: true, quizzes: false, widgets: true, context: "" }, "Topic");
     expect(ctx).toEqual({ language: "ro", languageSource: "user", level: "school", subject: "Topic", goals: [], assumptions: [], questions: [] });
-    expect(resolveBrief(request({ depth: "deep", title: "T", accent: "#112233", context: "c" }), ctx)).toEqual({ language: "ro", level: "school", depth: "deep", examMode: false, quizzes: true, widgets: true, title: "T", accent: "#112233", context: "c" });
+    expect(resolveBrief(request({ depth: "deep", title: "T", accent: "#112233", context: "c" }), ctx)).toEqual({ language: "ro", level: "school", depth: "deep", examMode: false, quizzes: true, widgets: true, title: "T", context: "c" });
     expect(() => resolveBrief(request(), open)).toThrow();
   });
 });

@@ -2,7 +2,15 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { Markdown } from "@/components/content/Markdown";
 
+import { ConceptCard } from "@/components/content/ConceptCard";
+
 describe("Markdown safety", () => {
+  it("renders inline maths in a concept definition", () => {
+    const html = renderToStaticMarkup(<ConceptCard concept={{ id: "p", term: "Momentum", short: "Momentum is $p = mv$." }} />);
+    expect(html).toContain('class="katex"');
+    expect(html).not.toContain("$p = mv$");
+  });
+
   it("does not render raw HTML from content", () => {
     const html = renderToStaticMarkup(<Markdown>{"<script>alert('xss')</script><b>text</b>"}</Markdown>);
 

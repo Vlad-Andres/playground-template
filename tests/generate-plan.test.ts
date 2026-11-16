@@ -24,11 +24,13 @@ describe("planCourse", () => {
     expect(plan.exam?.title).toBe("Exam training");
   });
 
-  it("applies the brief's title and accent", async () => {
-    const { model } = sequence(planReply());
+  it("keeps the brief title and ignores legacy and model-provided themes", async () => {
+    const reply = JSON.parse(planReply());
+    reply.course.theme = { accent: "#ff0000", corners: "sharp" };
+    const { model } = sequence(JSON.stringify(reply));
     const plan = await planCourse(materials, { ...brief, title: "My course", accent: "#123456" }, model);
     expect(plan.course.title).toBe("My course");
-    expect(plan.course.theme?.accent).toBe("#123456");
+    expect(plan.course.theme).toBeUndefined();
   });
 
   it("clamps 14 lectures to 12 and renumbers them 1..12", async () => {
