@@ -1,3 +1,4 @@
+import { runInNewContext } from "node:vm";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import {
@@ -29,6 +30,27 @@ describe("wrapCustomHtml", () => {
     expect(html.indexOf('http-equiv="Content-Security-Policy"')).toBeLessThan(
       html.indexOf('http-equiv="refresh"'),
     );
+  });
+
+  it("applies valid theme messages from the embedding window only", () => {
+    const listeners = new Map<string, (event: { source: object; data: unknown }) => void>();
+    const parent = {};
+    const root = { dataset: { pgTheme: "" }, style: { colorScheme: "" } };
+    const script = /<script>([\s\S]*?)<\/script>/.exec(wrapCustomHtml("<p>Hello</p>"))?.[1] ?? "";
+    runInNewContext(script, {
+      parent,
+      document: { documentElement: root },
+      window: { addEventListener: (type: string, listener: never) => listeners.set(type, listener) },
+    });
+    const send = listeners.get("message")!;
+    send({ source: {}, data: { pg: "theme", value: "dark" } });
+    send({ source: parent, data: { pg: "theme", value: "invalid" } });
+    expect(root.dataset.pgTheme).toBe("");
+    for (const theme of ["dark", "light"]) {
+      send({ source: parent, data: { pg: "theme", value: theme } });
+      expect(root.dataset.pgTheme).toBe(theme);
+      expect(root.style.colorScheme).toBe(theme);
+    }
   });
 
   it("allows the script origins it is given", () => {
