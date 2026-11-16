@@ -48,3 +48,13 @@ it("renders math in cloze choices without putting rich markup inside native opti
   expect(html.match(/class="katex"/g)).toHaveLength(2);
   expect(html).not.toContain("<option");
 });
+
+it("starts the lecture quiz with one question and an ordered count", () => {
+  const second = { ...question, id: "energy", prompt: "What is kinetic energy?" };
+  const html = renderToStaticMarkup(<SiteProvider data={site} base="">
+    <QuizCard lectureSlug={minimalLecture.meta.slug} sectionId="check" questions={[question, second]} />
+  </SiteProvider>);
+  expect(html).toMatch(/Quiz \/.*01.*of.*02/);
+  expect(html).not.toContain(second.prompt);
+  expect(html).toContain("Next question");
+});

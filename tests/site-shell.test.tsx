@@ -2,7 +2,8 @@ import { renderToReadableStream } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
 // The real component renders nothing; a marker shows whether the shell mounted it.
-vi.mock("next/navigation", () => ({ usePathname: () => "/courses/x-12345678/", useRouter: () => ({ push: () => undefined }), useSearchParams: () => new URLSearchParams() }));
+const { usePathname } = vi.hoisted(() => ({ usePathname: vi.fn(() => "/courses/x-12345678/") }));
+vi.mock("next/navigation", () => ({ usePathname, useRouter: () => ({ push: () => undefined }), useSearchParams: () => new URLSearchParams() }));
 vi.mock("@site/components/layout/ServiceWorkerRegistration", () => ({ ServiceWorkerRegistration: () => <i data-sw="on" /> }));
 
 import { buildSiteData, DEFAULT_HOST, type SiteHost } from "@core/site";
@@ -55,4 +56,15 @@ describe("SiteShell host brand", () => {
     expect(page).toContain('href="https://example.test?from=course"');
     expect(page).toMatch(/Made with Study with AI.*make your own/);
   });
+});
+
+it("renders the course rail with its active lecture, study links, and menu controls", async () => {
+  usePathname.mockReturnValueOnce("/courses/x-12345678/lectures/everything/");
+  const page = await html({ base: "/courses/x-12345678" });
+  expect(page).toContain('aria-label="Course navigation"');
+  expect(page).toMatch(/aria-current="page" href="\/courses\/x-12345678\/lectures\/everything/);
+  expect(page).toContain("Recall cards");
+  expect(page).toContain("Quiz practice");
+  expect(page).toContain("Open course menu");
+  expect(page).toContain("Switch to dark theme");
 });
